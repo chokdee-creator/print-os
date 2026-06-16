@@ -1081,6 +1081,26 @@
       background: #fffdfa;
     }
 
+    .payment-workspace[hidden] {
+      display: none;
+    }
+
+    .payment-toggle-row {
+      display: flex;
+      justify-content: flex-end;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      background: #fffdfa;
+    }
+
+    body.dark .payment-toggle-row {
+      background: #111827;
+    }
+
+    .payment-toggle-row .btn {
+      min-width: 132px;
+    }
+
     body.dark .payment-workspace {
       background: #111827;
     }
@@ -1679,7 +1699,11 @@
           </div>
         </div>
 
-        <div class="payment-workspace">
+        <div class="payment-toggle-row">
+          <button class="btn secondary" id="togglePaymentPanel" type="button" aria-expanded="false">ลูกค้าชำระ</button>
+        </div>
+
+        <div class="payment-workspace" id="paymentWorkspace" hidden>
           <section class="payment-card" aria-label="บันทึกลูกค้าชำระ">
             <div class="payment-card-header">
               <div>
@@ -1879,6 +1903,8 @@
       selectionCount: document.querySelector("#selectionCount"),
       editSelected: document.querySelector("#editSelected"),
       deleteSelected: document.querySelector("#deleteSelected"),
+      paymentWorkspace: document.querySelector("#paymentWorkspace"),
+      togglePaymentPanel: document.querySelector("#togglePaymentPanel"),
       paymentJobSelect: document.querySelector("#paymentJobSelect"),
       paymentCustomerSelect: document.querySelector("#paymentCustomerSelect"),
       rowPaidAmount: document.querySelector("#rowPaidAmount"),
@@ -1915,6 +1941,14 @@
     let viewMode = "day";
     let editingId = null;
     let selectedIds = new Set();
+    let paymentPanelOpen = false;
+
+    function setPaymentPanelOpen(open) {
+      paymentPanelOpen = open;
+      els.paymentWorkspace.hidden = !open;
+      els.togglePaymentPanel.setAttribute("aria-expanded", open ? "true" : "false");
+      els.togglePaymentPanel.textContent = open ? "ซ่อนลูกค้าชำระ" : "ลูกค้าชำระ";
+    }
 
     function updateCategoryFilterLabel() {
       const label = els.categoryFilter.value === "ทั้งหมด" ? "หมวด" : els.categoryFilter.value;
@@ -3143,6 +3177,8 @@
 
     els.editSelected.addEventListener("click", editSelectedRecord);
     els.deleteSelected.addEventListener("click", deleteSelectedRecords);
+
+    els.togglePaymentPanel.addEventListener("click", () => setPaymentPanelOpen(!paymentPanelOpen));
 
     els.paymentJobSelect.addEventListener("change", updatePaymentPanel);
     els.paymentJobSelect.addEventListener("change", () => {
