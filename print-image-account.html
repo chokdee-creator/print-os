@@ -1074,8 +1074,8 @@
 
     .payment-workspace {
       display: grid;
-      grid-template-columns: minmax(0, 1.35fr) minmax(280px, .65fr);
-      gap: 14px;
+      grid-template-columns: 1fr;
+      gap: 12px;
       padding: 16px;
       border-bottom: 1px solid var(--line);
       background: #fffdfa;
@@ -1119,13 +1119,19 @@
 
     .payment-panel {
       display: grid;
-      grid-template-columns: minmax(170px, 1fr) minmax(170px, 1fr) minmax(130px, .65fr) minmax(180px, .8fr) auto;
+      grid-template-columns: minmax(170px, 1.1fr) minmax(170px, 1.1fr) minmax(120px, .65fr) minmax(220px, 1fr) minmax(112px, auto);
       gap: 10px;
       align-items: end;
     }
 
     .payment-panel .field {
       margin-bottom: 0;
+    }
+
+    .payment-panel > .btn,
+    .bulk-status-panel > .btn {
+      min-height: 44px;
+      white-space: nowrap;
     }
 
     .bulk-status-panel {
@@ -1137,6 +1143,25 @@
 
     .bulk-status-panel .field {
       margin-bottom: 0;
+    }
+
+    @media (max-width: 1180px) {
+      .payment-panel {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .payment-panel .field:nth-child(3) {
+        grid-column: span 1;
+      }
+
+      .payment-panel .field:nth-child(4) {
+        grid-column: span 1;
+      }
+
+      .payment-panel > .btn {
+        grid-column: 1 / -1;
+        justify-self: end;
+      }
     }
 
     .slip-upload {
