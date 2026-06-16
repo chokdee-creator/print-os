@@ -1,0 +1,3139 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>บัญชี ปริ้นอิมเมจ</title>
+  <style>
+    :root {
+      --bg: #f7f4ee;
+      --panel: #fffdfa;
+      --ink: #202326;
+      --muted: #687076;
+      --line: #ddd7cc;
+      --brand: #0f766e;
+      --brand-strong: #0b5f59;
+      --accent: #d97706;
+      --danger: #b42318;
+      --soft: #edf7f6;
+      --shadow: 0 16px 42px rgba(32, 35, 38, .09);
+      font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+    }
+
+    body.dark {
+      --bg: #111827;
+      --panel: #17202b;
+      --ink: #f4f7fb;
+      --muted: #a8b3c2;
+      --line: #314052;
+      --brand: #14b8a6;
+      --brand-strong: #0f9488;
+      --accent: #f59e0b;
+      --danger: #f87171;
+      --soft: #123b3a;
+      --shadow: 0 18px 48px rgba(0, 0, 0, .35);
+      color-scheme: dark;
+    }
+
+    * { box-sizing: border-box; }
+
+    [hidden] { display: none !important; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        linear-gradient(135deg, rgba(15, 118, 110, .08), transparent 36%),
+        linear-gradient(315deg, rgba(217, 119, 6, .08), transparent 32%),
+        var(--bg);
+    }
+
+    button, input, select {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+      border: 0;
+    }
+
+    .app {
+      width: min(1640px, calc(100% - clamp(24px, 4vw, 72px)));
+      margin: 0 auto;
+      padding: 28px 0 42px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: flex-start;
+      margin-bottom: 22px;
+    }
+
+    .title h1 {
+      margin: 0 0 6px;
+      font-size: clamp(28px, 4vw, 46px);
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    .title p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      min-height: 42px;
+      padding: 0 14px;
+      border-radius: 8px;
+      background: var(--ink);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 650;
+      white-space: nowrap;
+    }
+
+    .btn.secondary {
+      background: var(--panel);
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+
+    .btn.ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--line);
+    }
+
+    .btn.danger {
+      background: #fff5f3;
+      color: var(--danger);
+      border: 1px solid #ffd4cf;
+    }
+
+    .btn.small {
+      min-height: 32px;
+      padding: 0 10px;
+      font-size: 12px;
+    }
+
+    .row-actions {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: nowrap;
+    }
+
+    .selection-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      background: var(--soft);
+    }
+
+    .selection-bar[hidden] {
+      display: none;
+    }
+
+    .selection-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .select-cell {
+      text-align: center;
+      width: 46px;
+      min-width: 46px;
+      max-width: 46px;
+      padding-left: 6px;
+      padding-right: 6px;
+      white-space: nowrap;
+    }
+
+    .row-select {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--brand);
+    }
+
+    tr.selected-row {
+      background: rgba(15, 118, 110, .08);
+    }
+
+    tr.payment-paid-row > td {
+      background: #eefaf2;
+    }
+
+    tr.payment-unpaid-row > td {
+      background: #fff1f0;
+    }
+
+    tr.payment-paid-row:hover > td {
+      background: #e4f6eb;
+    }
+
+    tr.payment-unpaid-row:hover > td {
+      background: #ffe8e6;
+    }
+
+    tr.selected-row > td {
+      background: rgba(15, 118, 110, .14);
+    }
+
+    .menu {
+      position: relative;
+    }
+
+    .menu > summary {
+      list-style: none;
+    }
+
+    .menu > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .menu-panel {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      width: 210px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      display: grid;
+      gap: 6px;
+      z-index: 20;
+    }
+
+    .menu-panel .btn {
+      width: 100%;
+      justify-content: flex-start;
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid transparent;
+    }
+
+    .menu-panel .btn:hover {
+      border-color: var(--line);
+      background: var(--soft);
+    }
+
+    body.dark .btn {
+      background: var(--brand);
+      color: #06211f;
+    }
+
+    body.dark .btn.secondary,
+    body.dark .btn.ghost {
+      background: #121b26;
+      color: var(--ink);
+      border-color: var(--line);
+    }
+
+    body.dark .menu-panel {
+      background: var(--panel);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 390px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: rgba(255, 253, 250, .94);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .form-panel {
+      padding: 18px;
+      position: sticky;
+      top: 18px;
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .panel-head h2 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .sync-status {
+      min-height: 28px;
+      padding: 5px 9px;
+      border-radius: 999px;
+      color: var(--brand-strong);
+      background: var(--soft);
+      font-size: 12px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      max-width: 180px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+      margin-bottom: 13px;
+    }
+
+    .job-line {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 112px;
+      gap: 12px;
+      align-items: end;
+    }
+
+    .customer-line {
+      display: grid;
+      grid-template-columns: 150px minmax(0, 1fr);
+      gap: 12px;
+      align-items: end;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: 700;
+      color: #31363a;
+    }
+
+    input, select {
+      width: 100%;
+      height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0 12px;
+      background: #fff;
+      color: var(--ink);
+      outline: 0;
+    }
+
+    input.row-select {
+      width: 18px;
+      height: 18px;
+      padding: 0;
+    }
+
+    body.dark input,
+    body.dark select,
+    body.dark textarea {
+      background: #111827;
+      color: var(--ink);
+    }
+
+    input:focus, select:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, .13);
+    }
+
+    input[readonly] {
+      background: #f4f7f7;
+      color: var(--brand-strong);
+      font-weight: 800;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .cost-breakdown {
+      padding: 13px;
+      margin-top: 3px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfaf7;
+    }
+
+    .print-mode-panel {
+      display: grid;
+      gap: 10px;
+      margin: 3px 0 13px;
+    }
+
+    .print-mode-panel p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .print-mode-options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .print-mode-card {
+      min-height: 48px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 13px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+
+    .print-mode-card input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--brand);
+    }
+
+    .print-mode-card:has(input:checked) {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, .14);
+      color: var(--brand-strong);
+    }
+
+    .print-type-panel {
+      display: grid;
+      gap: 10px;
+      padding: 13px;
+      margin: -2px 0 13px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: linear-gradient(135deg, rgba(15, 118, 110, .08), rgba(217, 119, 6, .06));
+    }
+
+    .print-type-panel p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .print-type-options {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .custom-print-size {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      padding-top: 2px;
+    }
+
+    .piece-price-panel {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      padding-top: 2px;
+    }
+
+    .lamination-option,
+    .vinyl-frame-option {
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 13px;
+      width: fit-content;
+      font-weight: 850;
+      color: var(--ink);
+    }
+
+    .vinyl-frame-options {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .lamination-option input,
+    .vinyl-frame-option input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--brand);
+    }
+
+    .print-type-card {
+      min-height: 72px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      font-weight: 850;
+      color: var(--ink);
+      transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+    }
+
+    .print-type-card input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .print-type-card:has(input:checked) {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, .14);
+      color: var(--brand-strong);
+      transform: translateY(-1px);
+    }
+
+    body.dark .print-type-panel {
+      background: #121b26;
+    }
+
+    body.dark .cost-breakdown {
+      background: #121b26;
+    }
+
+    .cost-breakdown h3 {
+      margin: 0 0 12px;
+      font-size: 15px;
+    }
+
+    .preview {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 9px;
+      margin: 16px 0;
+    }
+
+    .metric {
+      min-height: 82px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 11px;
+      background: #fbfaf7;
+    }
+
+    body.dark .metric,
+    body.dark .summary .metric,
+    body.dark table,
+    body.dark .empty {
+      background: #17202b;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 18px;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+    }
+
+    .form-actions {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+    }
+
+    .save {
+      background: var(--brand);
+    }
+
+    .save:hover {
+      background: var(--brand-strong);
+    }
+
+    .list-panel {
+      overflow: hidden;
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: minmax(260px, 1.1fr) minmax(220px, .9fr) minmax(280px, 1fr) auto;
+      gap: 12px;
+      align-items: end;
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+      background: #fffdfa;
+    }
+
+    body.dark .filters {
+      background: #111827;
+    }
+
+    .filter-group {
+      display: grid;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .filter-label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .segments {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .segment {
+      min-height: 40px;
+      background: transparent;
+      color: var(--muted);
+      font-weight: 750;
+    }
+
+    .segment.active {
+      background: var(--brand);
+      color: #fff;
+    }
+
+    .report-controls {
+      display: contents;
+    }
+
+    .control-label {
+      display: none;
+    }
+
+    .customer-display {
+      width: 100%;
+      height: 42px;
+    }
+
+    .date-controls {
+      display: grid;
+      grid-template-columns: minmax(150px, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .date-controls input {
+      width: 100%;
+    }
+
+    .search-controls {
+      display: grid;
+      grid-template-columns: auto minmax(220px, 1fr) auto;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .search-controls input,
+    .search-controls select {
+      height: 42px;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+      background: #fffdfa;
+    }
+
+    body.dark .summary {
+      background: #111827;
+    }
+
+    .summary .metric {
+      min-height: 76px;
+      background: #fff;
+    }
+
+    .table-wrap {
+      overflow: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1720px;
+      background: #fff;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 12px 14px;
+      border-bottom: 1px solid #ece6dc;
+      vertical-align: middle;
+      font-size: 14px;
+    }
+
+    th {
+      color: #555f66;
+      background: #fbfaf7;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .02em;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    body.dark th {
+      color: var(--muted);
+      background: #121b26;
+    }
+
+    body.dark td,
+    body.dark th {
+      border-bottom-color: #2a3747;
+    }
+
+    .category-header-filter {
+      display: none;
+    }
+
+    .category-filter {
+      position: relative;
+      display: inline-block;
+    }
+
+    .category-filter summary {
+      list-style: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 28px;
+      color: #555f66;
+      cursor: pointer;
+      user-select: none;
+      transition: color .18s ease, transform .18s ease;
+    }
+
+    .category-filter summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .category-filter summary::after {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-right: 1.7px solid currentColor;
+      border-bottom: 1.7px solid currentColor;
+      transform: rotate(45deg) translateY(-2px);
+      transition: transform .2s ease;
+    }
+
+    .category-filter[open] summary {
+      color: var(--brand-strong);
+    }
+
+    .category-filter[open] summary::after {
+      transform: rotate(225deg) translate(-1px, -1px);
+    }
+
+    .category-filter-menu {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      min-width: 132px;
+      padding: 6px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transform: translateY(-6px) scale(.98);
+      transform-origin: top left;
+      animation: dropdownIn .18s ease forwards;
+      z-index: 40;
+    }
+
+    .category-filter-option {
+      width: 100%;
+      height: 34px;
+      border: 0;
+      border-radius: 7px;
+      padding: 0 10px;
+      background: transparent;
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 750;
+      text-align: left;
+      cursor: pointer;
+      transition: background .16s ease, color .16s ease, transform .16s ease;
+    }
+
+    .category-filter-option:hover,
+    .category-filter-option.active {
+      background: var(--soft);
+      color: var(--brand-strong);
+    }
+
+    .category-filter-option:active {
+      transform: scale(.98);
+    }
+
+    @keyframes dropdownIn {
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .ux-native-select {
+      display: none;
+    }
+
+    .ux-select {
+      position: relative;
+      width: 100%;
+    }
+
+    .ux-select-trigger {
+      width: 100%;
+      min-height: 44px;
+      padding: 0 38px 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fffef9;
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      list-style: none;
+      transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+    }
+
+    .ux-select-trigger::-webkit-details-marker {
+      display: none;
+    }
+
+    .ux-select-trigger::after {
+      content: "";
+      position: absolute;
+      right: 15px;
+      width: 8px;
+      height: 8px;
+      border-right: 2px solid currentColor;
+      border-bottom: 2px solid currentColor;
+      transform: rotate(45deg) translateY(-2px);
+      transition: transform .2s ease;
+      opacity: .72;
+    }
+
+    .ux-select[open] .ux-select-trigger {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, .13);
+    }
+
+    .ux-select[open] .ux-select-trigger::after {
+      transform: rotate(225deg) translate(-1px, -1px);
+    }
+
+    .ux-select-menu {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      right: 0;
+      max-height: 260px;
+      overflow: auto;
+      padding: 6px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transform: translateY(-8px) scale(.98);
+      transform-origin: top center;
+      animation: dropdownIn .18s ease forwards;
+      z-index: 45;
+    }
+
+    .ux-select-option {
+      width: 100%;
+      min-height: 36px;
+      border: 0;
+      border-radius: 7px;
+      padding: 8px 10px;
+      background: transparent;
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 750;
+      text-align: left;
+      cursor: pointer;
+      transition: background .16s ease, color .16s ease, transform .16s ease;
+    }
+
+    .ux-select-option:hover,
+    .ux-select-option.active {
+      background: var(--soft);
+      color: var(--brand-strong);
+    }
+
+    .ux-select-option:active {
+      transform: scale(.98);
+    }
+
+    body.dark .ux-select-trigger {
+      background: #111827;
+      color: var(--ink);
+    }
+
+    td.number, th.number {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      padding: 0 9px;
+      border-radius: 999px;
+      background: #eef7ff;
+      color: #075985;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .pill.sticker {
+      background: #fff6df;
+      color: #8a4b00;
+    }
+
+    .pill.paid {
+      background: #e8f7ed;
+      color: #087443;
+    }
+
+    .pill.unpaid {
+      background: #fff1f0;
+      color: #b42318;
+    }
+
+    .payment-status-select {
+      width: 112px;
+      height: 34px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 850;
+      cursor: pointer;
+      background: #fff1f0;
+      color: #b42318;
+    }
+
+    .payment-status-select.paid {
+      background: #e8f7ed;
+      color: #087443;
+    }
+
+    #jobRows tr > td {
+      background: var(--row-bg, #fff) !important;
+      transition: background .16s ease;
+    }
+
+    #jobRows tr.payment-paid-row {
+      --row-bg: #e9f8ee;
+    }
+
+    #jobRows tr.payment-unpaid-row {
+      --row-bg: #fff0ef;
+    }
+
+    #jobRows tr.payment-paid-row:hover {
+      --row-bg: #ddf3e6;
+    }
+
+    #jobRows tr.payment-unpaid-row:hover {
+      --row-bg: #ffe2df;
+    }
+
+    #jobRows tr.selected-row {
+      --row-bg: rgba(15, 118, 110, .16);
+    }
+
+    .pill.partner {
+      background: #f0ecff;
+      color: #5b21b6;
+    }
+
+    .pill.tachai {
+      background: #e9f8ff;
+      color: #0369a1;
+    }
+
+    .empty {
+      padding: 42px 16px;
+      text-align: center;
+      color: var(--muted);
+      background: #fff;
+    }
+
+    dialog {
+      border: 0;
+      border-radius: 8px;
+      padding: 0;
+      max-width: min(620px, calc(100% - 28px));
+      box-shadow: 0 28px 80px rgba(0, 0, 0, .25);
+    }
+
+    dialog::backdrop {
+      background: rgba(15, 20, 24, .48);
+    }
+
+    .dialog-body {
+      padding: 20px;
+      background: var(--panel);
+    }
+
+    .dialog-body h2 {
+      margin: 0 0 10px;
+    }
+
+    .dialog-body p {
+      color: var(--muted);
+      margin: 0 0 14px;
+      line-height: 1.55;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 92px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font: inherit;
+    }
+
+    .script {
+      margin-top: 14px;
+      padding: 12px;
+      background: #1f2937;
+      color: #eef2ff;
+      border-radius: 8px;
+      overflow: auto;
+      font: 12px/1.55 Consolas, monospace;
+      max-height: 180px;
+    }
+
+    .slip-preview {
+      min-height: 20px;
+      margin-top: -4px;
+      margin-bottom: 12px;
+      font-size: 13px;
+    }
+
+    .slip-preview a {
+      color: var(--brand-strong);
+      font-weight: 800;
+    }
+
+    .payment-panel {
+      display: grid;
+      grid-template-columns: minmax(190px, 1fr) minmax(190px, 1fr) minmax(140px, .7fr) minmax(180px, .9fr) auto;
+      gap: 10px;
+      align-items: end;
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+      background: #fffdfa;
+    }
+
+    body.dark .payment-panel {
+      background: #111827;
+    }
+
+    .payment-panel .field {
+      margin-bottom: 0;
+    }
+
+    .slip-upload {
+      min-height: 44px;
+      border: 1px dashed var(--brand);
+      border-radius: 8px;
+      background: var(--soft);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      cursor: pointer;
+      color: var(--brand-strong);
+      font-weight: 850;
+    }
+
+    .slip-upload input {
+      position: absolute;
+      opacity: 0;
+      width: 1px;
+      height: 1px;
+      pointer-events: none;
+    }
+
+    .slip-upload-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      background: var(--panel);
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+    }
+
+    .slip-upload-text {
+      min-width: 0;
+      display: grid;
+      gap: 2px;
+    }
+
+    .slip-upload-text strong,
+    .slip-file-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .slip-file-name {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      min-width: min(360px, calc(100% - 36px));
+      padding: 13px 15px;
+      border-radius: 8px;
+      color: #fff;
+      background: #202326;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transform: translateY(14px);
+      pointer-events: none;
+      transition: .18s ease;
+      z-index: 20;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .export-clone {
+      position: fixed;
+      left: -10000px;
+      top: 0;
+      width: 1500px;
+      background: #fffdfa;
+      color: #202326;
+      padding: 18px;
+      z-index: -1;
+    }
+
+    .export-clone .panel {
+      box-shadow: none;
+    }
+
+    .export-clone .filters {
+      display: none;
+    }
+
+    @media print {
+      body.print-report {
+        background: #fff;
+      }
+
+      body.print-report .topbar,
+      body.print-report .form-panel,
+      body.print-report .toast {
+        display: none !important;
+      }
+
+      body.print-report .app {
+        width: 100%;
+        padding: 0;
+      }
+
+      body.print-report .grid {
+        display: block;
+      }
+
+      body.print-report .list-panel {
+        border: 0;
+        box-shadow: none;
+      }
+
+      body.print-report .filters {
+        display: none;
+      }
+
+      body.print-report .table-wrap {
+        overflow: visible;
+      }
+
+      body.print-report table {
+        min-width: 0;
+        font-size: 10px;
+      }
+
+      body.print-report th,
+      body.print-report td {
+        padding: 6px;
+        font-size: 10px;
+      }
+    }
+
+    @media (max-width: 960px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .form-panel {
+        position: static;
+      }
+
+      .filters {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .app {
+        width: min(100% - 20px, 1640px);
+        padding-top: 18px;
+      }
+
+      .topbar {
+        display: grid;
+      }
+
+      .actions {
+        justify-content: stretch;
+      }
+
+      .actions .btn,
+      .form-actions .btn {
+        justify-content: center;
+      }
+
+      .actions .menu {
+        width: 100%;
+      }
+
+      .actions .menu > summary {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .menu-panel {
+        position: static;
+        width: 100%;
+        margin-top: 8px;
+      }
+
+      .two-col,
+      .job-line,
+      .customer-line,
+      .preview,
+      .summary {
+        grid-template-columns: 1fr;
+      }
+
+      .form-actions {
+        grid-template-columns: 1fr;
+      }
+
+      .filters,
+      .date-controls {
+        grid-template-columns: 1fr;
+      }
+
+      .segments,
+      .date-controls,
+      .date-controls input {
+        width: 100%;
+      }
+
+      .search-controls {
+        grid-template-columns: 1fr;
+      }
+
+      .report-controls,
+      .payment-panel {
+        grid-template-columns: 1fr;
+        width: 100%;
+      }
+
+      .print-type-options {
+        grid-template-columns: 1fr;
+      }
+
+      .custom-print-size {
+        grid-template-columns: 1fr;
+      }
+
+      .piece-price-panel {
+        grid-template-columns: 1fr;
+      }
+
+      .print-mode-options {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="title">
+        <h1>บัญชี ปริ้นอิมเมจ</h1>
+        <p>จัดการงานไวนิลและสติ๊กเกอร์ พร้อมคำนวณราคาขาย ต้นทุน และกำไรตามพื้นที่อัตโนมัติ</p>
+      </div>
+      <div class="actions">
+        <a class="btn secondary" href="index.html">หน้าหลัก</a>
+        <a class="btn secondary" href="calculator.html">คำนวณราคา</a>
+        <details class="menu">
+          <summary class="btn secondary">ออกบิล</summary>
+          <div class="menu-panel">
+            <a class="btn secondary" href="invoice.html">บิลปริ้นอิมเมจ</a>
+            <a class="btn secondary" href="chokdee-invoice.html">บิลโชคดี</a>
+          </div>
+        </details>
+        <a class="btn secondary" href="chokdee-print.html">โชคดีการพิมพ์</a>
+        <button class="btn secondary" id="themeToggle" type="button">ธีมมืด</button>
+        <details class="menu">
+          <summary class="btn secondary">รายงาน</summary>
+          <div class="menu-panel">
+            <button class="btn secondary" id="exportPdf" type="button">รายงาน PDF</button>
+            <button class="btn secondary" id="exportPng" type="button">รายงาน PNG</button>
+          </div>
+        </details>
+        <details class="menu">
+          <summary class="btn">จัดการข้อมูล</summary>
+          <div class="menu-panel">
+            <button class="btn secondary" id="syncNow" type="button">ซิงก์ Sheets</button>
+            <button class="btn secondary" id="loadFromSheet" type="button">โหลดจาก Sheets</button>
+            <button class="btn secondary" id="exportCsv" type="button">ส่งออก CSV</button>
+            <button class="btn secondary" id="openSettings" type="button">ตั้งค่า Google Sheet</button>
+          </div>
+        </details>
+      </div>
+    </header>
+
+    <section class="grid">
+      <form class="panel form-panel" id="jobForm">
+        <div class="panel-head">
+          <h2>เพิ่มรายการ</h2>
+          <span class="sync-status" id="syncStatus">โหมดเก็บในเครื่อง</span>
+        </div>
+
+        <div class="field">
+          <label for="jobDate">วันที่</label>
+          <input id="jobDate" name="jobDate" type="date" required>
+        </div>
+
+        <div class="customer-line">
+          <div class="field">
+            <label for="customerType">ประเภทลูกค้า</label>
+            <select id="customerType" name="customerType" required>
+              <option value="มานา เด็กดื้อ" selected>มานา เด็กดื้อ</option>
+              <option value="ลูกค้าประจำ">ลูกค้าประจำ</option>
+              <option value="ลูกค้าทั่วไป">ลูกค้าทั่วไป</option>
+              <option value="ตาชัย">ตาชัย</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="customerName">รายชื่อลูกค้า</label>
+            <input id="customerName" name="customerName" type="text" placeholder="เช่น คุณเอ, บริษัทตัวอย่าง">
+          </div>
+        </div>
+
+        <div class="job-line">
+          <div class="field">
+            <label for="jobName">รายชื่องาน</label>
+            <input id="jobName" name="jobName" type="text" placeholder="เช่น ป้ายหน้าร้าน, สติ๊กเกอร์ฉลากสินค้า" required>
+          </div>
+          <div class="field">
+            <label for="quantity">จำนวน</label>
+            <input id="quantity" name="quantity" type="number" inputmode="numeric" min="1" step="1" value="1" required>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="field">
+            <label for="category">หมวดหมู่</label>
+            <select id="category" name="category" required>
+              <option value="ไวนิล">ไวนิล</option>
+              <option value="สติ๊กเกอร์">สติ๊กเกอร์</option>
+              <option value="งานพิมพ์">งานพิมพ์</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="paymentStatus">สถานะชำระเงิน</label>
+            <select id="paymentStatus" name="paymentStatus" required>
+              <option value="ค้างจ่าย">ค้างจ่าย</option>
+              <option value="จ่ายแล้ว">จ่ายแล้ว</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="print-type-panel" id="printTypePanel" hidden>
+          <p>เลือกขนาดงาน</p>
+          <div class="field">
+            <label for="printSizeSelect">ขนาดงาน</label>
+            <select id="printSizeSelect"></select>
+          </div>
+          <div class="custom-print-size" id="customPrintSize" hidden>
+            <div class="field">
+              <label for="customPrintWidth">กว้าง (ซม.)</label>
+              <input id="customPrintWidth" type="number" inputmode="decimal" min="0" step="0.1" placeholder="เช่น 21">
+            </div>
+            <div class="field">
+              <label for="customPrintLength">ยาว (ซม.)</label>
+              <input id="customPrintLength" type="number" inputmode="decimal" min="0" step="0.1" placeholder="เช่น 29.7">
+            </div>
+          </div>
+          <div class="two-col area-rate-fields" id="areaRateFields">
+            <div class="field">
+              <label for="saleRate">ราคาขาย/ตร.ม.</label>
+              <input id="saleRate" name="saleRate" type="number" inputmode="decimal" min="0" step="0.01" placeholder="350">
+            </div>
+            <div class="field">
+              <label for="costRate">ต้นทุน/ตร.ม.</label>
+              <input id="costRate" name="costRate" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0">
+            </div>
+          </div>
+          <div class="piece-price-panel" id="piecePricePanel" hidden>
+            <div class="field">
+              <label for="pieceSaleRate">ราคา/ชิ้น</label>
+              <input id="pieceSaleRate" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0">
+            </div>
+            <div class="field">
+              <label for="pieceCostRate">ต้นทุน/ชิ้น</label>
+              <input id="pieceCostRate" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0">
+            </div>
+          </div>
+          <label class="lamination-option" id="laminationOption" hidden>
+            <input id="lamination" type="checkbox">
+            <span>เคลือบ</span>
+          </label>
+          <div class="vinyl-frame-options" id="vinylFrameOptions" hidden>
+            <label class="vinyl-frame-option">
+              <input id="woodFrame" type="checkbox">
+              <span>โครงไม้</span>
+            </label>
+            <label class="vinyl-frame-option">
+              <input id="steelFrame" type="checkbox">
+              <span>โครงเหล็ก</span>
+            </label>
+          </div>
+        </div>
+
+        <input id="width" name="width" type="hidden" value="0">
+        <input id="length" name="length" type="hidden" value="0">
+
+        <div class="print-mode-panel">
+          <p>รูปแบบการผลิต</p>
+          <div class="print-mode-options">
+            <label class="print-mode-card">
+              <input type="checkbox" name="printMode" value="พิมพ์เอง">
+              <span>พิมพ์เอง</span>
+            </label>
+            <label class="print-mode-card">
+              <input type="checkbox" name="printMode" value="ส่งพิมพ์" checked>
+              <span>ส่งพิมพ์</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="cost-breakdown" id="costBreakdown" hidden>
+          <h3>รายละเอียดต้นทุน/ตร.ม.</h3>
+          <div class="two-col">
+            <div class="field">
+              <label for="materialCost">ค่าวัสดุ</label>
+              <input id="materialCost" name="materialCost" type="number" inputmode="decimal" min="0" step="0.01" placeholder="120">
+            </div>
+            <div class="field">
+              <label for="inkCost">ค่าหมึก</label>
+              <input id="inkCost" name="inkCost" type="number" inputmode="decimal" min="0" step="0.01" placeholder="10">
+            </div>
+          </div>
+          <div class="two-col">
+            <div class="field">
+              <label for="electricityCost">ค่าไฟ</label>
+              <input id="electricityCost" name="electricityCost" type="number" inputmode="decimal" min="0" step="0.01" placeholder="10">
+            </div>
+            <div class="field">
+              <label for="maintenanceCost">ค่า Maintenance เครื่องพิมพ์</label>
+              <input id="maintenanceCost" name="maintenanceCost" type="number" inputmode="decimal" min="0" step="0.01" placeholder="10">
+            </div>
+          </div>
+        </div>
+
+        <div class="preview" aria-live="polite">
+          <div class="metric">
+            <span>พื้นที่</span>
+            <strong id="areaPreview">0.00 ตร.ม.</strong>
+          </div>
+          <div class="metric">
+            <span>ราคาขาย</span>
+            <strong id="salePreview">฿0.00</strong>
+          </div>
+          <div class="metric">
+            <span>ต้นทุน</span>
+            <strong id="costPreview">฿0.00</strong>
+          </div>
+          <div class="metric">
+            <span>ค้างจ่าย</span>
+            <strong id="balancePreview">฿0.00</strong>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn save" id="saveJob" type="submit">บันทึกรายการ</button>
+          <button class="btn ghost" id="resetForm" type="button">ล้างฟอร์ม</button>
+        </div>
+      </form>
+
+      <section class="panel list-panel">
+        <div class="filters">
+          <div class="filter-group">
+            <span class="filter-label">ช่วงรายงาน</span>
+            <div class="segments" aria-label="เลือกช่วงเวลา">
+              <button class="segment active" data-view="day" type="button">รายวัน</button>
+              <button class="segment" data-view="month" type="button">ทั้งเดือน</button>
+            </div>
+          </div>
+          <div class="filter-group">
+            <span class="filter-label">ประเภทลูกค้า</span>
+            <select class="customer-display" id="customerDisplayFilter" aria-label="เลือกประเภทลูกค้าที่ต้องการแสดง">
+              <option value="ทั้งหมด">แสดงทั้งหมด</option>
+              <option value="ลูกค้าทั่วไป">ลูกค้าทั่วไป</option>
+              <option value="ลูกค้าประจำ">ลูกค้าประจำ</option>
+              <option value="มานา เด็กดื้อ">มานา เด็กดื้อ</option>
+              <option value="ตาชัย">ตาชัย</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <span class="filter-label">วันที่</span>
+            <div class="date-controls">
+              <input id="filterDate" type="date" aria-label="เลือกวันที่">
+              <input id="filterMonth" type="month" aria-label="เลือกเดือน" hidden>
+              <button class="btn ghost" id="todayBtn" type="button">วันนี้</button>
+            </div>
+          </div>
+          <div class="filter-group">
+            <span class="filter-label">ค้นหารายการ</span>
+            <div class="search-controls">
+              <button class="btn ghost" id="toggleSearch" type="button">ค้นหา</button>
+              <input id="searchInput" type="search" placeholder="วันที่, ลูกค้า, รายชื่องาน, ชำระเงิน" hidden>
+              <button class="btn ghost" id="clearSearch" type="button" hidden>ล้าง</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="summary">
+          <div class="metric">
+            <span>จำนวนงาน</span>
+            <strong id="sumCount">0</strong>
+          </div>
+          <div class="metric">
+            <span>พื้นที่รวม</span>
+            <strong id="sumArea">0.00 ตร.ม.</strong>
+          </div>
+          <div class="metric">
+            <span>ยอดขายรวม</span>
+            <strong id="sumSale">฿0.00</strong>
+          </div>
+          <div class="metric">
+            <span>กำไรรวม</span>
+            <strong id="sumProfit">฿0.00</strong>
+          </div>
+          <div class="metric">
+            <span>ลูกค้าชำระ</span>
+            <strong id="sumPaid">฿0.00</strong>
+          </div>
+          <div class="metric">
+            <span>ค้างจ่าย</span>
+            <strong id="sumUnpaid">฿0.00</strong>
+          </div>
+        </div>
+
+        <div class="payment-panel">
+          <div class="field">
+            <label for="paymentJobSelect">เลือกประเภทลูกค้าที่ชำระ</label>
+            <select id="paymentJobSelect"></select>
+          </div>
+          <div class="field">
+            <label for="paymentCustomerSelect">เลือกลูกค้าที่ชำระ</label>
+            <select id="paymentCustomerSelect"></select>
+          </div>
+          <div class="field">
+            <label for="rowPaidAmount">ยอดที่ลูกค้าชำระ</label>
+            <input id="rowPaidAmount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0">
+          </div>
+          <div class="field">
+            <label for="rowPaymentSlip">แนบสลิป</label>
+            <label class="slip-upload" for="rowPaymentSlip">
+              <span class="slip-upload-icon">⇧</span>
+              <span class="slip-upload-text">
+                <strong>เลือกไฟล์สลิป</strong>
+                <span class="slip-file-name" id="rowPaymentSlipName">รองรับรูปภาพหรือ PDF</span>
+              </span>
+              <input id="rowPaymentSlip" type="file" accept="image/*,.pdf">
+            </label>
+          </div>
+          <button class="btn secondary" id="savePayment" type="button">บันทึกชำระ</button>
+        </div>
+
+        <div class="selection-bar" id="selectionBar" hidden>
+          <strong id="selectionCount">เลือก 0 รายการ</strong>
+          <div class="selection-actions">
+            <button class="btn small secondary" id="editSelected" type="button">แก้ไข</button>
+            <button class="btn small danger" id="deleteSelected" type="button">ลบ</button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th class="select-cell">เลือก</th>
+                <th>วันที่</th>
+                <th>
+                  <select class="category-header-filter" id="categoryFilter" aria-hidden="true" tabindex="-1">
+                    <option value="ทั้งหมด">หมวด</option>
+                    <option value="ไวนิล">ไวนิล</option>
+                    <option value="สติ๊กเกอร์">สติ๊กเกอร์</option>
+                    <option value="งานพิมพ์">งานพิมพ์</option>
+                  </select>
+                  <details class="category-filter" id="categoryFilterMenu">
+                    <summary id="categoryFilterLabel">หมวด</summary>
+                    <div class="category-filter-menu" role="menu" aria-label="เลือกหมวดหมู่ที่ต้องการแสดง">
+                      <button class="category-filter-option active" type="button" data-category-filter-value="ทั้งหมด">หมวด</button>
+                      <button class="category-filter-option" type="button" data-category-filter-value="ไวนิล">ไวนิล</button>
+                      <button class="category-filter-option" type="button" data-category-filter-value="สติ๊กเกอร์">สติ๊กเกอร์</button>
+                      <button class="category-filter-option" type="button" data-category-filter-value="งานพิมพ์">งานพิมพ์</button>
+                    </div>
+                  </details>
+                </th>
+                <th>ประเภทลูกค้า</th>
+                <th>รายชื่อลูกค้า</th>
+                <th>รายชื่องาน</th>
+                <th class="number">ราคาขาย</th>
+                <th>ชำระเงิน</th>
+                <th class="number">ขาย/ตร.ม.</th>
+                <th class="number">กว้าง</th>
+                <th class="number">ยาว</th>
+                <th class="number">จำนวน</th>
+                <th class="number">พื้นที่</th>
+                <th class="number">วัสดุ/ตร.ม.</th>
+                <th class="number">หมึก/ตร.ม.</th>
+                <th class="number">ไฟ/ตร.ม.</th>
+                <th class="number">Maintenance/ตร.ม.</th>
+                <th class="number">ต้นทุน/ตร.ม.</th>
+                <th class="number">ลูกค้าชำระ</th>
+                <th class="number">ค้างเหลือ</th>
+                <th>สลิป</th>
+                <th class="number">ต้นทุน</th>
+                <th class="number">กำไร</th>
+              </tr>
+            </thead>
+            <tbody id="jobRows"></tbody>
+          </table>
+          <div class="empty" id="emptyState" hidden>ยังไม่มีรายการในช่วงเวลานี้</div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <dialog id="settingsDialog">
+    <div class="dialog-body">
+      <h2>ตั้งค่า Google Sheet</h2>
+      <p>นำโค้ด Apps Script จากไฟล์ที่แนบไปวางใน Google Apps Script แล้ว Deploy เป็น Web app จากนั้นนำ URL มาวางที่นี่ รายการใหม่จะถูกส่งเข้า Sheet อัตโนมัติ</p>
+      <div class="field">
+        <label for="sheetUrl">Google Apps Script Web App URL</label>
+        <textarea id="sheetUrl" placeholder="https://script.google.com/macros/s/.../exec"></textarea>
+      </div>
+      <div class="form-actions">
+        <button class="btn save" id="saveSettings" type="button">บันทึก URL</button>
+        <button class="btn ghost" id="closeSettings" type="button">ปิด</button>
+      </div>
+      <pre class="script">1. เปิด Google Sheet ใหม่
+2. Extensions > Apps Script
+3. วางโค้ดจากไฟล์ google-apps-script.js
+4. Deploy > New deployment > Web app
+5. Execute as: Me, Who has access: Anyone
+6. Copy Web app URL มาใส่ในช่องนี้</pre>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const STORAGE_KEY = "print_job_tracker_records_v1";
+    const URL_KEY = "print_job_tracker_sheet_url_v1";
+    const THEME_KEY = "print_job_tracker_theme_v1";
+    const SHEET_TAB_NAME = "";
+    const DEFAULT_SHEET_URL = "https://script.google.com/macros/s/AKfycbzDF5-Kvqf03RLCxpToRL7C9PAqlfhUvC_xLgnEExF7H4go7gybvzLaKDwtKVBHl6if/exec";
+    const AUTO_COST_PER_SQM = 10;
+    const CATEGORY_DEFAULTS = {
+      "ไวนิล": { saleRate: 80, materialCost: 21 },
+      "สติ๊กเกอร์": { saleRate: 170, materialCost: 42 }
+    };
+
+    const els = {
+      form: document.querySelector("#jobForm"),
+      saveJob: document.querySelector("#saveJob"),
+      themeToggle: document.querySelector("#themeToggle"),
+      loadFromSheet: document.querySelector("#loadFromSheet"),
+      jobDate: document.querySelector("#jobDate"),
+      category: document.querySelector("#category"),
+      printTypePanel: document.querySelector("#printTypePanel"),
+      areaRateFields: document.querySelector("#areaRateFields"),
+      printSizeSelect: document.querySelector("#printSizeSelect"),
+      printTypes: document.querySelectorAll("input[name='printType']"),
+      customPrintSize: document.querySelector("#customPrintSize"),
+      customPrintWidth: document.querySelector("#customPrintWidth"),
+      customPrintLength: document.querySelector("#customPrintLength"),
+      piecePricePanel: document.querySelector("#piecePricePanel"),
+      pieceSaleRate: document.querySelector("#pieceSaleRate"),
+      pieceCostRate: document.querySelector("#pieceCostRate"),
+      laminationOption: document.querySelector("#laminationOption"),
+      lamination: document.querySelector("#lamination"),
+      vinylFrameOptions: document.querySelector("#vinylFrameOptions"),
+      woodFrame: document.querySelector("#woodFrame"),
+      steelFrame: document.querySelector("#steelFrame"),
+      customerType: document.querySelector("#customerType"),
+      customerName: document.querySelector("#customerName"),
+      jobName: document.querySelector("#jobName"),
+      paymentStatus: document.querySelector("#paymentStatus"),
+      width: document.querySelector("#width"),
+      length: document.querySelector("#length"),
+      quantity: document.querySelector("#quantity"),
+      saleRate: document.querySelector("#saleRate"),
+      costRate: document.querySelector("#costRate"),
+      costBreakdown: document.querySelector("#costBreakdown"),
+      printModes: document.querySelectorAll("input[name='printMode']"),
+      materialCost: document.querySelector("#materialCost"),
+      inkCost: document.querySelector("#inkCost"),
+      electricityCost: document.querySelector("#electricityCost"),
+      maintenanceCost: document.querySelector("#maintenanceCost"),
+      areaPreview: document.querySelector("#areaPreview"),
+      salePreview: document.querySelector("#salePreview"),
+      costPreview: document.querySelector("#costPreview"),
+      balancePreview: document.querySelector("#balancePreview"),
+      syncStatus: document.querySelector("#syncStatus"),
+      rows: document.querySelector("#jobRows"),
+      empty: document.querySelector("#emptyState"),
+      selectionBar: document.querySelector("#selectionBar"),
+      selectionCount: document.querySelector("#selectionCount"),
+      editSelected: document.querySelector("#editSelected"),
+      deleteSelected: document.querySelector("#deleteSelected"),
+      paymentJobSelect: document.querySelector("#paymentJobSelect"),
+      paymentCustomerSelect: document.querySelector("#paymentCustomerSelect"),
+      rowPaidAmount: document.querySelector("#rowPaidAmount"),
+      rowPaymentSlip: document.querySelector("#rowPaymentSlip"),
+      rowPaymentSlipName: document.querySelector("#rowPaymentSlipName"),
+      savePayment: document.querySelector("#savePayment"),
+      filterDate: document.querySelector("#filterDate"),
+      filterMonth: document.querySelector("#filterMonth"),
+      customerDisplayFilter: document.querySelector("#customerDisplayFilter"),
+      categoryFilter: document.querySelector("#categoryFilter"),
+      categoryFilterMenu: document.querySelector("#categoryFilterMenu"),
+      categoryFilterLabel: document.querySelector("#categoryFilterLabel"),
+      categoryFilterButtons: document.querySelectorAll("[data-category-filter-value]"),
+      toggleSearch: document.querySelector("#toggleSearch"),
+      searchInput: document.querySelector("#searchInput"),
+      clearSearch: document.querySelector("#clearSearch"),
+      segments: document.querySelectorAll(".segment"),
+      viewSegments: document.querySelectorAll("[data-view]"),
+      sumCount: document.querySelector("#sumCount"),
+      sumArea: document.querySelector("#sumArea"),
+      sumSale: document.querySelector("#sumSale"),
+      sumProfit: document.querySelector("#sumProfit"),
+      sumPaid: document.querySelector("#sumPaid"),
+      sumUnpaid: document.querySelector("#sumUnpaid"),
+      toast: document.querySelector("#toast"),
+      settingsDialog: document.querySelector("#settingsDialog"),
+      sheetUrl: document.querySelector("#sheetUrl")
+    };
+
+    let records = loadRecords();
+    let viewMode = "day";
+    let editingId = null;
+    let selectedIds = new Set();
+
+    function updateCategoryFilterLabel() {
+      const label = els.categoryFilter.value === "ทั้งหมด" ? "หมวด" : els.categoryFilter.value;
+      els.categoryFilterLabel.textContent = label;
+      els.categoryFilterButtons.forEach(button => {
+        button.classList.toggle("active", button.dataset.categoryFilterValue === els.categoryFilter.value);
+      });
+    }
+
+    const UX_SELECT_IDS = [
+      "customerType",
+      "category",
+      "paymentStatus",
+      "printSizeSelect",
+      "customerDisplayFilter",
+      "paymentJobSelect",
+      "paymentCustomerSelect"
+    ];
+
+    function refreshUxSelect(select) {
+      const widget = select._uxSelect;
+      if (!widget) return;
+      const selected = select.selectedOptions[0] || select.options[0];
+      widget.label.textContent = selected ? selected.textContent.trim() : "";
+      widget.menu.innerHTML = "";
+      [...select.options].forEach(option => {
+        const button = document.createElement("button");
+        button.className = "ux-select-option";
+        button.type = "button";
+        button.textContent = option.textContent.trim();
+        button.dataset.value = option.value;
+        button.classList.toggle("active", option.value === select.value);
+        button.disabled = option.disabled;
+        button.addEventListener("click", () => {
+          select.value = option.value;
+          widget.details.open = false;
+          refreshUxSelect(select);
+          select.dispatchEvent(new Event("change", { bubbles: true }));
+        });
+        widget.menu.appendChild(button);
+      });
+    }
+
+    function refreshUxSelects() {
+      UX_SELECT_IDS.forEach(id => {
+        const select = document.querySelector(`#${id}`);
+        if (select) refreshUxSelect(select);
+      });
+    }
+
+    function enhanceUxSelect(select) {
+      if (!select || select._uxSelect) return;
+      select.classList.add("ux-native-select");
+      const details = document.createElement("details");
+      details.className = "ux-select";
+      const summary = document.createElement("summary");
+      summary.className = "ux-select-trigger";
+      const label = document.createElement("span");
+      label.className = "ux-select-label";
+      const menu = document.createElement("div");
+      menu.className = "ux-select-menu";
+      menu.setAttribute("role", "menu");
+      summary.appendChild(label);
+      details.append(summary, menu);
+      select.insertAdjacentElement("afterend", details);
+      select._uxSelect = { details, label, menu };
+      details.addEventListener("toggle", () => {
+        if (!details.open) return;
+        document.querySelectorAll(".ux-select").forEach(other => {
+          if (other !== details) other.open = false;
+        });
+      });
+      select.addEventListener("change", () => refreshUxSelect(select));
+      new MutationObserver(() => refreshUxSelect(select)).observe(select, {
+        childList: true,
+        subtree: true,
+        characterData: true
+      });
+      refreshUxSelect(select);
+    }
+
+    function initUxSelects() {
+      UX_SELECT_IDS.forEach(id => enhanceUxSelect(document.querySelector(`#${id}`)));
+    }
+
+    function applyTheme(theme) {
+      const isDark = theme === "dark";
+      document.body.classList.toggle("dark", isDark);
+      els.themeToggle.textContent = isDark ? "ธีมสว่าง" : "ธีมมืด";
+      localStorage.setItem(THEME_KEY, isDark ? "dark" : "light");
+    }
+
+    function today() {
+      return new Date().toISOString().slice(0, 10);
+    }
+
+    function thisMonth() {
+      return today().slice(0, 7);
+    }
+
+    function baht(value) {
+      return new Intl.NumberFormat("th-TH", {
+        style: "currency",
+        currency: "THB"
+      }).format(Number(value) || 0);
+    }
+
+    function number(value, digits = 2) {
+      return (Number(value) || 0).toLocaleString("th-TH", {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits
+      });
+    }
+
+    function loadRecords() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveRecords() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+    }
+
+    function calcFromInputs() {
+      const width = Number(els.width.value) || 0;
+      const length = Number(els.length.value) || 0;
+      const quantity = Math.max(Number(els.quantity.value) || 1, 1);
+      const saleRate = Number(els.saleRate.value) || 0;
+      const pieceSaleRate = Number(els.pieceSaleRate.value) || 0;
+      const pieceCostRate = Number(els.pieceCostRate.value) || 0;
+      const materialCost = Number(els.materialCost.value) || 0;
+      const inkCost = Number(els.inkCost.value) || 0;
+      const electricityCost = Number(els.electricityCost.value) || 0;
+      const maintenanceCost = Number(els.maintenanceCost.value) || 0;
+      const costRate = Number(els.costRate.value) || materialCost + inkCost + electricityCost + maintenanceCost;
+      const area = width * length * quantity;
+      const usePiecePricing = ["ไวนิล", "สติ๊กเกอร์", "งานพิมพ์"].includes(els.category.value) && (pieceSaleRate > 0 || pieceCostRate > 0);
+      const saleTotal = usePiecePricing ? quantity * pieceSaleRate : area * saleRate;
+      const costTotal = usePiecePricing ? quantity * pieceCostRate : area * costRate;
+      const paidAmount = 0;
+      const balanceTotal = Math.max(saleTotal - paidAmount, 0);
+      return {
+        width,
+        length,
+        quantity,
+        saleRate,
+        materialCost,
+        inkCost,
+        electricityCost,
+        maintenanceCost,
+        costRate,
+        area,
+        saleTotal,
+        paidAmount,
+        balanceTotal,
+        costTotal,
+        profit: saleTotal - costTotal
+      };
+    }
+
+    function updatePreview() {
+      const calc = calcFromInputs();
+      els.areaPreview.textContent = `${number(calc.area)} ตร.ม.`;
+      els.salePreview.textContent = baht(calc.saleTotal);
+      els.costPreview.textContent = baht(calc.costTotal);
+      els.balancePreview.textContent = baht(calc.balanceTotal);
+    }
+
+    function syncCostRateFromBreakdown() {
+      const costRate = (Number(els.materialCost.value) || 0)
+        + (Number(els.inkCost.value) || 0)
+        + (Number(els.electricityCost.value) || 0)
+        + (Number(els.maintenanceCost.value) || 0);
+      els.costRate.value = costRate ? costRate.toFixed(2) : "";
+    }
+
+    function syncMaterialFromCostRate() {
+      const fixedCost = (Number(els.inkCost.value) || 0)
+        + (Number(els.electricityCost.value) || 0)
+        + (Number(els.maintenanceCost.value) || 0);
+      const materialCost = Math.max((Number(els.costRate.value) || 0) - fixedCost, 0);
+      els.materialCost.value = materialCost ? materialCost.toFixed(2) : "";
+    }
+
+    function applyAutoCostDefaults() {
+      const width = Number(els.width.value) || 0;
+      const length = Number(els.length.value) || 0;
+      if (!width || !length) return;
+
+      const hasCostRate = Number(els.costRate.value) > 0;
+      els.inkCost.value = AUTO_COST_PER_SQM.toFixed(2);
+      els.electricityCost.value = AUTO_COST_PER_SQM.toFixed(2);
+      els.maintenanceCost.value = AUTO_COST_PER_SQM.toFixed(2);
+      if (hasCostRate) syncMaterialFromCostRate();
+      else syncCostRateFromBreakdown();
+    }
+
+    function applyCategoryDefaults() {
+      const defaults = CATEGORY_DEFAULTS[els.category.value];
+      els.printTypePanel.hidden = !["ไวนิล", "สติ๊กเกอร์", "งานพิมพ์"].includes(els.category.value);
+      els.areaRateFields.hidden = els.category.value === "งานพิมพ์";
+      els.piecePricePanel.hidden = !["ไวนิล", "สติ๊กเกอร์", "งานพิมพ์"].includes(els.category.value);
+      if (els.piecePricePanel.hidden) {
+        els.pieceSaleRate.value = "";
+        els.pieceCostRate.value = "";
+      }
+      els.laminationOption.hidden = els.category.value !== "งานพิมพ์";
+      if (els.laminationOption.hidden) els.lamination.checked = false;
+      els.vinylFrameOptions.hidden = els.category.value !== "ไวนิล";
+      if (els.vinylFrameOptions.hidden) {
+        els.woodFrame.checked = false;
+        els.steelFrame.checked = false;
+      }
+      if (els.printTypePanel.hidden) {
+        els.printSizeSelect.value = "";
+        els.customPrintSize.hidden = true;
+        els.customPrintWidth.value = "";
+        els.customPrintLength.value = "";
+      } else {
+        renderPrintSizeOptions();
+      }
+      if (!defaults) {
+        updatePreview();
+        return;
+      }
+
+      els.saleRate.value = defaults.saleRate.toFixed(2);
+      els.materialCost.value = defaults.materialCost.toFixed(2);
+      syncCostRateFromBreakdown();
+      updatePreview();
+    }
+
+    function syncPiecePricing() {
+      if (!["ไวนิล", "สติ๊กเกอร์", "งานพิมพ์"].includes(els.category.value)) return;
+      const pieceSaleRate = Number(els.pieceSaleRate.value) || 0;
+      const pieceCostRate = Number(els.pieceCostRate.value) || 0;
+      els.saleRate.value = pieceSaleRate ? pieceSaleRate.toFixed(2) : "";
+      els.costRate.value = pieceCostRate ? pieceCostRate.toFixed(2) : "";
+      updatePreview();
+    }
+
+    function setPrintMode(mode) {
+      els.printModes.forEach(input => {
+        input.checked = input.value === mode;
+      });
+      els.costBreakdown.hidden = mode !== "พิมพ์เอง";
+      updatePreview();
+    }
+
+    function applyVinylFramePrice(frameType) {
+      if (frameType === "wood" && els.woodFrame.checked) {
+        els.steelFrame.checked = false;
+        els.saleRate.value = "600.00";
+      } else if (frameType === "steel" && els.steelFrame.checked) {
+        els.woodFrame.checked = false;
+        els.saleRate.value = "1000.00";
+      } else if (!els.woodFrame.checked && !els.steelFrame.checked) {
+        applyCategoryDefaults();
+        return;
+      }
+      updatePreview();
+    }
+
+    const PRINT_SIZE_PRESETS = {
+      "50x100": { label: "50 x 100 ซม.", width: 0.5, length: 1 },
+      "60x120": { label: "60 x 120 ซม.", width: 0.6, length: 1.2 },
+      "80x120": { label: "80 x 120 ซม.", width: 0.8, length: 1.2 },
+      "100x100": { label: "100 x 100 ซม.", width: 1, length: 1 },
+      "100x150": { label: "100 x 150 ซม.", width: 1, length: 1.5 },
+      "120x240": { label: "120 x 240 ซม.", width: 1.2, length: 2.4 }
+    };
+    const STICKER_SIZE_PRESETS = {
+      A3: { label: "A3 (29.7 x 42 ซม.)", width: 0.297, length: 0.42 },
+      A4: { label: "A4 (21 x 29.7 ซม.)", width: 0.21, length: 0.297 },
+      A5: { label: "A5 (14.8 x 21 ซม.)", width: 0.148, length: 0.21 }
+    };
+    const PRINT_JOB_SIZE_PRESETS = {
+      printA3: { label: "A3 (29.7 x 42 ซม.)", width: 0.297, length: 0.42 },
+      printA4: { label: "A4 (21 x 29.7 ซม.)", width: 0.21, length: 0.297 },
+      printA5: { label: "A5 (14.8 x 21 ซม.)", width: 0.148, length: 0.21 },
+      printA6: { label: "A6 (10.5 x 14.8 ซม.)", width: 0.105, length: 0.148 }
+    };
+
+    function renderPrintSizeOptions() {
+      const previous = els.printSizeSelect.value;
+      const canCustom = els.category.value === "งานพิมพ์";
+      const stickerOptions = els.category.value === "สติ๊กเกอร์"
+        ? Object.entries(STICKER_SIZE_PRESETS).map(([value, size]) => `<option value="${value}">${size.label}</option>`).join("")
+        : "";
+      const printJobOptions = els.category.value === "งานพิมพ์"
+        ? Object.entries(PRINT_JOB_SIZE_PRESETS).map(([value, size]) => `<option value="${value}">${size.label}</option>`).join("")
+        : "";
+      const sizeOptions = els.category.value !== "งานพิมพ์"
+        ? Object.entries(PRINT_SIZE_PRESETS).map(([value, size]) => `<option value="${value}">${size.label}</option>`).join("")
+        : "";
+      els.printSizeSelect.innerHTML = `<option value="">เลือกขนาดงาน</option>`
+        + stickerOptions
+        + printJobOptions
+        + sizeOptions
+        + (canCustom ? `<option value="custom">กำหนดขนาด</option>` : "");
+      if ([...els.printSizeSelect.options].some(option => option.value === previous)) {
+        els.printSizeSelect.value = previous;
+      }
+      if (els.printSizeSelect.value !== "custom") {
+        els.customPrintSize.hidden = true;
+        els.customPrintWidth.value = "";
+        els.customPrintLength.value = "";
+      }
+      refreshUxSelect(els.printSizeSelect);
+    }
+
+    function applyPrintSizeChoice(value) {
+      els.customPrintSize.hidden = value !== "custom";
+      const selectedPreset = STICKER_SIZE_PRESETS[value] || PRINT_JOB_SIZE_PRESETS[value] || PRINT_SIZE_PRESETS[value];
+      if (selectedPreset) {
+        els.width.value = selectedPreset.width;
+        els.length.value = selectedPreset.length;
+        applyAutoCostDefaults();
+      }
+      if (value !== "custom") {
+        els.customPrintWidth.value = "";
+        els.customPrintLength.value = "";
+      }
+      updatePreview();
+    }
+
+    function applyCustomPrintSize() {
+      const widthCm = Number(els.customPrintWidth.value) || 0;
+      const lengthCm = Number(els.customPrintLength.value) || 0;
+      els.width.value = widthCm ? (widthCm / 100).toFixed(3) : "";
+      els.length.value = lengthCm ? (lengthCm / 100).toFixed(3) : "";
+      applyAutoCostDefaults();
+      updatePreview();
+    }
+
+    function filteredRecords() {
+      const query = els.searchInput.value.trim().toLowerCase();
+      const inPeriod = viewMode === "day"
+        ? records.filter(record => record.date === els.filterDate.value)
+        : records.filter(record => record.date.startsWith(els.filterMonth.value));
+      const inCategory = els.categoryFilter.value === "ทั้งหมด"
+        ? inPeriod
+        : inPeriod.filter(record => record.category === els.categoryFilter.value);
+      const inCustomer = els.customerDisplayFilter.value === "ทั้งหมด"
+        ? inCategory
+        : inCategory.filter(record => customerType(record) === els.customerDisplayFilter.value);
+
+      if (!query) return inCustomer;
+
+      return inCustomer.filter(record => searchText(record).includes(query));
+    }
+
+    function searchText(record) {
+      return [
+        record.date,
+        customerType(record),
+        customerName(record),
+        paymentStatus(record),
+        record.name
+      ].join(" ").toLowerCase();
+    }
+
+    function render() {
+      const rows = filteredRecords().sort((a, b) => `${b.date}${b.createdAt}`.localeCompare(`${a.date}${a.createdAt}`));
+      const totals = rows.reduce((acc, record) => {
+        acc.area += record.area;
+        acc.sale += record.saleTotal;
+        acc.cost += record.costTotal;
+        acc.profit += record.profit;
+        acc.paid += paidAmount(record);
+        acc.unpaid += balanceAmount(record);
+        return acc;
+      }, { area: 0, sale: 0, cost: 0, profit: 0, paid: 0, unpaid: 0 });
+
+      els.sumCount.textContent = rows.length.toLocaleString("th-TH");
+      els.sumArea.textContent = `${number(totals.area)} ตร.ม.`;
+      els.sumSale.textContent = baht(totals.sale);
+      els.sumProfit.textContent = baht(totals.profit);
+      els.sumPaid.textContent = baht(totals.paid);
+      els.sumUnpaid.textContent = baht(totals.unpaid);
+      renderPaymentOptions(rows);
+
+      els.rows.innerHTML = rows.map(record => {
+        const status = paymentStatus(record);
+        const rowClass = `${status === "จ่ายแล้ว" ? "payment-paid-row" : "payment-unpaid-row"} ${selectedIds.has(record.id) ? "selected-row" : ""}`.trim();
+        return `
+        <tr class="${rowClass}">
+          <td class="select-cell"><input class="row-select" type="checkbox" data-select-id="${escapeHtml(record.id)}" ${selectedIds.has(record.id) ? "checked" : ""} aria-label="เลือกรายการ ${escapeHtml(record.name)}"></td>
+          <td>${escapeHtml(record.date)}</td>
+          <td><span class="pill ${record.category === "สติ๊กเกอร์" ? "sticker" : ""}">${escapeHtml(record.category)}</span></td>
+          <td><span class="pill ${customerTypeClass(record)}">${escapeHtml(customerType(record))}</span></td>
+          <td>${escapeHtml(customerName(record))}</td>
+          <td>${escapeHtml(record.name)}</td>
+          <td class="number">${baht(record.saleTotal)}</td>
+          <td>
+            <select class="payment-status-select ${paymentStatus(record) === "จ่ายแล้ว" ? "paid" : "unpaid"}" data-payment-status-id="${escapeHtml(record.id)}" aria-label="สถานะชำระเงิน ${escapeHtml(record.name)}">
+              <option value="ค้างจ่าย" ${paymentStatus(record) === "ค้างจ่าย" ? "selected" : ""}>ค้างจ่าย</option>
+              <option value="จ่ายแล้ว" ${paymentStatus(record) === "จ่ายแล้ว" ? "selected" : ""}>จ่ายแล้ว</option>
+            </select>
+          </td>
+          <td class="number">${baht(record.saleRate)}</td>
+          <td class="number">${number(record.width)}</td>
+          <td class="number">${number(record.length)}</td>
+          <td class="number">${number(record.quantity || 1, 0)}</td>
+          <td class="number">${number(record.area)}</td>
+          <td class="number">${baht(record.materialCost)}</td>
+          <td class="number">${baht(record.inkCost)}</td>
+          <td class="number">${baht(record.electricityCost)}</td>
+          <td class="number">${baht(record.maintenanceCost)}</td>
+          <td class="number">${baht(record.costRate)}</td>
+          <td class="number">${baht(paidAmount(record))}</td>
+          <td class="number">${baht(balanceAmount(record))}</td>
+          <td>${slipLink(record)}</td>
+          <td class="number">${baht(record.costTotal)}</td>
+          <td class="number">${baht(record.profit)}</td>
+        </tr>
+      `;
+      }).join("");
+
+      els.empty.hidden = rows.length !== 0;
+      const existingIds = new Set(records.map(record => record.id));
+      selectedIds = new Set([...selectedIds].filter(id => existingIds.has(id)));
+      updateSelectionBar();
+      updateSyncStatus();
+    }
+
+    function renderPaymentOptions(rows) {
+      const selected = els.paymentJobSelect.value;
+      const selectedCustomer = els.paymentCustomerSelect.value;
+      const customerTypes = ["ลูกค้าทั่วไป", "ลูกค้าประจำ", "มานา เด็กดื้อ", "ตาชัย"];
+      els.paymentJobSelect.innerHTML = customerTypes.map(type => {
+        const totalBalance = rows
+          .filter(record => customerType(record) === type)
+          .reduce((sum, record) => sum + balanceAmount(record), 0);
+        return `<option value="${escapeHtml(type)}">${escapeHtml(type)} - ค้าง ${baht(totalBalance)}</option>`;
+      }).join("");
+
+      if (customerTypes.includes(selected)) {
+        els.paymentJobSelect.value = selected;
+      }
+
+      renderPaymentCustomerOptions(rows, selectedCustomer);
+
+      updatePaymentPanel();
+      refreshUxSelects();
+    }
+
+    function renderPaymentCustomerOptions(rows, selectedCustomer = "") {
+      const type = els.paymentJobSelect.value;
+      const customerRows = rows.filter(record => customerType(record) === type && balanceAmount(record) > 0);
+      const customerTotals = new Map();
+      customerRows.forEach(record => {
+        const name = customerName(record);
+        customerTotals.set(name, (customerTotals.get(name) || 0) + balanceAmount(record));
+      });
+
+      const options = [...customerTotals.entries()]
+        .sort((a, b) => a[0].localeCompare(b[0], "th"))
+        .map(([name, total]) => `<option value="${escapeHtml(name)}">${escapeHtml(name)} - ค้าง ${baht(total)}</option>`);
+
+      els.paymentCustomerSelect.innerHTML = options.length
+        ? options.join("")
+        : `<option value="">ไม่มีลูกค้าค้างจ่าย</option>`;
+
+      if ([...customerTotals.keys()].includes(selectedCustomer)) {
+        els.paymentCustomerSelect.value = selectedCustomer;
+      }
+      refreshUxSelects();
+    }
+
+    function updatePaymentPanel() {
+      const selectedCustomer = els.paymentCustomerSelect.value;
+      const totalBalance = filteredRecords()
+        .filter(record => customerType(record) === els.paymentJobSelect.value)
+        .filter(record => !selectedCustomer || customerName(record) === selectedCustomer)
+        .reduce((sum, record) => sum + balanceAmount(record), 0);
+      els.savePayment.disabled = totalBalance <= 0;
+      if (totalBalance <= 0) {
+        els.rowPaidAmount.value = "";
+        return;
+      }
+
+      els.rowPaidAmount.value = totalBalance.toFixed(2);
+    }
+
+    function paymentStatus(record) {
+      const rawStatus = String(record.paymentStatus || "");
+      if (rawStatus.includes("\u0e08\u0e48\u0e32\u0e22\u0e41\u0e25\u0e49\u0e27")) return "\u0e08\u0e48\u0e32\u0e22\u0e41\u0e25\u0e49\u0e27";
+      if (rawStatus.includes("\u0e04\u0e49\u0e32\u0e07")) return "\u0e04\u0e49\u0e32\u0e07\u0e08\u0e48\u0e32\u0e22";
+      const sale = Number(record.saleTotal) || 0;
+      const paid = paidAmount(record);
+      return sale > 0 && paid >= sale ? "จ่ายแล้ว" : "ค้างจ่าย";
+    }
+
+    function paidAmount(record) {
+      if (String(record.paymentStatus || "").includes("\u0e08\u0e48\u0e32\u0e22\u0e41\u0e25\u0e49\u0e27")) return Number(record.saleTotal) || 0;
+      if (!hasPaymentEvidence(record)) return 0;
+      const paid = Number(record.paidAmount) || 0;
+      if (paid > 0) return Math.min(paid, record.saleTotal || 0);
+      return 0;
+    }
+
+    function balanceAmount(record) {
+      return Math.max((record.saleTotal || 0) - paidAmount(record), 0);
+    }
+
+    function hasPaymentEvidence(record) {
+      return Boolean(record.paymentSlipUrl || record.paymentSlipDataUrl || record.paymentSlipName);
+    }
+
+    function slipLink(record) {
+      if (!record.paymentSlipDataUrl && !record.paymentSlipUrl) return "-";
+      const href = record.paymentSlipUrl || record.paymentSlipDataUrl;
+      return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener">ดูสลิป</a>`;
+    }
+
+    function customerType(record) {
+      if (record.customerType === "\u0e25\u0e39\u0e01\u0e04\u0e49\u0e32\u0e1b\u0e23\u0e30\u0e08\u0e33") return "\u0e25\u0e39\u0e01\u0e04\u0e49\u0e32\u0e1b\u0e23\u0e30\u0e08\u0e33";
+      if (record.customerType === "พาร์ทเนอร์(มานา)" || record.customerType === "มานา (พาร์ทเนอร์)") return "มานา เด็กดื้อ";
+      const allowedTypes = ["ลูกค้าทั่วไป", "มานา เด็กดื้อ", "ตาชัย"];
+      return allowedTypes.includes(record.customerType) ? record.customerType : "ลูกค้าทั่วไป";
+    }
+
+    function customerName(record) {
+      return record.customerName || "-";
+    }
+
+    function customerTypeClass(record) {
+      if (customerType(record) === "\u0e25\u0e39\u0e01\u0e04\u0e49\u0e32\u0e1b\u0e23\u0e30\u0e08\u0e33") return "partner";
+      if (customerType(record) === "มานา เด็กดื้อ") return "partner";
+      if (customerType(record) === "ตาชัย") return "tachai";
+      return "";
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      })[char]);
+    }
+
+    function updateSyncStatus(message) {
+      const hasUrl = Boolean(getSheetUrl());
+      els.syncStatus.textContent = message || (hasUrl ? "พร้อมซิงก์ Sheets" : "โหมดเก็บในเครื่อง");
+    }
+
+    function getSheetUrl() {
+      return (localStorage.getItem(URL_KEY) || DEFAULT_SHEET_URL).trim();
+    }
+
+    function toast(message) {
+      els.toast.textContent = message;
+      els.toast.classList.add("show");
+      window.clearTimeout(toast.timer);
+      toast.timer = window.setTimeout(() => els.toast.classList.remove("show"), 2600);
+    }
+
+    async function sendToSheet(record) {
+      const url = getSheetUrl();
+      if (!url) return false;
+
+      updateSyncStatus("กำลังซิงก์...");
+      await fetch(url, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(record)
+      });
+      updateSyncStatus("ซิงก์ล่าสุดแล้ว");
+      return true;
+    }
+
+    async function deleteFromSheet(record) {
+      const url = getSheetUrl();
+      if (!url) return false;
+
+      updateSyncStatus("กำลังลบจาก Sheets...");
+      await fetch(url, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ ...record, action: "delete" })
+      });
+      updateSyncStatus("ลบจาก Sheets แล้ว");
+      return true;
+    }
+
+    async function deleteRecord(id) {
+      const record = records.find(item => item.id === id);
+      if (!record) return;
+      if (!confirm(`ลบรายการ "${record.name || "-"}" ใช่ไหม?`)) return;
+
+      records = records.filter(item => item.id !== id);
+      if (editingId === id) resetForm(false);
+      saveRecords();
+      render();
+      toast("ลบรายการแล้ว");
+
+      try {
+        const synced = await deleteFromSheet(record);
+        if (synced) toast("ลบรายการและอัปเดต Google Sheet แล้ว");
+      } catch (error) {
+        updateSyncStatus("ลบจาก Sheets ไม่สำเร็จ");
+        toast("ลบในหน้าเว็บแล้ว แต่ลบจาก Sheet ไม่สำเร็จ");
+      }
+    }
+
+    function selectedRecords() {
+      return records.filter(record => selectedIds.has(record.id));
+    }
+
+    function updateSelectionBar() {
+      const count = selectedRecords().length;
+      els.selectionBar.hidden = count === 0;
+      els.selectionCount.textContent = `เลือก ${count.toLocaleString("th-TH")} รายการ`;
+      els.editSelected.disabled = count !== 1;
+      els.deleteSelected.disabled = count === 0;
+    }
+
+    function clearSelection() {
+      selectedIds.clear();
+      updateSelectionBar();
+    }
+
+    function editSelectedRecord() {
+      const selected = selectedRecords();
+      if (selected.length !== 1) {
+        toast("กรุณาเลือก 1 รายการเพื่อแก้ไข");
+        return;
+      }
+      startEdit(selected[0].id);
+      clearSelection();
+      render();
+    }
+
+    async function deleteSelectedRecords() {
+      const selected = selectedRecords();
+      if (!selected.length) return;
+      const label = selected.length === 1 ? `"${selected[0].name || "-"}"` : `${selected.length.toLocaleString("th-TH")} รายการ`;
+      if (!confirm(`ลบรายการที่เลือก ${label} ใช่ไหม?`)) return;
+
+      const selectedSet = new Set(selected.map(record => record.id));
+      records = records.filter(record => !selectedSet.has(record.id));
+      if (selectedSet.has(editingId)) resetForm(false);
+      selectedIds.clear();
+      saveRecords();
+      render();
+      toast("ลบรายการที่เลือกแล้ว");
+
+      try {
+        for (const record of selected) {
+          await deleteFromSheet(record);
+        }
+        toast("ลบรายการที่เลือกและอัปเดต Google Sheet แล้ว");
+      } catch (error) {
+        updateSyncStatus("ลบจาก Sheets ไม่สำเร็จ");
+        toast("ลบในหน้าเว็บแล้ว แต่ลบจาก Sheet ไม่สำเร็จ");
+      }
+    }
+
+    async function updateRecordPaymentStatus(recordId, nextStatus) {
+      const record = records.find(item => item.id === recordId);
+      if (!record) return;
+
+      const saleTotal = Number(record.saleTotal) || 0;
+      const nextRecord = {
+        ...record,
+        paymentStatus: nextStatus,
+        paidAmount: nextStatus === "จ่ายแล้ว" ? saleTotal : 0,
+        balanceTotal: nextStatus === "จ่ายแล้ว" ? 0 : saleTotal,
+        updatedAt: new Date().toISOString()
+      };
+
+      records = records.map(item => item.id === recordId ? nextRecord : item);
+      saveRecords();
+      render();
+      toast(`เปลี่ยนสถานะเป็น ${nextStatus} แล้ว`);
+
+      try {
+        await sendToSheet(nextRecord);
+      } catch (error) {
+        updateSyncStatus("ซิงก์ไม่สำเร็จ");
+        toast("เปลี่ยนสถานะในเครื่องแล้ว แต่ส่งเข้า Sheet ไม่สำเร็จ");
+      }
+    }
+
+    async function syncAll() {
+      const url = getSheetUrl();
+      if (!url) {
+        toast("กรุณาตั้งค่า Google Sheet URL ก่อน");
+        els.settingsDialog.showModal();
+        return;
+      }
+
+      updateSyncStatus("กำลังซิงก์...");
+      for (const record of records) {
+        await sendToSheet(record);
+      }
+      toast("ส่งข้อมูลทั้งหมดไป Google Sheet แล้ว");
+      render();
+    }
+
+    function sheetListUrl(callbackName) {
+      const url = new URL(getSheetUrl());
+      url.searchParams.set("action", "list");
+      url.searchParams.set("callback", callbackName);
+      if (SHEET_TAB_NAME) url.searchParams.set("sheetName", SHEET_TAB_NAME);
+      return url.toString();
+    }
+
+    function loadSheetPayload() {
+      return new Promise((resolve, reject) => {
+        const callbackName = `sheetCallback_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+        const script = document.createElement("script");
+        const timer = window.setTimeout(() => {
+          cleanup();
+          reject(new Error("Sheet load timeout"));
+        }, 15000);
+
+        function cleanup() {
+          window.clearTimeout(timer);
+          delete window[callbackName];
+          script.remove();
+        }
+
+        window[callbackName] = payload => {
+          cleanup();
+          resolve(payload);
+        };
+
+        script.onerror = () => {
+          cleanup();
+          reject(new Error("Cannot load sheet data"));
+        };
+        script.src = sheetListUrl(callbackName);
+        document.body.appendChild(script);
+      });
+    }
+
+    function dateInputValue(value) {
+      const text = String(value || "").trim();
+      if (!text) return today();
+      const iso = text.match(/\d{4}-\d{2}-\d{2}/);
+      return iso ? iso[0] : text.slice(0, 10);
+    }
+
+    function normalizeSheetRecord(row) {
+      const customerNameOffset = Array.isArray(row) && row.length >= 25 ? 1 : 0;
+      const record = Array.isArray(row) ? {
+        id: row[0],
+        date: row[1],
+        category: row[2],
+        customerType: row[3],
+        customerName: customerNameOffset ? row[4] : "",
+        paymentStatus: row[4 + customerNameOffset],
+        name: row[5 + customerNameOffset],
+        width: row[6 + customerNameOffset],
+        length: row[7 + customerNameOffset],
+        quantity: row[8 + customerNameOffset],
+        area: row[9 + customerNameOffset],
+        saleRate: row[10 + customerNameOffset],
+        materialCost: row[11 + customerNameOffset],
+        inkCost: row[12 + customerNameOffset],
+        electricityCost: row[13 + customerNameOffset],
+        maintenanceCost: row[14 + customerNameOffset],
+        costRate: row[15 + customerNameOffset],
+        saleTotal: row[16 + customerNameOffset],
+        paidAmount: row[17 + customerNameOffset],
+        balanceTotal: row[18 + customerNameOffset],
+        paymentSlipUrl: row[19 + customerNameOffset],
+        costTotal: row[20 + customerNameOffset],
+        profit: row[21 + customerNameOffset],
+        createdAt: row[22 + customerNameOffset],
+        updatedAt: row[23 + customerNameOffset]
+      } : row;
+      const rawStatus = String(record.paymentStatus || "");
+      const saleTotalValue = Number(record.saleTotal) || 0;
+      const hasPaidValue = record.paidAmount !== "" && record.paidAmount !== null && record.paidAmount !== undefined;
+      const hasSlipValue = Boolean(record.paymentSlipUrl || record.paymentSlipName || record.paymentSlipDataUrl);
+      let paidAmountValue = Number(record.paidAmount) || 0;
+      let balanceTotalValue = Number(record.balanceTotal) || 0;
+
+      if (!hasSlipValue) {
+        paidAmountValue = 0;
+        balanceTotalValue = saleTotalValue;
+      } else if (rawStatus.includes("\u0e04\u0e49\u0e32\u0e07")) {
+        if (!hasPaidValue || paidAmountValue >= saleTotalValue) paidAmountValue = 0;
+        balanceTotalValue = Math.max(saleTotalValue - paidAmountValue, 0);
+      } else if (rawStatus.includes("\u0e08\u0e48\u0e32\u0e22\u0e41\u0e25\u0e49\u0e27")) {
+        if (!hasPaidValue || (paidAmountValue >= saleTotalValue && !hasSlipValue)) {
+          paidAmountValue = 0;
+          balanceTotalValue = saleTotalValue;
+        } else {
+          balanceTotalValue = Math.max(saleTotalValue - paidAmountValue, 0);
+        }
+      } else {
+        balanceTotalValue = Math.max(saleTotalValue - paidAmountValue, 0);
+      }
+
+      return {
+        id: record.id || crypto.randomUUID(),
+        date: dateInputValue(record.date),
+        category: record.category || "ไวนิล",
+        customerType: record.customerType || "มานา เด็กดื้อ",
+        customerName: record.customerName || "",
+        paymentStatus: record.paymentStatus || "",
+        name: record.name || "",
+        width: Number(record.width) || 0,
+        length: Number(record.length) || 0,
+        quantity: Number(record.quantity) || 1,
+        area: Number(record.area) || 0,
+        saleRate: Number(record.saleRate) || 0,
+        materialCost: Number(record.materialCost) || 0,
+        inkCost: Number(record.inkCost) || 0,
+        electricityCost: Number(record.electricityCost) || 0,
+        maintenanceCost: Number(record.maintenanceCost) || 0,
+        costRate: Number(record.costRate) || 0,
+        saleTotal: saleTotalValue,
+        paidAmount: paidAmountValue,
+        balanceTotal: balanceTotalValue,
+        paymentSlipName: record.paymentSlipName || "",
+        paymentSlipType: record.paymentSlipType || "",
+        paymentSlipDataUrl: "",
+        paymentSlipUrl: record.paymentSlipUrl || "",
+        costTotal: Number(record.costTotal) || 0,
+        profit: Number(record.profit) || 0,
+        createdAt: record.createdAt || new Date().toISOString(),
+        updatedAt: record.updatedAt || ""
+      };
+    }
+
+    async function loadFromSheet() {
+      if (!getSheetUrl()) {
+        toast("กรุณาตั้งค่า Google Sheet URL ก่อน");
+        els.settingsDialog.showModal();
+        return;
+      }
+
+      updateSyncStatus("กำลังโหลดจาก Sheets...");
+      try {
+        const payload = await loadSheetPayload();
+        const sheetRecords = (payload.records || []).map(normalizeSheetRecord).filter(record => record.id && record.name);
+        records = sheetRecords;
+        selectedIds.clear();
+        saveRecords();
+        render();
+        toast(`โหลดจาก Sheets แล้ว ${sheetRecords.length.toLocaleString("th-TH")} รายการ`);
+      } catch (error) {
+        updateSyncStatus("โหลดจาก Sheets ไม่สำเร็จ");
+        toast("โหลดจาก Sheets ไม่สำเร็จ กรุณาอัปเดต Apps Script ก่อน");
+      }
+    }
+
+    function autoLoadFromSheet() {
+      if (!getSheetUrl()) return;
+      window.setTimeout(() => loadFromSheet(), 500);
+    }
+
+    function exportCsv() {
+      const header = ["วันที่", "หมวดหมู่", "ประเภทลูกค้า", "รายชื่อลูกค้า", "สถานะชำระเงิน", "รายชื่องาน", "กว้าง", "ยาว", "จำนวนชิ้นงาน", "พื้นที่", "ราคาขายต่อตร.ม.", "ค่าวัสดุต่อตร.ม.", "ค่าหมึกต่อตร.ม.", "ค่าไฟต่อตร.ม.", "ค่า Maintenance เครื่องพิมพ์ต่อตร.ม.", "ต้นทุนต่อตร.ม.", "ราคาขาย", "ลูกค้าชำระ", "ค้างเหลือ", "ลิงก์สลิป", "ต้นทุน", "กำไร"];
+      const rows = filteredRecords().map(record => [
+        record.date, record.category, customerType(record), customerName(record), paymentStatus(record), record.name, record.width, record.length, record.quantity || 1, record.area,
+        record.saleRate, record.materialCost, record.inkCost, record.electricityCost, record.maintenanceCost,
+        record.costRate, record.saleTotal, paidAmount(record), balanceAmount(record), record.paymentSlipUrl || record.paymentSlipName || "",
+        record.costTotal, record.profit
+      ]);
+      const csv = [header, ...rows].map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+      const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `print-jobs-${viewMode === "day" ? els.filterDate.value : els.filterMonth.value}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function reportFileName(extension) {
+      const period = viewMode === "day" ? els.filterDate.value : els.filterMonth.value;
+      return `print-report-${period}.${extension}`;
+    }
+
+    function exportReportPdf() {
+      document.body.classList.add("print-report");
+      window.print();
+      window.setTimeout(() => document.body.classList.remove("print-report"), 500);
+    }
+
+    async function exportReportPng() {
+      const report = document.querySelector(".list-panel");
+      const clone = report.cloneNode(true);
+      clone.classList.add("export-clone");
+      clone.style.width = `${Math.max(report.scrollWidth, 1500)}px`;
+      document.body.appendChild(clone);
+
+      try {
+        await document.fonts.ready;
+        const rect = clone.getBoundingClientRect();
+        const width = Math.ceil(Math.max(clone.scrollWidth, rect.width));
+        const height = Math.ceil(Math.max(clone.scrollHeight, rect.height));
+        const serialized = new XMLSerializer().serializeToString(clone);
+        const svg = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+            <foreignObject width="100%" height="100%">
+              ${serialized}
+            </foreignObject>
+          </svg>
+        `;
+        const image = new Image();
+        const svgUrl = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
+
+        await new Promise((resolve, reject) => {
+          image.onload = resolve;
+          image.onerror = reject;
+          image.src = svgUrl;
+        });
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width * 2;
+        canvas.height = height * 2;
+        const context = canvas.getContext("2d");
+        context.fillStyle = "#fffdfa";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.scale(2, 2);
+        context.drawImage(image, 0, 0);
+        URL.revokeObjectURL(svgUrl);
+
+        const pngUrl = canvas.toDataURL("image/png");
+        const a = document.createElement("a");
+        a.href = pngUrl;
+        a.download = reportFileName("png");
+        a.click();
+        toast("ดาวน์โหลดรายงาน PNG แล้ว");
+      } catch (error) {
+        toast("สร้างรูปภาพไม่สำเร็จ ลองใช้รายงาน PDF แทน");
+      } finally {
+        clone.remove();
+      }
+    }
+
+    function resetForm(keepDate = true) {
+      const date = els.jobDate.value;
+      els.form.reset();
+      els.jobDate.value = keepDate ? date || today() : today();
+      els.customerType.value = "มานา เด็กดื้อ";
+      els.customerName.value = "";
+      els.quantity.value = "1";
+      editingId = null;
+      els.saveJob.textContent = "บันทึกรายการ";
+      document.querySelector("#resetForm").textContent = "ล้างฟอร์ม";
+      setPrintMode("ส่งพิมพ์");
+      applyCategoryDefaults();
+      refreshUxSelects();
+      updatePreview();
+    }
+
+    function startEdit(recordId) {
+      const record = records.find(item => item.id === recordId);
+      if (!record) return;
+
+      editingId = record.id;
+      els.jobDate.value = record.date;
+      els.category.value = record.category;
+      els.customerType.value = customerType(record);
+      els.customerName.value = record.customerName || "";
+      els.paymentStatus.value = paymentStatus(record);
+      els.jobName.value = record.name;
+      els.width.value = record.width;
+      els.length.value = record.length;
+      els.quantity.value = record.quantity || 1;
+      els.saleRate.value = record.saleRate;
+      els.materialCost.value = record.materialCost;
+      els.inkCost.value = record.inkCost;
+      els.electricityCost.value = record.electricityCost;
+      els.maintenanceCost.value = record.maintenanceCost;
+      els.costRate.value = record.costRate;
+      applyCategoryDefaults();
+      if (["ไวนิล", "สติ๊กเกอร์", "งานพิมพ์"].includes(record.category)) {
+        els.pieceSaleRate.value = Number(record.saleRate) ? Number(record.saleRate).toFixed(2) : "";
+        els.pieceCostRate.value = Number(record.costRate) ? Number(record.costRate).toFixed(2) : "";
+      }
+      renderPrintSizeOptions();
+      const selectedPrintSize = Object.entries({ ...STICKER_SIZE_PRESETS, ...PRINT_JOB_SIZE_PRESETS, ...PRINT_SIZE_PRESETS }).find(([, size]) => size.label === record.name);
+      if (selectedPrintSize) {
+        els.printSizeSelect.value = selectedPrintSize[0];
+        applyPrintSizeChoice(selectedPrintSize[0]);
+      }
+      els.saveJob.textContent = "บันทึกการแก้ไข";
+      document.querySelector("#resetForm").textContent = "ยกเลิกแก้ไข";
+      refreshUxSelects();
+      updatePreview();
+      els.form.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    [els.width, els.length].forEach(input => {
+      input.addEventListener("input", applyAutoCostDefaults);
+    });
+
+    els.category.addEventListener("change", applyCategoryDefaults);
+    els.printModes.forEach(input => {
+      input.addEventListener("change", () => {
+        setPrintMode(input.checked ? input.value : "ส่งพิมพ์");
+      });
+    });
+    els.woodFrame.addEventListener("change", () => applyVinylFramePrice("wood"));
+    els.steelFrame.addEventListener("change", () => applyVinylFramePrice("steel"));
+    els.printSizeSelect.addEventListener("change", () => {
+      const selectedSize = STICKER_SIZE_PRESETS[els.printSizeSelect.value] || PRINT_JOB_SIZE_PRESETS[els.printSizeSelect.value] || PRINT_SIZE_PRESETS[els.printSizeSelect.value];
+      if (selectedSize && !els.jobName.value.trim()) {
+        els.jobName.value = selectedSize.label;
+      }
+      applyPrintSizeChoice(els.printSizeSelect.value);
+      updatePreview();
+    });
+    [els.customPrintWidth, els.customPrintLength].forEach(input => {
+      input.addEventListener("input", applyCustomPrintSize);
+    });
+    [els.pieceSaleRate, els.pieceCostRate].forEach(input => {
+      input.addEventListener("input", syncPiecePricing);
+    });
+
+    els.costRate.addEventListener("input", syncMaterialFromCostRate);
+
+    [els.materialCost, els.inkCost, els.electricityCost, els.maintenanceCost].forEach(input => {
+      input.addEventListener("input", syncCostRateFromBreakdown);
+    });
+
+    els.form.addEventListener("input", updatePreview);
+
+    function readSlipFile(file) {
+      if (!file) return Promise.resolve(null);
+
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve({
+          name: file.name,
+          type: file.type || "application/octet-stream",
+          dataUrl: reader.result
+        });
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    els.form.addEventListener("submit", async event => {
+      event.preventDefault();
+      const calc = calcFromInputs();
+      const wasEditing = Boolean(editingId);
+      const existingRecord = records.find(item => item.id === editingId);
+      const selectedPaymentStatus = els.paymentStatus.value;
+      const nextPaidAmount = selectedPaymentStatus === "\u0e08\u0e48\u0e32\u0e22\u0e41\u0e25\u0e49\u0e27"
+        ? calc.saleTotal
+        : Math.min(existingRecord?.paidAmount || 0, calc.saleTotal);
+      const nextBalanceTotal = Math.max(calc.saleTotal - nextPaidAmount, 0);
+      const record = {
+        id: editingId || crypto.randomUUID(),
+        date: els.jobDate.value,
+        category: els.category.value,
+        customerType: els.customerType.value,
+        customerName: els.customerName.value.trim(),
+        paymentStatus: selectedPaymentStatus,
+        name: els.jobName.value.trim(),
+        width: calc.width,
+        length: calc.length,
+        quantity: calc.quantity,
+        area: calc.area,
+        saleRate: calc.saleRate,
+        materialCost: calc.materialCost,
+        inkCost: calc.inkCost,
+        electricityCost: calc.electricityCost,
+        maintenanceCost: calc.maintenanceCost,
+        costRate: calc.costRate,
+        saleTotal: calc.saleTotal,
+        paidAmount: nextPaidAmount,
+        balanceTotal: nextBalanceTotal,
+        paymentSlipName: existingRecord?.paymentSlipName || "",
+        paymentSlipType: existingRecord?.paymentSlipType || "",
+        paymentSlipDataUrl: existingRecord?.paymentSlipDataUrl || "",
+        paymentSlipUrl: existingRecord?.paymentSlipUrl || "",
+        costTotal: calc.costTotal,
+        profit: calc.profit,
+        createdAt: existingRecord?.createdAt || new Date().toISOString(),
+        updatedAt: editingId ? new Date().toISOString() : ""
+      };
+
+      if (editingId) {
+        records = records.map(item => item.id === editingId ? record : item);
+      } else {
+        records.push(record);
+      }
+      saveRecords();
+      render();
+      resetForm();
+      toast(wasEditing ? "บันทึกการแก้ไขแล้ว" : "บันทึกรายการแล้ว");
+
+      try {
+        const synced = await sendToSheet(record);
+        if (synced) toast(wasEditing ? "แก้ไขและส่งเข้า Google Sheet แล้ว" : "บันทึกและส่งเข้า Google Sheet แล้ว");
+      } catch (error) {
+        updateSyncStatus("ซิงก์ไม่สำเร็จ");
+        toast("บันทึกในเครื่องแล้ว แต่ส่งเข้า Sheet ไม่สำเร็จ");
+      }
+    });
+
+    async function saveCustomerPayment(customerTypeValue, customerNameValue) {
+      const candidates = filteredRecords()
+        .filter(record => customerType(record) === customerTypeValue && balanceAmount(record) > 0)
+        .filter(record => !customerNameValue || customerName(record) === customerNameValue)
+        .sort((a, b) => `${a.date}${a.createdAt}`.localeCompare(`${b.date}${b.createdAt}`));
+
+      if (!candidates.length) {
+        toast("ไม่มีรายการค้างจ่ายของลูกค้านี้");
+        return;
+      }
+
+      const slip = await readSlipFile(els.rowPaymentSlip.files[0]);
+      let remainingPayment = Number(els.rowPaidAmount.value) || 0;
+      const updatedRecords = [];
+
+      for (const record of candidates) {
+        if (remainingPayment <= 0) break;
+        const applied = Math.min(remainingPayment, balanceAmount(record));
+        const paid = paidAmount(record) + applied;
+        remainingPayment -= applied;
+        updatedRecords.push({
+          ...record,
+          paidAmount: paid,
+          balanceTotal: Math.max((record.saleTotal || 0) - paid, 0),
+          paymentStatus: Math.max((record.saleTotal || 0) - paid, 0) <= 0 && (record.saleTotal || 0) > 0 ? "จ่ายแล้ว" : "ค้างจ่าย",
+          paymentSlipName: slip?.name || record.paymentSlipName || "",
+          paymentSlipType: slip?.type || record.paymentSlipType || "",
+          paymentSlipDataUrl: slip?.dataUrl || record.paymentSlipDataUrl || "",
+          paymentSlipUrl: record.paymentSlipUrl || "",
+          updatedAt: new Date().toISOString()
+        });
+      }
+
+      if (!updatedRecords.length) {
+        toast("กรุณาใส่ยอดชำระมากกว่า 0");
+        return;
+      }
+
+      const updatesById = new Map(updatedRecords.map(record => [record.id, record]));
+      records = records.map(item => updatesById.get(item.id) || item);
+      saveRecords();
+      render();
+      els.rowPaymentSlip.value = "";
+      els.rowPaymentSlipName.textContent = "รองรับรูปภาพหรือ PDF";
+      toast(`บันทึกยอดชำระของ ${customerTypeValue} แล้ว`);
+
+      try {
+        for (const record of updatedRecords) {
+          await sendToSheet(record);
+        }
+        toast("บันทึกยอดชำระและส่งเข้า Google Sheet แล้ว");
+      } catch (error) {
+        updateSyncStatus("ซิงก์ไม่สำเร็จ");
+        toast("บันทึกยอดชำระในเครื่องแล้ว แต่ส่งเข้า Sheet ไม่สำเร็จ");
+      }
+    }
+
+    els.rows.addEventListener("click", event => {
+      const checkbox = event.target.closest("[data-select-id]");
+      if (!checkbox) return;
+      if (checkbox.checked) selectedIds.add(checkbox.dataset.selectId);
+      else selectedIds.delete(checkbox.dataset.selectId);
+      checkbox.closest("tr")?.classList.toggle("selected-row", checkbox.checked);
+      updateSelectionBar();
+    });
+
+    els.rows.addEventListener("change", event => {
+      const statusSelect = event.target.closest("[data-payment-status-id]");
+      if (!statusSelect) return;
+      updateRecordPaymentStatus(statusSelect.dataset.paymentStatusId, statusSelect.value);
+    });
+
+    els.editSelected.addEventListener("click", editSelectedRecord);
+    els.deleteSelected.addEventListener("click", deleteSelectedRecords);
+
+    els.paymentJobSelect.addEventListener("change", updatePaymentPanel);
+    els.paymentJobSelect.addEventListener("change", () => {
+      renderPaymentCustomerOptions(filteredRecords());
+      updatePaymentPanel();
+    });
+    els.paymentCustomerSelect.addEventListener("change", updatePaymentPanel);
+    els.rowPaymentSlip.addEventListener("change", () => {
+      els.rowPaymentSlipName.textContent = els.rowPaymentSlip.files[0]?.name || "รองรับรูปภาพหรือ PDF";
+    });
+    els.savePayment.addEventListener("click", () => saveCustomerPayment(els.paymentJobSelect.value, els.paymentCustomerSelect.value));
+
+    els.viewSegments.forEach(button => {
+      button.addEventListener("click", () => {
+        viewMode = button.dataset.view;
+        els.viewSegments.forEach(segment => segment.classList.toggle("active", segment === button));
+        els.filterDate.hidden = viewMode !== "day";
+        els.filterMonth.hidden = viewMode !== "month";
+        render();
+      });
+    });
+
+    document.querySelector("#todayBtn").addEventListener("click", () => {
+      els.filterDate.value = today();
+      els.filterMonth.value = thisMonth();
+      render();
+    });
+
+    document.querySelector("#resetForm").addEventListener("click", () => resetForm(false));
+    els.loadFromSheet.addEventListener("click", loadFromSheet);
+    els.toggleSearch.addEventListener("click", () => {
+      const shouldOpen = els.searchInput.hidden;
+      els.searchInput.hidden = !shouldOpen;
+      els.clearSearch.hidden = !shouldOpen;
+      els.toggleSearch.textContent = shouldOpen ? "ปิดค้นหา" : "ค้นหา";
+      if (shouldOpen) {
+        els.searchInput.focus();
+      } else {
+        els.searchInput.value = "";
+        render();
+      }
+    });
+    els.searchInput.addEventListener("input", render);
+    els.customerDisplayFilter.addEventListener("change", render);
+    els.categoryFilter.addEventListener("change", () => {
+      updateCategoryFilterLabel();
+      render();
+    });
+    els.categoryFilterButtons.forEach(button => {
+      button.addEventListener("click", () => {
+        els.categoryFilter.value = button.dataset.categoryFilterValue;
+        els.categoryFilterMenu.open = false;
+        updateCategoryFilterLabel();
+        render();
+      });
+    });
+    els.clearSearch.addEventListener("click", () => {
+      els.searchInput.value = "";
+      els.categoryFilter.value = "ทั้งหมด";
+      updateCategoryFilterLabel();
+      els.searchInput.hidden = true;
+      els.clearSearch.hidden = true;
+      els.toggleSearch.textContent = "ค้นหา";
+      render();
+    });
+    els.themeToggle.addEventListener("click", () => {
+      applyTheme(document.body.classList.contains("dark") ? "light" : "dark");
+    });
+    document.querySelectorAll(".menu").forEach(menu => {
+      menu.addEventListener("toggle", () => {
+        if (!menu.open) return;
+        document.querySelectorAll(".menu").forEach(otherMenu => {
+          if (otherMenu !== menu) otherMenu.open = false;
+        });
+      });
+      menu.addEventListener("click", event => {
+        if (event.target.closest("button")) menu.open = false;
+      });
+    });
+    document.addEventListener("click", event => {
+      if (!event.target.closest(".category-filter")) {
+        els.categoryFilterMenu.open = false;
+      }
+      if (!event.target.closest(".ux-select")) {
+        document.querySelectorAll(".ux-select").forEach(select => {
+          select.open = false;
+        });
+      }
+      if (event.target.closest(".menu")) return;
+      document.querySelectorAll(".menu").forEach(menu => {
+        menu.open = false;
+      });
+    });
+    document.querySelector("#exportCsv").addEventListener("click", exportCsv);
+    document.querySelector("#exportPdf").addEventListener("click", exportReportPdf);
+    document.querySelector("#exportPng").addEventListener("click", exportReportPng);
+    document.querySelector("#syncNow").addEventListener("click", syncAll);
+
+    document.querySelector("#openSettings").addEventListener("click", () => {
+      els.sheetUrl.value = getSheetUrl();
+      els.settingsDialog.showModal();
+    });
+
+    document.querySelector("#closeSettings").addEventListener("click", () => els.settingsDialog.close());
+
+    document.querySelector("#saveSettings").addEventListener("click", () => {
+      const url = els.sheetUrl.value.trim();
+      if (url) localStorage.setItem(URL_KEY, url);
+      else localStorage.removeItem(URL_KEY);
+      els.settingsDialog.close();
+      updateSyncStatus();
+      toast(url ? "บันทึก URL แล้ว" : "ล้าง URL แล้ว");
+    });
+
+    els.filterDate.addEventListener("change", render);
+    els.filterMonth.addEventListener("change", render);
+
+    function applyProductQuery() {
+      const params = new URLSearchParams(location.search);
+      const productName = params.get("product");
+      const productCategory = params.get("category");
+      if (productCategory && [...els.category.options].some(option => option.value === productCategory)) {
+        els.category.value = productCategory;
+      }
+      if (productName) {
+        els.jobName.value = productName;
+      }
+    }
+
+    els.jobDate.value = today();
+    els.customerType.value = "มานา เด็กดื้อ";
+    els.quantity.value = "1";
+    els.filterDate.value = today();
+    els.filterMonth.value = thisMonth();
+    applyTheme(localStorage.getItem(THEME_KEY) || "light");
+    initUxSelects();
+    updateCategoryFilterLabel();
+    applyProductQuery();
+    setPrintMode("ส่งพิมพ์");
+    applyCategoryDefaults();
+    refreshUxSelects();
+    updatePreview();
+    render();
+    autoLoadFromSheet();
+  </script>
+</body>
+</html>

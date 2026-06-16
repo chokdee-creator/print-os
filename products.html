@@ -1,0 +1,825 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>สินค้า | PRINT IMAGE</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --ink: #111827;
+      --muted: #667085;
+      --line: #e5e7eb;
+      --brand: #5b3df5;
+      --brand-strong: #3b25b8;
+      --soft: #f0edff;
+      --navy: #071a3d;
+      --success: #10b981;
+      --shadow: 0 18px 48px rgba(17, 24, 39, .1);
+      font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 18% 0%, rgba(91, 61, 245, .11), transparent 24%),
+        linear-gradient(180deg, #fff 0%, var(--bg) 45%, #eef2f7 100%);
+    }
+
+    a { color: inherit; text-decoration: none; }
+    button, input, select { font: inherit; }
+
+    .shell {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 18px 0 36px;
+    }
+
+    .topbar {
+      min-height: 72px;
+      padding: 0 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .94);
+      box-shadow: 0 12px 36px rgba(15, 23, 42, .08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      position: sticky;
+      top: 12px;
+      z-index: 10;
+      backdrop-filter: blur(12px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 900;
+      letter-spacing: .04em;
+      min-width: 190px;
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #111827, #5b3df5);
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-weight: 900;
+    }
+
+    .brand small {
+      display: block;
+      color: var(--muted);
+      letter-spacing: 0;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    .nav {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      justify-content: center;
+      flex: 1;
+    }
+
+    .nav a,
+    .btn {
+      min-height: 40px;
+      padding: 0 12px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 750;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+
+    .nav a {
+      color: #344054;
+      font-size: 14px;
+    }
+
+    .nav a.active {
+      color: var(--brand);
+      background: var(--soft);
+    }
+
+    .nav a:hover {
+      background: #f8fafc;
+      border-color: var(--line);
+    }
+
+    .nav-tools {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      justify-content: flex-end;
+      min-width: 170px;
+    }
+
+    .icon-btn {
+      width: 40px;
+      height: 40px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      background: transparent;
+      color: #1f2937;
+      display: grid;
+      place-items: center;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    .icon-btn:hover {
+      background: #f8fafc;
+      border-color: var(--line);
+    }
+
+    .login-btn,
+    .btn {
+      min-height: 42px;
+      padding: 0 16px;
+      border-radius: 8px;
+      background: var(--brand);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      box-shadow: 0 12px 24px rgba(91, 61, 245, .22);
+    }
+
+    .btn.ghost {
+      background: #fff;
+      color: var(--brand);
+      border-color: rgba(91, 61, 245, .38);
+      box-shadow: none;
+    }
+
+    .page-head {
+      margin: 30px 0 24px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 520px;
+      gap: 24px;
+      align-items: end;
+    }
+
+    .breadcrumb {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(34px, 5vw, 54px);
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    .page-head p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .service-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .service-card {
+      min-height: 86px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .88);
+      display: grid;
+      gap: 4px;
+      align-content: center;
+      text-align: center;
+    }
+
+    .service-card span {
+      color: var(--brand);
+      font-size: 22px;
+      font-weight: 900;
+    }
+
+    .service-card b { font-size: 14px; }
+    .service-card small { color: var(--muted); }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 230px;
+      gap: 12px;
+      margin-bottom: 18px;
+      align-items: center;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 0;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      width: fit-content;
+      max-width: 100%;
+    }
+
+    .tab {
+      min-height: 42px;
+      padding: 0 18px;
+      border: 0;
+      border-right: 1px solid var(--line);
+      background: transparent;
+      color: #475467;
+      cursor: pointer;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .tab:last-child { border-right: 0; }
+
+    .tab.active {
+      color: #fff;
+      background: var(--brand);
+    }
+
+    .sort-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      justify-content: flex-end;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    select,
+    input[type="search"] {
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      padding: 0 12px;
+      outline: none;
+    }
+
+    select:focus,
+    input[type="search"]:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(91, 61, 245, .12);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .filters {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .92);
+      box-shadow: 0 10px 30px rgba(15, 23, 42, .06);
+      overflow: hidden;
+      position: sticky;
+      top: 104px;
+    }
+
+    .filter-block {
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .filter-block:last-child { border-bottom: 0; }
+    .filter-block h3 { margin: 0 0 10px; font-size: 15px; }
+
+    .count-row,
+    .check-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      min-height: 30px;
+      color: #475467;
+      font-size: 14px;
+    }
+
+    .count-row button {
+      border: 0;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      padding: 0;
+      font-weight: 700;
+    }
+
+    .count-row button.active { color: var(--brand); }
+    .count { color: #98a2b3; font-weight: 800; }
+
+    .check-row {
+      justify-content: flex-start;
+    }
+
+    .check-row input {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--brand);
+    }
+
+    .more-btn {
+      border: 0;
+      background: transparent;
+      color: var(--brand);
+      font-weight: 800;
+      padding: 8px 0 0;
+      cursor: pointer;
+    }
+
+    .content-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 300px;
+      gap: 12px;
+      margin-bottom: 14px;
+      align-items: center;
+    }
+
+    .result-count { color: var(--muted); font-weight: 750; }
+    .search-box { width: 100%; }
+
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .product-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, .06);
+      overflow: hidden;
+      display: grid;
+      min-height: 388px;
+    }
+
+    .product-image {
+      height: 178px;
+      margin: 10px 10px 0;
+      border-radius: 8px;
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, .22), rgba(91, 61, 245, .1)),
+        var(--image, url("assets/print-portal-preview.png")) var(--pos, center) / cover;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .badge {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      min-height: 26px;
+      padding: 0 10px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #7c6aff, #5b3df5);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .badge.green { background: #22c55e; }
+
+    .product-body {
+      padding: 14px;
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .product-body h2 {
+      margin: 0;
+      font-size: 19px;
+      line-height: 1.25;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .price {
+      color: var(--brand-strong);
+      font-weight: 900;
+      font-size: 20px;
+    }
+
+    .card-actions {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 42px;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .favorite {
+      width: 42px;
+      height: 42px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+      color: #64748b;
+      font-size: 20px;
+    }
+
+    .favorite.active {
+      color: #ef4444;
+      border-color: #fecaca;
+      background: #fff1f2;
+    }
+
+    .empty {
+      min-height: 260px;
+      border: 1px dashed #cbd5e1;
+      border-radius: 8px;
+      display: none;
+      place-items: center;
+      color: var(--muted);
+      background: rgba(255, 255, 255, .72);
+      text-align: center;
+      padding: 24px;
+    }
+
+    .order-panel {
+      position: fixed;
+      inset: auto 18px 18px auto;
+      width: min(460px, calc(100% - 36px));
+      border: 1px solid rgba(91, 61, 245, .2);
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: var(--shadow);
+      z-index: 20;
+      padding: 18px;
+      display: none;
+    }
+
+    .order-panel.open { display: block; }
+
+    .order-panel h2 {
+      margin: 0 0 8px;
+      font-size: 22px;
+    }
+
+    .order-panel p {
+      margin: 0 0 16px;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .order-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .panel-close {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 34px;
+      height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    .footer {
+      padding: 22px 6px 0;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      font-size: 14px;
+    }
+
+    @media (max-width: 980px) {
+      .page-head,
+      .layout,
+      .toolbar,
+      .content-head {
+        grid-template-columns: 1fr;
+      }
+
+      .filters { position: static; }
+      .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .sort-wrap { justify-content: flex-start; }
+    }
+
+    @media (max-width: 720px) {
+      .topbar {
+        position: static;
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 16px;
+      }
+
+      .nav,
+      .nav-tools {
+        width: 100%;
+        justify-content: stretch;
+      }
+
+      .nav a,
+      .login-btn {
+        flex: 1;
+      }
+
+      .service-grid,
+      .product-grid,
+      .order-actions {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="index.html" aria-label="หน้าหลัก PRINT IMAGE">
+        <span class="brand-mark">PX</span>
+        <span>
+          PRINT IMAGE
+          <small>โรงพิมพ์ครบวงจร</small>
+        </span>
+      </a>
+      <nav class="nav" aria-label="เมนูหลัก">
+        <a href="index.html">หน้าหลัก</a>
+        <a class="active" href="products.html">สินค้า</a>
+        <a href="products.html#sizes">ขนาดกระดาษ</a>
+        <a href="index.html#features">วิธีสั่งพิมพ์</a>
+        <a href="products.html?category=งานพิมพ์อื่นๆ">ตัวอย่างงาน</a>
+        <a href="index.html#features">เกี่ยวกับเรา</a>
+        <a href="index.html#branches">ติดต่อเรา</a>
+      </nav>
+      <div class="nav-tools" aria-label="เครื่องมือ">
+        <button class="icon-btn" type="button" id="focusSearch" aria-label="ค้นหา">⌕</button>
+        <a class="icon-btn" href="index.html#branches" aria-label="บัญชีสาขา">▣</a>
+        <a class="login-btn" href="print-image-account.html">เข้าสู่ระบบ</a>
+      </div>
+    </header>
+
+    <section class="page-head">
+      <div>
+        <div class="breadcrumb">หน้าหลัก › สินค้า</div>
+        <h1>สินค้า</h1>
+        <p>เลือกสินค้างานพิมพ์ที่ต้องการ กรองตามหมวด ขนาด วัสดุ หรือค้นหาชื่อสินค้า แล้วส่งต่อไปบันทึกงานของสาขาได้ทันที</p>
+      </div>
+      <div class="service-grid" aria-label="บริการเด่น">
+        <div class="service-card"><span>▣</span><b>สั่งขั้นต่ำ 1 ชิ้น</b><small>ไม่มีขั้นต่ำ</small></div>
+        <div class="service-card"><span>▤</span><b>ส่งทั่วประเทศ</b><small>รวดเร็ว ปลอดภัย</small></div>
+        <div class="service-card"><span>◷</span><b>งานพิมพ์คุณภาพ</b><small>คมชัด สีสวย</small></div>
+        <div class="service-card"><span>♙</span><b>ทีมงานมืออาชีพ</b><small>ให้คำปรึกษาฟรี</small></div>
+      </div>
+    </section>
+
+    <section class="toolbar" aria-label="ตัวเลือกสินค้า">
+      <div class="tabs" id="categoryTabs"></div>
+      <label class="sort-wrap">
+        เรียงตาม:
+        <select id="sortSelect">
+          <option value="recommended">แนะนำ</option>
+          <option value="priceLow">ราคาต่ำไปสูง</option>
+          <option value="priceHigh">ราคาสูงไปต่ำ</option>
+          <option value="name">ชื่อสินค้า</option>
+        </select>
+      </label>
+    </section>
+
+    <section class="layout">
+      <aside class="filters" aria-label="ตัวกรองสินค้า">
+        <div class="filter-block">
+          <h3>หมวดหมู่สินค้า</h3>
+          <div id="categoryList"></div>
+        </div>
+        <div class="filter-block" id="sizes">
+          <h3>ขนาดกระดาษ</h3>
+          <label class="check-row"><input type="checkbox" name="size" value="A6"> A6 105 x 148 mm</label>
+          <label class="check-row"><input type="checkbox" name="size" value="A5"> A5 148 x 210 mm</label>
+          <label class="check-row"><input type="checkbox" name="size" value="A4"> A4 210 x 297 mm</label>
+          <label class="check-row"><input type="checkbox" name="size" value="A3"> A3 297 x 420 mm</label>
+          <label class="check-row"><input type="checkbox" name="size" value="A2"> A2 420 x 594 mm</label>
+          <label class="check-row"><input type="checkbox" name="size" value="Custom"> ขนาดตามสั่ง</label>
+        </div>
+        <div class="filter-block">
+          <h3>ประเภทวัสดุ</h3>
+          <label class="check-row"><input type="checkbox" name="material" value="กระดาษอาร์ตมัน"> กระดาษอาร์ตมัน</label>
+          <label class="check-row"><input type="checkbox" name="material" value="กระดาษอาร์ตด้าน"> กระดาษอาร์ตด้าน</label>
+          <label class="check-row"><input type="checkbox" name="material" value="PVC"> PVC</label>
+          <label class="check-row"><input type="checkbox" name="material" value="ไวนิล"> ไวนิล</label>
+          <label class="check-row"><input type="checkbox" name="material" value="โปร่งใส"> โปร่งใส</label>
+          <button class="more-btn" type="button" id="clearFilters">ล้างตัวกรอง ›</button>
+        </div>
+      </aside>
+
+      <section>
+        <div class="content-head">
+          <div class="result-count" id="resultCount">พบสินค้า 0 รายการ</div>
+          <input class="search-box" id="searchInput" type="search" placeholder="ค้นหาสินค้า เช่น นามบัตร สติ๊กเกอร์ ไวนิล">
+        </div>
+        <div class="product-grid" id="productGrid"></div>
+        <div class="empty" id="emptyState">ไม่พบสินค้าที่ตรงกับตัวกรอง ลองล้างตัวกรองหรือค้นหาด้วยคำอื่น</div>
+      </section>
+    </section>
+
+    <footer class="footer">
+      <span>PRINT IMAGE Product Catalog</span>
+      <span>เลือกสินค้าแล้วส่งต่อไปบันทึกงานของแต่ละสาขาได้โดยไม่กระทบข้อมูลเดิม</span>
+    </footer>
+  </main>
+
+  <aside class="order-panel" id="orderPanel" aria-live="polite">
+    <button class="panel-close" type="button" id="closePanel" aria-label="ปิด">×</button>
+    <h2 id="orderTitle">เลือกสาขาที่ต้องการบันทึกงาน</h2>
+    <p id="orderText"></p>
+    <div class="order-actions">
+      <a class="btn" id="printImageOrder" href="print-image-account.html">ปริ้นอิมเมจ</a>
+      <a class="btn ghost" id="chokdeeOrder" href="chokdee-print.html">โชคดีการพิมพ์</a>
+    </div>
+  </aside>
+
+  <script>
+    const products = [
+      { id: "business-card", name: "นามบัตร", category: "งานพิมพ์กระดาษ", size: "Custom", material: "กระดาษอาร์ตมัน", spec: "กระดาษอาร์ต 300 แกรม", detail: "ขนาด 9 x 5.5 ซม.", price: 200, tag: "ขายดี", pos: "52% 62%" },
+      { id: "flyer-a4", name: "ใบปลิว A4", category: "งานพิมพ์กระดาษ", size: "A4", material: "กระดาษอาร์ตมัน", spec: "กระดาษอาร์ต 130 แกรม", detail: "ขนาด A4 (21 x 29.7 ซม.)", price: 350, tag: "แนะนำ", pos: "70% 62%" },
+      { id: "brochure-3fold", name: "โบรชัวร์ พับ 3 ตอน", category: "งานพิมพ์กระดาษ", size: "A4", material: "กระดาษอาร์ตด้าน", spec: "กระดาษอาร์ต 130 แกรม", detail: "ขนาด A4 พับ 3 ตอน", price: 850, tag: "ขายดี", pos: "64% 50%" },
+      { id: "paper-sticker", name: "สติ๊กเกอร์กระดาษ", category: "สติ๊กเกอร์", size: "Custom", material: "กระดาษอาร์ตมัน", spec: "กระดาษสติ๊กเกอร์ 80 แกรม", detail: "ขนาดตามสั่ง", price: 250, tag: "ใหม่", pos: "45% 78%" },
+      { id: "vinyl-sticker", name: "สติ๊กเกอร์ไวนิล", category: "สติ๊กเกอร์", size: "Custom", material: "PVC", spec: "PVC ขาวมัน กันน้ำ", detail: "ขนาดตามสั่ง", price: 300, tag: "ขายดี", pos: "38% 72%" },
+      { id: "frontlit-vinyl", name: "ไวนิล (Frontlit)", category: "ไวนิล / ป้าย", size: "Custom", material: "ไวนิล", spec: "ไวนิล 440 แกรม", detail: "ขนาดตามสั่ง", price: 450, unit: "บาท/ตร.ม.", tag: "แนะนำ", pos: "58% 72%" },
+      { id: "clear-sticker", name: "สติ๊กเกอร์ใส", category: "สติ๊กเกอร์", size: "Custom", material: "โปร่งใส", spec: "PVC ใส กันน้ำ", detail: "ขนาดตามสั่ง", price: 280, tag: "ใหม่", pos: "74% 78%" },
+      { id: "tent-card", name: "ป้ายตั้งโต๊ะ (Tent Card)", category: "งานพิมพ์อื่นๆ", size: "A5", material: "กระดาษอาร์ตด้าน", spec: "กระดาษอาร์ต 300 แกรม", detail: "ขนาด 10 x 21 ซม.", price: 180, tag: "ขายดี", pos: "70% 42%" },
+      { id: "poster-a3", name: "โปสเตอร์ A3", category: "งานพิมพ์กระดาษ", size: "A3", material: "กระดาษอาร์ตมัน", spec: "กระดาษอาร์ต 160 แกรม", detail: "ขนาด A3 (29.7 x 42 ซม.)", price: 280, tag: "แนะนำ", pos: "62% 58%" },
+      { id: "rollup", name: "โรลอัพ", category: "ไวนิล / ป้าย", size: "Custom", material: "ไวนิล", spec: "โครงโรลอัพพร้อมภาพพิมพ์", detail: "ขนาด 80 x 200 ซม.", price: 1200, tag: "ขายดี", pos: "58% 65%" },
+      { id: "menu-card", name: "เมนูอาหาร", category: "งานพิมพ์อื่นๆ", size: "A4", material: "กระดาษอาร์ตด้าน", spec: "เคลือบด้าน กันรอย", detail: "ขนาด A4 หรือกำหนดเอง", price: 420, tag: "ใหม่", pos: "48% 48%" },
+      { id: "premium-pack", name: "แพ็กเกจชุดร้านค้า", category: "แพ็กเกจสุดคุ้ม", size: "Custom", material: "PVC", spec: "ป้ายไวนิล + สติ๊กเกอร์ + ใบปลิว", detail: "เหมาะกับร้านเปิดใหม่", price: 2500, tag: "คุ้มค่า", pos: "50% 55%" }
+    ];
+
+    const categories = ["ทั้งหมด", "งานพิมพ์กระดาษ", "สติ๊กเกอร์", "ไวนิล / ป้าย", "งานพิมพ์อื่นๆ", "แพ็กเกจสุดคุ้ม"];
+    const categoryTabs = document.querySelector("#categoryTabs");
+    const categoryList = document.querySelector("#categoryList");
+    const productGrid = document.querySelector("#productGrid");
+    const resultCount = document.querySelector("#resultCount");
+    const searchInput = document.querySelector("#searchInput");
+    const sortSelect = document.querySelector("#sortSelect");
+    const emptyState = document.querySelector("#emptyState");
+    const orderPanel = document.querySelector("#orderPanel");
+    const orderText = document.querySelector("#orderText");
+    const printImageOrder = document.querySelector("#printImageOrder");
+    const chokdeeOrder = document.querySelector("#chokdeeOrder");
+    let activeCategory = new URLSearchParams(location.search).get("category") || "ทั้งหมด";
+    let favorites = new Set(JSON.parse(localStorage.getItem("print_product_favorites_v1") || "[]"));
+
+    function countByCategory(category) {
+      if (category === "ทั้งหมด") return products.length;
+      return products.filter(product => product.category === category).length;
+    }
+
+    function renderCategories() {
+      categoryTabs.innerHTML = categories.map(category => `
+        <button class="tab ${category === activeCategory ? "active" : ""}" type="button" data-category="${category}">${category}</button>
+      `).join("");
+
+      categoryList.innerHTML = categories.map(category => `
+        <div class="count-row">
+          <button class="${category === activeCategory ? "active" : ""}" type="button" data-category="${category}">${category}</button>
+          <span class="count">${countByCategory(category)}</span>
+        </div>
+      `).join("");
+    }
+
+    function checkedValues(name) {
+      return [...document.querySelectorAll(`input[name="${name}"]:checked`)].map(input => input.value);
+    }
+
+    function filteredProducts() {
+      const term = searchInput.value.trim().toLowerCase();
+      const sizes = checkedValues("size");
+      const materials = checkedValues("material");
+      let items = products.filter(product => {
+        const inCategory = activeCategory === "ทั้งหมด" || product.category === activeCategory;
+        const inSize = !sizes.length || sizes.includes(product.size);
+        const inMaterial = !materials.length || materials.includes(product.material);
+        const inSearch = !term || [product.name, product.category, product.spec, product.detail, product.material].join(" ").toLowerCase().includes(term);
+        return inCategory && inSize && inMaterial && inSearch;
+      });
+
+      if (sortSelect.value === "priceLow") items = items.sort((a, b) => a.price - b.price);
+      if (sortSelect.value === "priceHigh") items = items.sort((a, b) => b.price - a.price);
+      if (sortSelect.value === "name") items = items.sort((a, b) => a.name.localeCompare(b.name, "th"));
+      return items;
+    }
+
+    function productOrderUrl(base, product) {
+      const params = new URLSearchParams({
+        product: product.name,
+        category: product.category.includes("สติ๊กเกอร์") ? "สติ๊กเกอร์" : "ไวนิล"
+      });
+      return `${base}?${params.toString()}`;
+    }
+
+    function openOrderPanel(product) {
+      orderText.textContent = `สินค้า: ${product.name} ราคาเริ่มต้น ${product.price.toLocaleString("th-TH")} ${product.unit || "บาท"} เลือกสาขาที่ต้องการนำไปบันทึกงาน`;
+      printImageOrder.href = productOrderUrl("print-image-account.html", product);
+      chokdeeOrder.href = productOrderUrl("chokdee-print.html", product);
+      orderPanel.classList.add("open");
+    }
+
+    function renderProducts() {
+      const items = filteredProducts();
+      resultCount.textContent = `พบสินค้า ${items.length.toLocaleString("th-TH")} รายการ`;
+      productGrid.innerHTML = items.map(product => `
+        <article class="product-card">
+          <div class="product-image" style="--pos: ${product.pos}">
+            <span class="badge ${product.tag === "ใหม่" ? "green" : ""}">${product.tag}</span>
+          </div>
+          <div class="product-body">
+            <h2>${product.name}</h2>
+            <div class="meta">${product.spec}<br>${product.detail}</div>
+            <div>เริ่มต้น <span class="price">${product.price.toLocaleString("th-TH")} ${product.unit || "บาท"}</span></div>
+            <div class="card-actions">
+              <button class="btn ghost" type="button" data-order="${product.id}">เลือกสั่งพิมพ์</button>
+              <button class="favorite ${favorites.has(product.id) ? "active" : ""}" type="button" data-favorite="${product.id}" aria-label="บันทึกเป็นรายการโปรด">♡</button>
+            </div>
+          </div>
+        </article>
+      `).join("");
+      emptyState.style.display = items.length ? "none" : "grid";
+    }
+
+    function setCategory(category) {
+      activeCategory = category;
+      const url = new URL(location.href);
+      if (category === "ทั้งหมด") url.searchParams.delete("category");
+      else url.searchParams.set("category", category);
+      history.replaceState(null, "", url);
+      renderCategories();
+      renderProducts();
+    }
+
+    document.addEventListener("click", event => {
+      const categoryButton = event.target.closest("[data-category]");
+      if (categoryButton) setCategory(categoryButton.dataset.category);
+
+      const orderButton = event.target.closest("[data-order]");
+      if (orderButton) {
+        const product = products.find(item => item.id === orderButton.dataset.order);
+        if (product) openOrderPanel(product);
+      }
+
+      const favoriteButton = event.target.closest("[data-favorite]");
+      if (favoriteButton) {
+        const id = favoriteButton.dataset.favorite;
+        if (favorites.has(id)) favorites.delete(id);
+        else favorites.add(id);
+        localStorage.setItem("print_product_favorites_v1", JSON.stringify([...favorites]));
+        renderProducts();
+      }
+    });
+
+    document.querySelector("#closePanel").addEventListener("click", () => orderPanel.classList.remove("open"));
+    document.querySelector("#focusSearch").addEventListener("click", () => searchInput.focus());
+    document.querySelector("#clearFilters").addEventListener("click", () => {
+      document.querySelectorAll("input[type='checkbox']").forEach(input => input.checked = false);
+      searchInput.value = "";
+      setCategory("ทั้งหมด");
+    });
+    document.querySelectorAll("input[type='checkbox']").forEach(input => input.addEventListener("change", renderProducts));
+    searchInput.addEventListener("input", renderProducts);
+    sortSelect.addEventListener("change", renderProducts);
+
+    if (!categories.includes(activeCategory)) activeCategory = "ทั้งหมด";
+    renderCategories();
+    renderProducts();
+  </script>
+</body>
+</html>

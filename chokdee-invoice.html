@@ -1,0 +1,1685 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ออกบิล / ใบเสร็จ / ใบกำกับภาษี | โชคดีการพิมพ์</title>
+  <style>
+    :root {
+      --bg: #f7f8fb;
+      --panel: #fff;
+      --ink: #111827;
+      --muted: #667085;
+      --line: #e4e7ec;
+      --soft: #fff7df;
+      --brand: #c98a00;
+      --brand-2: #f3c45b;
+      --danger: #d92d20;
+      --ok: #079455;
+      --shadow: 0 18px 48px rgba(17, 24, 39, .08);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Inter", "Segoe UI", Tahoma, sans-serif;
+      color: var(--ink);
+      background: linear-gradient(135deg, #fff 0%, #faf8f2 54%, #fff6dc 100%);
+    }
+    button, input, select, textarea { font: inherit; }
+    button { border: 0; cursor: pointer; }
+    a { color: inherit; text-decoration: none; }
+
+    .layout {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 238px minmax(0, 1fr);
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 24px 18px;
+      border-right: 1px solid var(--line);
+      background: rgba(255,255,255,.9);
+      backdrop-filter: blur(18px);
+    }
+
+    .brand {
+      display: grid;
+      gap: 3px;
+      padding: 0 10px 24px;
+      margin-bottom: 18px;
+      border-bottom: 1px solid var(--line);
+    }
+    .brand strong { font-size: 27px; letter-spacing: .01em; }
+    .brand span { color: var(--brand); }
+    .brand small { color: var(--muted); font-weight: 750; }
+
+    .nav { display: grid; gap: 8px; }
+    .nav a {
+      min-height: 46px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 13px;
+      border-radius: 8px;
+      color: #46536b;
+      font-weight: 800;
+    }
+    .nav a.active, .nav a:hover {
+      color: var(--brand);
+      background: var(--soft);
+    }
+
+    .sales-card {
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      bottom: 24px;
+      padding: 16px;
+      border-radius: 8px;
+      color: #fff;
+      background:
+        radial-gradient(circle at 82% 12%, rgba(255,255,255,.55), transparent 18%),
+        linear-gradient(135deg, #b77900, #f3c45b);
+      box-shadow: var(--shadow);
+    }
+    .sales-card b { display: block; font-size: 22px; margin: 6px 0; }
+    .sales-card small { color: rgba(255,255,255,.78); }
+
+    .topbar {
+      min-height: 74px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 0 clamp(18px, 4vw, 42px);
+      border-bottom: 1px solid var(--line);
+      background: rgba(255,255,255,.78);
+      backdrop-filter: blur(18px);
+    }
+    .title h1 { margin: 0; font-size: clamp(26px, 3vw, 40px); }
+    .title p { margin: 4px 0 0; color: var(--muted); }
+    .top-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+
+    .btn {
+      min-height: 42px;
+      padding: 0 15px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--ink);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-weight: 850;
+      white-space: nowrap;
+    }
+    .btn.primary {
+      color: #fff;
+      border-color: transparent;
+      background: linear-gradient(135deg, #b77900, #f3c45b);
+      box-shadow: 0 14px 28px rgba(185, 122, 0, .22);
+    }
+    .btn.danger { color: var(--danger); background: #fff5f5; border-color: #ffd5d2; }
+    .btn.small { min-height: 34px; padding: 0 10px; font-size: 13px; }
+
+    .content {
+      width: min(1560px, calc(100% - clamp(22px, 4vw, 64px)));
+      margin: 0 auto;
+      padding: 22px 0 42px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 520px;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .workspace { display: grid; gap: 14px; }
+    .panel {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255,255,255,.94);
+      box-shadow: 0 12px 36px rgba(17, 24, 39, .05);
+    }
+    .panel h2 { margin: 0 0 14px; font-size: 18px; }
+
+    .doc-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .doc-tab {
+      min-height: 74px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      text-align: left;
+      display: grid;
+      gap: 4px;
+      font-weight: 900;
+    }
+    .doc-tab small { color: var(--muted); font-weight: 700; }
+    .doc-tab.active {
+      color: var(--brand);
+      border-color: rgba(91,53,242,.55);
+      background: var(--soft);
+      box-shadow: 0 10px 26px rgba(91,53,242,.12);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .field { display: grid; gap: 7px; }
+    .field.full { grid-column: 1 / -1; }
+    label { color: #344054; font-size: 13px; font-weight: 850; }
+    input, select, textarea {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0 12px;
+      background: #fff;
+      color: var(--ink);
+      outline: 0;
+    }
+    textarea { min-height: 78px; padding: 10px 12px; resize: vertical; }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(91,53,242,.12);
+    }
+
+    .items-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .quick-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .table-wrap { overflow: auto; border: 1px solid var(--line); border-radius: 8px; }
+    table { width: 100%; min-width: 860px; border-collapse: collapse; background: #fff; }
+    th, td { padding: 10px; border-bottom: 1px solid var(--line); font-size: 14px; }
+    th { color: var(--muted); background: #f9fafb; text-align: left; font-size: 12px; }
+    td.number, th.number { text-align: right; }
+    td input { min-height: 36px; padding: 0 9px; }
+    .row-del { color: var(--danger); background: transparent; font-weight: 900; }
+
+    .bottom-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 330px;
+      gap: 16px;
+      align-items: start;
+    }
+    .payment-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .payment-tabs button {
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      font-weight: 850;
+    }
+    .payment-tabs button.active { color: #fff; background: var(--brand); border-color: var(--brand); }
+
+    .total-box {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcff;
+    }
+    .total-line { display: flex; justify-content: space-between; gap: 12px; font-weight: 750; }
+    .total-line span:first-child { color: var(--muted); }
+    .total-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 850;
+    }
+    .total-option input[type="checkbox"] {
+      width: 16px;
+      min-height: 16px;
+      height: 16px;
+      accent-color: var(--brand);
+    }
+    .total-line input[type="number"] {
+      max-width: 116px;
+      min-height: 34px;
+      text-align: right;
+    }
+    .total-line.disabled {
+      opacity: .48;
+    }
+    .total-line.disabled input {
+      pointer-events: none;
+      background: #f3f4f6;
+    }
+    .grand {
+      margin-top: 4px;
+      padding: 12px;
+      border-radius: 8px;
+      color: var(--brand);
+      background: var(--soft);
+      font-size: 22px;
+      font-weight: 950;
+    }
+    .change { color: var(--ok); }
+
+    .preview-shell {
+      position: sticky;
+      top: 18px;
+      display: grid;
+      gap: 12px;
+      justify-items: center;
+      overflow-x: auto;
+    }
+    .preview-tools {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .document {
+      width: 520px;
+      max-width: 520px;
+      aspect-ratio: 210 / 297;
+      min-height: 0;
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      transform-origin: top center;
+    }
+    .receipt-form {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      color: #1f2937;
+      border: 2px solid #bd842b;
+      outline: 1px solid rgba(189,132,43,.5);
+      outline-offset: -8px;
+      background:
+        radial-gradient(circle at 88% 20%, rgba(243,196,91,.12), transparent 20%),
+        radial-gradient(circle at 16% 8%, rgba(243,196,91,.1), transparent 18%),
+        #fff;
+      font-size: 10px;
+      line-height: 1.45;
+    }
+    .receipt-form::before,
+    .receipt-form::after {
+      content: "";
+      position: absolute;
+      width: 38px;
+      height: 38px;
+      border-color: #bd842b;
+      pointer-events: none;
+    }
+    .receipt-form::before {
+      left: 8px;
+      top: 8px;
+      border-left: 3px solid;
+      border-top: 3px solid;
+      border-radius: 8px 0 0 0;
+    }
+    .receipt-form::after {
+      right: 8px;
+      bottom: 8px;
+      border-right: 3px solid;
+      border-bottom: 3px solid;
+      border-radius: 0 0 8px 0;
+    }
+    .receipt-head {
+      display: grid;
+      grid-template-columns: 118px 1fr 132px;
+      gap: 14px;
+      align-items: start;
+      padding-top: 8px;
+    }
+    .receipt-logo {
+      min-height: 96px;
+      border: 1px solid rgba(189,132,43,.55);
+      border-radius: 22px;
+      display: grid;
+      place-items: center;
+      color: #bd842b;
+      text-align: center;
+      box-shadow: inset 0 0 0 4px rgba(189,132,43,.08);
+    }
+    .receipt-logo b { display: block; font-size: 30px; line-height: 1; }
+    .receipt-logo span { font-size: 13px; font-weight: 900; }
+    .receipt-brand { text-align: center; color: #a86f1d; }
+    .receipt-brand h2 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.1;
+      color: #bd842b;
+    }
+    .receipt-brand strong {
+      display: block;
+      margin: 3px 0 8px;
+      letter-spacing: .18em;
+      font-size: 11px;
+      color: #a86f1d;
+    }
+    .receipt-contact {
+      display: grid;
+      gap: 4px;
+      text-align: left;
+      color: #344054;
+    }
+    .receipt-contact span {
+      display: grid;
+      grid-template-columns: 16px 1fr;
+      gap: 6px;
+      align-items: start;
+    }
+    .receipt-title { text-align: right; color: #a86f1d; }
+    .receipt-title h1 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.15;
+      color: #bd842b;
+    }
+    .receipt-title small { display: block; margin-top: 4px; font-weight: 900; }
+    .receipt-meta {
+      margin-top: 12px;
+      padding: 10px;
+      border: 1px solid rgba(189,132,43,.6);
+      border-radius: 8px;
+      display: grid;
+      gap: 6px;
+      color: #1f2937;
+      text-align: left;
+    }
+    .receipt-box {
+      border: 1px solid rgba(189,132,43,.55);
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: rgba(255,252,244,.62);
+    }
+    .customer-box {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 12px;
+    }
+    .receipt-field {
+      display: grid;
+      grid-template-columns: 86px 1fr;
+      gap: 8px;
+      min-height: 21px;
+    }
+    .receipt-field b { color: #7a4f13; }
+    .receipt-items {
+      width: 100%;
+      min-width: 0;
+      border-collapse: separate;
+      border-spacing: 0;
+      overflow: hidden;
+      border: 1px solid rgba(189,132,43,.5);
+      border-radius: 8px;
+      background: #fff;
+    }
+    .receipt-items th {
+      color: #fff;
+      background: linear-gradient(135deg, #b97918, #daa245);
+      border: 0;
+      padding: 7px 6px;
+      text-align: center;
+      font-size: 10px;
+    }
+    .receipt-items td {
+      border-right: 1px solid rgba(189,132,43,.28);
+      border-bottom: 1px dashed rgba(189,132,43,.25);
+      padding: 7px 7px;
+      vertical-align: top;
+      font-size: 10px;
+    }
+    .receipt-items tr:last-child td { border-bottom: 0; }
+    .receipt-items td:last-child,
+    .receipt-items th:last-child { border-right: 0; }
+    .receipt-items .center { text-align: center; }
+    .receipt-items .right { text-align: right; }
+    .receipt-money {
+      display: grid;
+      grid-template-columns: 1fr 1.18fr;
+      gap: 14px;
+      align-items: start;
+    }
+    .payment-box,
+    .received-box {
+      display: grid;
+      gap: 7px;
+      min-height: 76px;
+    }
+    .box-title {
+      color: #a86f1d;
+      font-weight: 950;
+      font-size: 11px;
+    }
+    .received-amount {
+      color: #a86f1d;
+      font-size: 18px;
+      font-weight: 950;
+      text-align: center;
+    }
+    .receipt-summary {
+      display: grid;
+      gap: 6px;
+      font-size: 11px;
+    }
+    .receipt-summary .total-line { font-weight: 850; }
+    .receipt-grand {
+      margin-top: 4px;
+      padding: 8px 10px;
+      border-radius: 7px;
+      color: #fff;
+      background: linear-gradient(135deg, #b97918, #daa245);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 17px;
+      font-weight: 950;
+    }
+    .receipt-note {
+      margin-top: 2px;
+      text-align: center;
+      font-size: 10px;
+      font-weight: 850;
+    }
+    .receipt-signatures {
+      margin-top: auto;
+      padding-top: 8px;
+      border-top: 1px dashed rgba(189,132,43,.55);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      text-align: center;
+      font-size: 10px;
+      color: #7a4f13;
+    }
+    .receipt-footer {
+      text-align: center;
+      color: #bd842b;
+      font-size: 10px;
+      font-weight: 900;
+    }
+    .doc-top { display: flex; justify-content: space-between; gap: 18px; align-items: start; }
+    .doc-brand strong { font-size: 28px; }
+    .doc-brand span { color: var(--brand); }
+    .doc-title { color: var(--brand); text-align: right; }
+    .doc-title h2 { margin: 0; font-size: 26px; }
+    .doc-meta {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border: 1px solid rgba(91,53,242,.35);
+      border-radius: 8px;
+      display: grid;
+      gap: 5px;
+      font-size: 13px;
+    }
+    .doc-section { margin-top: 18px; font-size: 13px; line-height: 1.7; }
+    .doc-table { width: 100%; min-width: 0; margin-top: 16px; border: 1px solid rgba(91,53,242,.35); }
+    .doc-table th, .doc-table td { border: 1px solid rgba(91,53,242,.22); padding: 8px; font-size: 12px; }
+    .doc-table th { color: #3f2dc0; background: #f8f5ff; }
+    .doc-summary { margin-left: auto; margin-top: 12px; width: min(300px, 100%); display: grid; gap: 8px; }
+    .doc-summary .grand { display: flex; justify-content: space-between; font-size: 18px; }
+    .signature { margin-top: 42px; display: grid; grid-template-columns: 1fr 1fr; gap: 34px; text-align: center; color: var(--muted); font-size: 12px; }
+
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      padding: 13px 16px;
+      border-radius: 8px;
+      color: #fff;
+      background: #111827;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transform: translateY(12px);
+      transition: .18s ease;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    dialog {
+      width: min(720px, calc(100% - 28px));
+      border: 0;
+      border-radius: 8px;
+      padding: 0;
+      box-shadow: var(--shadow);
+    }
+
+    dialog::backdrop {
+      background: rgba(17, 24, 39, .38);
+      backdrop-filter: blur(4px);
+    }
+
+    .dialog-body {
+      padding: 20px;
+      display: grid;
+      gap: 16px;
+      background: var(--panel);
+    }
+
+    .dialog-body h2 {
+      margin: 0;
+    }
+
+    @media print {
+      @page { size: A4; margin: 0; }
+      body { background: #fff; }
+      .sidebar, .topbar, .workspace, .preview-tools { display: none !important; }
+      .layout, .content { display: block; width: 100%; padding: 0; }
+      .preview-shell { position: static; }
+      .document {
+        width: 210mm;
+        max-width: none;
+        height: 297mm;
+        aspect-ratio: auto;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+      }
+    }
+
+    @media (max-width: 1180px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { position: static; height: auto; }
+      .sales-card { display: none; }
+      .nav { display: flex; overflow: auto; }
+      .brand { border: 0; margin-bottom: 12px; }
+      .content { grid-template-columns: 1fr; }
+      .preview-shell { position: static; }
+    }
+    @media (max-width: 760px) {
+      .topbar, .top-actions, .doc-tabs, .form-grid, .bottom-grid, .payment-tabs, .signature { grid-template-columns: 1fr; flex-direction: column; align-items: stretch; }
+      .content { width: min(100% - 20px, 1560px); }
+      .preview-shell { justify-items: start; }
+      .doc-top { display: grid; }
+      .doc-title { text-align: left; }
+      .document { width: 520px; padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <a class="brand" href="index.html">
+        <strong>โชคดี<span>การพิมพ์</span></strong>
+        <small>CHOKDEE PRINTING</small>
+      </a>
+      <nav class="nav" aria-label="เมนูหลัก">
+        <a href="index.html">⌂ หน้าหลัก</a>
+        <a href="products.html">◇ สินค้า</a>
+        <a href="calculator.html">▣ คำนวณราคา</a>
+        <a href="invoice.html">▤ บิลปริ้นอิมเมจ</a>
+        <a class="active" href="chokdee-invoice.html">▥ บิลโชคดี</a>
+        <a href="print-image-account.html">▥ บัญชีปริ้นอิมเมจ</a>
+        <a href="chokdee-print.html">▦ บัญชีโชคดี</a>
+      </nav>
+      <div class="sales-card">
+        <small>ยอดเอกสารวันนี้</small>
+        <b id="todayTotal">฿0.00</b>
+        <small id="todayCount">0 รายการ</small>
+      </div>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <div class="title">
+          <h1>บิลโชคดี / ใบเสร็จ / ใบกำกับภาษี</h1>
+          <p>สร้างเอกสารสำคัญทางการเงินสำหรับงานขายและบริการ</p>
+        </div>
+        <div class="top-actions">
+          <button class="btn" id="openShopSettings" type="button">ที่อยู่ร้าน</button>
+          <button class="btn" id="loadDraft" type="button">เปิดฉบับร่าง</button>
+          <button class="btn" id="newDoc" type="button">เอกสารใหม่</button>
+          <button class="btn primary" id="saveDoc" type="button">บันทึกและออกเอกสาร</button>
+        </div>
+      </header>
+
+      <section class="content">
+        <div class="workspace">
+          <section class="panel">
+            <h2>ประเภทเอกสาร</h2>
+            <div class="doc-tabs">
+              <button class="doc-tab active" data-doc-type="receipt" type="button">ใบเสร็จรับเงิน<small>สำหรับการรับเงิน</small></button>
+              <button class="doc-tab" data-doc-type="tax" type="button">ใบกำกับภาษี<small>สำหรับนิติบุคคล/บริษัท</small></button>
+              <button class="doc-tab" data-doc-type="credit" type="button">บิลเงินสด<small>สำหรับบุคคลทั่วไป</small></button>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h2>ข้อมูลลูกค้า</h2>
+            <div class="form-grid">
+              <div class="field full">
+                <label for="customerName">ลูกค้า</label>
+                <input id="customerName" value="บจก. มานา คาเฟ่ (สำนักงานใหญ่)">
+              </div>
+              <div class="field full">
+                <label for="customerAddress">ที่อยู่</label>
+                <textarea id="customerAddress">123/45 ถนนสุขสวัสดิ์ แขวงบางปะกอก เขตราษฎร์บูรณะ กรุงเทพฯ 10140</textarea>
+              </div>
+              <div class="field">
+                <label for="taxId">เลขประจำตัวผู้เสียภาษี</label>
+                <input id="taxId" value="0105558134567">
+              </div>
+              <div class="field">
+                <label for="branch">สาขา</label>
+                <input id="branch" value="สำนักงานใหญ่">
+              </div>
+              <div class="field">
+                <label for="contactName">ผู้ติดต่อ</label>
+                <input id="contactName" value="คุณมานา เด็กดี">
+              </div>
+              <div class="field">
+                <label for="phone">เบอร์โทร</label>
+                <input id="phone" value="081-234-5678">
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h2>ข้อมูลเอกสาร</h2>
+            <div class="form-grid">
+              <div class="field">
+                <label for="docNo">เลขที่เอกสาร</label>
+                <input id="docNo">
+              </div>
+              <div class="field">
+                <label for="docDate">วันที่เอกสาร</label>
+                <input id="docDate" type="date">
+              </div>
+              <div class="field">
+                <label for="paymentTerm">เงื่อนไขการชำระเงิน</label>
+                <select id="paymentTerm">
+                  <option>เงินสด</option>
+                  <option>โอนเงิน</option>
+                  <option>เครดิต 7 วัน</option>
+                  <option>เครดิต 30 วัน</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="dueDate">วันที่ครบกำหนด</label>
+                <input id="dueDate" type="date">
+              </div>
+              <div class="field">
+                <label for="seller">พนักงานขาย</label>
+                <input id="seller" value="Admin">
+              </div>
+              <div class="field">
+                <label for="reference">อ้างอิงเอกสาร</label>
+                <input id="reference" placeholder="เช่น เลขที่ PO">
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="items-head">
+              <h2>รายการสินค้า/บริการ</h2>
+              <div class="quick-actions">
+                <button class="btn small" data-add-preset="sticker" type="button">+ เพิ่มสติ๊กเกอร์</button>
+                <button class="btn small" data-add-preset="vinyl" type="button">+ เพิ่มไวนิล</button>
+                <button class="btn small" data-add-preset="blank" type="button">+ เพิ่มรายการ</button>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>รายการ</th>
+                    <th>ขนาด / รายละเอียด</th>
+                    <th class="number">จำนวน</th>
+                    <th>หน่วย</th>
+                    <th class="number">ราคา/หน่วย</th>
+                    <th class="number">ส่วนลด</th>
+                    <th class="number">รวม</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="itemRows"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="bottom-grid">
+              <div>
+                <div class="field">
+                  <label for="note">หมายเหตุ</label>
+                  <textarea id="note">ขอบคุณที่ไว้วางใจในบริการของเรา</textarea>
+                </div>
+                <h2>วิธีการชำระเงิน</h2>
+                <div class="payment-tabs" id="paymentTabs">
+                  <button class="active" data-payment="เงินสด" type="button">เงินสด</button>
+                  <button data-payment="โอนเงิน" type="button">โอนเงิน</button>
+                  <button data-payment="บัตรเครดิต" type="button">บัตรเครดิต</button>
+                  <button data-payment="เช็ค" type="button">เช็ค</button>
+                </div>
+                <div class="form-grid" style="margin-top:12px">
+                  <div class="field">
+                    <label for="received">รับเงินมา</label>
+                    <input id="received" type="number" min="0" step="0.01" value="12000">
+                  </div>
+                  <div class="field">
+                    <label for="change">เงินทอน</label>
+                    <input id="change" readonly>
+                  </div>
+                </div>
+              </div>
+              <div class="total-box">
+                <div class="total-line"><span>รวมราคาสินค้า</span><b id="subTotal">฿0.00</b></div>
+                <div class="total-line" id="discountLine">
+                  <label class="total-option" for="discountEnabled"><input id="discountEnabled" type="checkbox" checked> ส่วนลดท้ายบิล</label>
+                  <span><input id="billDiscount" type="number" min="0" step="0.01" value="0"></span>
+                </div>
+                <div class="total-line" id="vatLine">
+                  <label class="total-option" for="vatEnabled"><input id="vatEnabled" type="checkbox" checked> ภาษีมูลค่าเพิ่ม 7%</label>
+                  <b id="vat">฿0.00</b>
+                </div>
+                <div class="total-line grand"><span>ยอดรวมทั้งสิ้น</span><b id="grandTotal">฿0.00</b></div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <aside class="preview-shell">
+          <div class="preview-tools">
+            <select id="previewMode" class="btn">
+              <option>ตัวอย่างเอกสาร</option>
+              <option>แบบย่อ</option>
+            </select>
+            <div class="top-actions">
+              <button class="btn" id="printDoc" type="button">พิมพ์</button>
+              <button class="btn" id="downloadPdf" type="button">PDF A4</button>
+              <button class="btn" id="downloadPng" type="button">PNG A4</button>
+            </div>
+          </div>
+          <article class="document receipt-form" id="documentPreview"></article>
+          <div class="top-actions">
+            <button class="btn" id="saveDraft" type="button">บันทึกฉบับร่าง</button>
+            <button class="btn primary" id="issueDoc" type="button">บันทึกเอกสาร PDF + PNG</button>
+          </div>
+        </aside>
+      </section>
+    </main>
+  </div>
+  <dialog id="shopDialog">
+    <div class="dialog-body">
+      <h2>ที่อยู่ร้าน</h2>
+      <div class="form-grid">
+        <div class="field">
+          <label for="shopName">ชื่อร้าน/บริษัท</label>
+          <input id="shopName">
+        </div>
+        <div class="field">
+          <label for="shopDisplayName">ชื่อที่แสดงบนเอกสาร</label>
+          <input id="shopDisplayName">
+        </div>
+        <div class="field full">
+          <label for="shopAddress">ที่อยู่ร้าน</label>
+          <textarea id="shopAddress"></textarea>
+        </div>
+        <div class="field">
+          <label for="shopTaxId">เลขผู้เสียภาษี</label>
+          <input id="shopTaxId">
+        </div>
+        <div class="field">
+          <label for="shopPhone">เบอร์โทร</label>
+          <input id="shopPhone">
+        </div>
+        <div class="field">
+          <label for="shopEmail">อีเมล</label>
+          <input id="shopEmail">
+        </div>
+        <div class="field">
+          <label for="shopWebsite">เว็บไซต์/เพจ</label>
+          <input id="shopWebsite">
+        </div>
+      </div>
+      <div class="top-actions">
+        <button class="btn primary" id="saveShopSettings" type="button">บันทึกที่อยู่ร้าน</button>
+        <button class="btn" id="closeShopSettings" type="button">ปิด</button>
+      </div>
+    </div>
+  </dialog>
+  <div class="toast" id="toast">บันทึกแล้ว</div>
+
+  <script>
+    const STORE_KEY = "chokdee-invoice-draft";
+    const HISTORY_KEY = "chokdee-invoice-history";
+    const SHOP_PROFILE_KEY = "chokdee-shop-profile";
+    const URL_KEY = "print_job_tracker_sheet_url_v1";
+    const DEFAULT_SHEET_URL = "https://script.google.com/macros/s/AKfycbzDF5-Kvqf03RLCxpToRL7C9PAqlfhUvC_xLgnEExF7H4go7gybvzLaKDwtKVBHl6if/exec";
+    const docLabels = {
+      receipt: "ใบเสร็จรับเงิน",
+      tax: "ใบกำกับภาษี",
+      credit: "บิลเงินสด"
+    };
+
+    let docType = "receipt";
+    let paymentMethod = "เงินสด";
+    let items = [
+      { name: "สติ๊กเกอร์ PVC ขาวมัน", detail: "10 x 10 cm / ไดคัท", qty: 500, unit: "แผ่น", price: 18, discount: 0 },
+      { name: "ไวนิล Frontlit", detail: "120 x 200 cm", qty: 1, unit: "ชิ้น", price: 432, discount: 0 },
+      { name: "พิมพ์อิงค์เจ็ท", detail: "A3 / 4 สี", qty: 10, unit: "แผ่น", price: 45, discount: 0 }
+    ];
+
+    const els = {
+      docNo: document.querySelector("#docNo"),
+      docDate: document.querySelector("#docDate"),
+      dueDate: document.querySelector("#dueDate"),
+      customerName: document.querySelector("#customerName"),
+      customerAddress: document.querySelector("#customerAddress"),
+      taxId: document.querySelector("#taxId"),
+      branch: document.querySelector("#branch"),
+      contactName: document.querySelector("#contactName"),
+      phone: document.querySelector("#phone"),
+      paymentTerm: document.querySelector("#paymentTerm"),
+      seller: document.querySelector("#seller"),
+      reference: document.querySelector("#reference"),
+      note: document.querySelector("#note"),
+      rows: document.querySelector("#itemRows"),
+      discountEnabled: document.querySelector("#discountEnabled"),
+      billDiscount: document.querySelector("#billDiscount"),
+      vatEnabled: document.querySelector("#vatEnabled"),
+      discountLine: document.querySelector("#discountLine"),
+      vatLine: document.querySelector("#vatLine"),
+      received: document.querySelector("#received"),
+      change: document.querySelector("#change"),
+      subTotal: document.querySelector("#subTotal"),
+      vat: document.querySelector("#vat"),
+      grandTotal: document.querySelector("#grandTotal"),
+      preview: document.querySelector("#documentPreview"),
+      todayTotal: document.querySelector("#todayTotal"),
+      todayCount: document.querySelector("#todayCount"),
+      shopDialog: document.querySelector("#shopDialog"),
+      shopName: document.querySelector("#shopName"),
+      shopDisplayName: document.querySelector("#shopDisplayName"),
+      shopAddress: document.querySelector("#shopAddress"),
+      shopTaxId: document.querySelector("#shopTaxId"),
+      shopPhone: document.querySelector("#shopPhone"),
+      shopEmail: document.querySelector("#shopEmail"),
+      shopWebsite: document.querySelector("#shopWebsite"),
+      toast: document.querySelector("#toast")
+    };
+
+    const defaultShopProfile = {
+      name: "บริษัท โชคดีการพิมพ์ จำกัด",
+      shopName: "บริษัท โชคดีการพิมพ์ จำกัด",
+      displayName: "โชคดีการพิมพ์",
+      address: "123/45 ถนนสุขสวัสดิ์ แขวงบางปะกอก เขตราษฎร์บูรณะ กรุงเทพฯ 10140",
+      taxId: "0105558134567",
+      phone: "02-123-4567",
+      email: "",
+      website: ""
+    };
+
+    function normalizeShopProfile(profile = {}) {
+      const merged = { ...defaultShopProfile, ...profile };
+      merged.name = merged.name || merged.shopName || defaultShopProfile.name;
+      merged.shopName = merged.shopName || merged.name;
+      return merged;
+    }
+
+    function getShopProfile() {
+      return normalizeShopProfile(JSON.parse(localStorage.getItem(SHOP_PROFILE_KEY) || "{}"));
+    }
+
+    function getSheetUrl() {
+      return (localStorage.getItem(URL_KEY) || DEFAULT_SHEET_URL).trim();
+    }
+
+    function saveLocalShopProfile(profile) {
+      localStorage.setItem(SHOP_PROFILE_KEY, JSON.stringify(normalizeShopProfile(profile)));
+    }
+
+    function fillShopForm() {
+      const profile = getShopProfile();
+      els.shopName.value = profile.name;
+      els.shopDisplayName.value = profile.displayName;
+      els.shopAddress.value = profile.address;
+      els.shopTaxId.value = profile.taxId;
+      els.shopPhone.value = profile.phone;
+      els.shopEmail.value = profile.email;
+      els.shopWebsite.value = profile.website;
+    }
+
+    function saveShopProfile() {
+      const profile = normalizeShopProfile({
+        shopName: els.shopName.value.trim(),
+        name: els.shopName.value.trim(),
+        displayName: els.shopDisplayName.value.trim(),
+        address: els.shopAddress.value.trim(),
+        taxId: els.shopTaxId.value.trim(),
+        phone: els.shopPhone.value.trim(),
+        email: els.shopEmail.value.trim(),
+        website: els.shopWebsite.value.trim()
+      });
+      saveLocalShopProfile(profile);
+      saveShopProfileToSheet(profile);
+      els.shopDialog.close();
+      renderPreview();
+      toast("บันทึกที่อยู่ร้านแล้ว");
+    }
+
+    async function saveShopProfileToSheet(profile) {
+      const url = getSheetUrl();
+      if (!url) return;
+      try {
+        await fetch(url, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ action: "saveProfile", profile })
+        });
+      } catch (error) {
+        toast("บันทึกในเครื่องแล้ว แต่ส่ง Profile ไป Sheet ไม่สำเร็จ");
+      }
+    }
+
+    function profileUrl(callbackName) {
+      const url = new URL(getSheetUrl());
+      url.searchParams.set("action", "profile");
+      url.searchParams.set("callback", callbackName);
+      return url.toString();
+    }
+
+    function loadShopProfileFromSheet() {
+      if (!getSheetUrl()) return Promise.resolve(null);
+      return new Promise((resolve, reject) => {
+        const callbackName = `profileCallback_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+        const script = document.createElement("script");
+        const timer = setTimeout(() => {
+          cleanup();
+          reject(new Error("Profile load timeout"));
+        }, 10000);
+
+        function cleanup() {
+          clearTimeout(timer);
+          delete window[callbackName];
+          script.remove();
+        }
+
+        window[callbackName] = payload => {
+          cleanup();
+          resolve(payload && payload.profile ? payload.profile : null);
+        };
+        script.onerror = () => {
+          cleanup();
+          reject(new Error("Cannot load profile"));
+        };
+        script.src = profileUrl(callbackName);
+        document.body.appendChild(script);
+      });
+    }
+
+    async function autoLoadShopProfile() {
+      try {
+        const profile = await loadShopProfileFromSheet();
+        if (!profile || !Object.keys(profile).length) return;
+        saveLocalShopProfile(profile);
+        renderPreview();
+      } catch (error) {
+        renderPreview();
+      }
+    }
+
+    function today() {
+      return new Date().toISOString().slice(0, 10);
+    }
+
+    function baht(value) {
+      return (Number(value) || 0).toLocaleString("th-TH", { style: "currency", currency: "THB" });
+    }
+
+    function num(value) {
+      return (Number(value) || 0).toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function bahtText(value) {
+      const numberText = ["ศูนย์", "หนึ่ง", "สอง", "สาม", "สี่", "ห้า", "หก", "เจ็ด", "แปด", "เก้า"];
+      const unitText = ["", "สิบ", "ร้อย", "พัน", "หมื่น", "แสน", "ล้าน"];
+      const readInteger = (numString) => {
+        if (Number(numString) === 0) return "";
+        let result = "";
+        const chars = String(numString);
+        for (let i = 0; i < chars.length; i += 1) {
+          const digit = Number(chars[i]);
+          const position = chars.length - i - 1;
+          if (!digit) continue;
+          if (position === 0 && digit === 1 && chars.length > 1) result += "เอ็ด";
+          else if (position === 1 && digit === 2) result += "ยี่";
+          else if (position === 1 && digit === 1) result += "";
+          else result += numberText[digit];
+          result += unitText[position] || "";
+        }
+        return result;
+      };
+      const fixed = (Number(value) || 0).toFixed(2);
+      const [bahtPart, satangPart] = fixed.split(".");
+      const bahtWords = readInteger(bahtPart) || "ศูนย์";
+      if (satangPart === "00") return `${bahtWords}บาทถ้วน`;
+      return `${bahtWords}บาท${readInteger(satangPart)}สตางค์`;
+    }
+
+    function calc() {
+      const sub = items.reduce((sum, item) => sum + Math.max((Number(item.qty) || 0) * (Number(item.price) || 0) - (Number(item.discount) || 0), 0), 0);
+      const discount = els.discountEnabled.checked ? Number(els.billDiscount.value) || 0 : 0;
+      const beforeVat = Math.max(sub - discount, 0);
+      const vat = els.vatEnabled.checked ? beforeVat * 0.07 : 0;
+      const grand = beforeVat + vat;
+      const received = Number(els.received.value) || 0;
+      return { sub, discount, beforeVat, vat, grand, received, change: Math.max(received - grand, 0) };
+    }
+
+    function rowTotal(item) {
+      return Math.max((Number(item.qty) || 0) * (Number(item.price) || 0) - (Number(item.discount) || 0), 0);
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[char]));
+    }
+
+    function renderRows() {
+      els.rows.innerHTML = items.map((item, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td><input data-field="name" data-index="${index}" value="${escapeHtml(item.name)}"></td>
+          <td><input data-field="detail" data-index="${index}" value="${escapeHtml(item.detail)}"></td>
+          <td><input class="number" data-field="qty" data-index="${index}" type="number" min="0" step="1" value="${item.qty}"></td>
+          <td><input data-field="unit" data-index="${index}" value="${escapeHtml(item.unit)}"></td>
+          <td><input class="number" data-field="price" data-index="${index}" type="number" min="0" step="0.01" value="${item.price}"></td>
+          <td><input class="number" data-field="discount" data-index="${index}" type="number" min="0" step="0.01" value="${item.discount}"></td>
+          <td class="number"><b>${baht(rowTotal(item))}</b></td>
+          <td><button class="row-del" data-delete="${index}" type="button">ลบ</button></td>
+        </tr>
+      `).join("");
+    }
+
+    function renderPreview() {
+      const total = calc();
+      const shop = getShopProfile();
+      const receiptDate = escapeHtml(els.docDate.value || today());
+      const paddedItems = [...items];
+      while (paddedItems.length < 5) paddedItems.push({ name: "", detail: "", qty: "", unit: "", price: "", discount: "" });
+      const rows = paddedItems.slice(0, 8).map((item, index) => `
+        <tr>
+          <td class="center">${item.name ? index + 1 : ""}</td>
+          <td><b>${escapeHtml(item.name)}</b></td>
+          <td>${escapeHtml(item.detail)}</td>
+          <td class="center">${item.name ? num(item.qty) : ""}</td>
+          <td class="center">${escapeHtml(item.unit)}</td>
+          <td class="right">${item.name ? num(item.price) : ""}</td>
+          <td class="right">${item.name ? num(rowTotal(item)) : ""}</td>
+        </tr>
+      `).join("");
+      els.preview.innerHTML = `
+        <section class="receipt-head">
+          <div class="receipt-logo">
+            <div>
+              <b>โชคดี</b>
+              <span>การพิมพ์</span>
+            </div>
+          </div>
+          <div class="receipt-brand">
+            <h2>${escapeHtml(shop.displayName || shop.name || "โชคดีการพิมพ์")}</h2>
+            <strong>CHOKDEE PRINTING</strong>
+            <div class="receipt-contact">
+              <span><b>●</b><em>งานพิมพ์ทุกชนิด • ไวนิล • สติ๊กเกอร์ • โปสเตอร์ • นามบัตร</em></span>
+              <span><b>⌖</b><em>${escapeHtml(shop.address || "-")}</em></span>
+              <span><b>☎</b><em>${escapeHtml(shop.phone || "-")}</em></span>
+              <span><b>✉</b><em>${escapeHtml(shop.email || "-")}</em></span>
+              <span><b>เลขภาษี</b><em>${escapeHtml(shop.taxId || "-")}</em></span>
+            </div>
+          </div>
+          <div class="receipt-title">
+            <h1>${docLabels[docType]}</h1>
+            <small>(ต้นฉบับ)</small>
+            <div class="receipt-meta">
+              <span><b>เลขที่</b> ${escapeHtml(els.docNo.value || "-")}</span>
+              <span><b>วันที่</b> ${receiptDate}</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="receipt-box customer-box">
+          <div>
+            <div class="receipt-field"><b>ลูกค้า :</b><span>${escapeHtml(els.customerName.value || "-")}</span></div>
+            <div class="receipt-field"><b>ที่อยู่ :</b><span>${escapeHtml(els.customerAddress.value || "-")}</span></div>
+            <div class="receipt-field"><b>เลขภาษี :</b><span>${escapeHtml(els.taxId.value || "-")}</span></div>
+          </div>
+          <div>
+            <div class="receipt-field"><b>ผู้ติดต่อ :</b><span>${escapeHtml(els.contactName.value || "-")}</span></div>
+            <div class="receipt-field"><b>เบอร์โทร :</b><span>${escapeHtml(els.phone.value || "-")}</span></div>
+            <div class="receipt-field"><b>ช่องทาง :</b><span>${escapeHtml(paymentMethod || "-")}</span></div>
+            <div class="receipt-field"><b>พนักงาน :</b><span>${escapeHtml(els.seller.value || "-")}</span></div>
+          </div>
+        </section>
+
+        <table class="receipt-items">
+          <thead>
+            <tr>
+              <th style="width: 42px;">ลำดับ</th>
+              <th>รายการ</th>
+              <th>รายละเอียด</th>
+              <th style="width: 56px;">จำนวน</th>
+              <th style="width: 54px;">หน่วย</th>
+              <th style="width: 72px;">ราคาต่อหน่วย</th>
+              <th style="width: 78px;">จำนวนเงิน</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+
+        <section class="receipt-money">
+          <div>
+            <div class="receipt-box payment-box">
+              <div class="box-title">ช่องทางการชำระเงิน</div>
+              <div>${escapeHtml(paymentMethod || "-")}</div>
+              <div>${escapeHtml(els.reference.value || "ระบุเลขอ้างอิง/หมายเหตุการชำระเงิน")}</div>
+            </div>
+            <div class="receipt-box received-box" style="margin-top: 10px;">
+              <div class="box-title">จำนวนเงินที่รับ</div>
+              <div class="received-amount">${baht(total.received || total.grand)}</div>
+              <div class="total-line"><span>เงินทอน</span><b>${baht(total.change)}</b></div>
+            </div>
+          </div>
+          <div class="receipt-summary">
+            <div class="total-line"><span>รวมราคาสินค้า</span><b>${num(total.sub)}</b></div>
+            <div class="total-line"><span>ส่วนลดท้ายบิล</span><b>${num(total.discount)}</b></div>
+            <div class="total-line"><span>ภาษีมูลค่าเพิ่ม 7%</span><b>${num(total.vat)}</b></div>
+            <div class="receipt-grand"><span>ยอดรวมทั้งสิ้น</span><b>${baht(total.grand)}</b></div>
+            <div class="receipt-note">(${bahtText(total.grand)})</div>
+          </div>
+        </section>
+
+        <div class="receipt-note">ขอบคุณที่ไว้วางใจในบริการของเรา</div>
+        <section class="receipt-signatures">
+          <div>
+            <b>ผู้รับเงิน</b> __________________________<br>
+            วันที่&nbsp;&nbsp;____ / ____ / ____
+          </div>
+          <div>
+            <b>ผู้ชำระเงิน</b> ${escapeHtml(els.customerName.value || "__________________________")}<br>
+            วันที่&nbsp;&nbsp;____ / ____ / ____
+          </div>
+        </section>
+        <div class="receipt-footer">${escapeHtml(shop.website || shop.email || "โชคดีการพิมพ์")}</div>
+      `;
+    }
+
+    function renderTotals() {
+      const total = calc();
+      els.discountLine.classList.toggle("disabled", !els.discountEnabled.checked);
+      els.vatLine.classList.toggle("disabled", !els.vatEnabled.checked);
+      els.subTotal.textContent = baht(total.sub);
+      els.vat.textContent = baht(total.vat);
+      els.grandTotal.textContent = baht(total.grand);
+      els.change.value = baht(total.change);
+    }
+
+    function renderTodaySummary() {
+      const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+      const todayRows = history.filter(item => item.date === today());
+      const total = todayRows.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
+      els.todayTotal.textContent = baht(total);
+      els.todayCount.textContent = `${todayRows.length.toLocaleString("th-TH")} รายการ`;
+    }
+
+    function render() {
+      renderRows();
+      renderTotals();
+      renderPreview();
+      renderTodaySummary();
+    }
+
+    function serialize() {
+      return {
+        docType,
+        paymentMethod,
+        items,
+        options: {
+          discountEnabled: els.discountEnabled.checked,
+          vatEnabled: els.vatEnabled.checked
+        },
+        fields: Object.fromEntries(["docNo","docDate","dueDate","customerName","customerAddress","taxId","branch","contactName","phone","paymentTerm","seller","reference","note","billDiscount","received"].map(id => [id, document.querySelector(`#${id}`).value]))
+      };
+    }
+
+    function loadData(data) {
+      if (!data) return;
+      docType = data.docType || docType;
+      paymentMethod = data.paymentMethod || paymentMethod;
+      items = Array.isArray(data.items) && data.items.length ? data.items : items;
+      if (data.options) {
+        els.discountEnabled.checked = data.options.discountEnabled !== false;
+        els.vatEnabled.checked = data.options.vatEnabled !== false;
+      }
+      Object.entries(data.fields || {}).forEach(([id, value]) => {
+        const el = document.querySelector(`#${id}`);
+        if (el) el.value = value;
+      });
+      document.querySelectorAll("[data-doc-type]").forEach(button => button.classList.toggle("active", button.dataset.docType === docType));
+      document.querySelectorAll("[data-payment]").forEach(button => button.classList.toggle("active", button.dataset.payment === paymentMethod));
+      render();
+    }
+
+    function toast(message) {
+      els.toast.textContent = message;
+      els.toast.classList.add("show");
+      setTimeout(() => els.toast.classList.remove("show"), 1700);
+    }
+
+    function saveDraft() {
+      localStorage.setItem(STORE_KEY, JSON.stringify(serialize()));
+      toast("บันทึกฉบับร่างแล้ว");
+    }
+
+    function issueDocument() {
+      saveDraft();
+      const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+      history.unshift({ docNo: els.docNo.value, type: docLabels[docType], date: today(), total: calc().grand });
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 80)));
+      renderTodaySummary();
+      toast("บันทึกและออกเอกสารแล้ว");
+    }
+
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+        a.remove();
+      }, 600);
+    }
+
+    function fileBaseName() {
+      return (els.docNo.value || "chokdee-receipt").replace(/[\\/:*?"<>|]+/g, "-");
+    }
+
+    function collectCssText() {
+      return Array.from(document.querySelectorAll("style")).map(style => style.textContent).join("\n");
+    }
+
+    function loadImage(src) {
+      return new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = () => reject(new Error("แปลงภาพจากฟอร์มไม่สำเร็จ"));
+        image.src = src;
+      });
+    }
+
+    function copyComputedStyles(source, target) {
+      const styles = getComputedStyle(source);
+      for (const property of styles) {
+        target.style.setProperty(property, styles.getPropertyValue(property), styles.getPropertyPriority(property));
+      }
+      Array.from(source.children).forEach((child, index) => copyComputedStyles(child, target.children[index]));
+    }
+
+    function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight, maxLines = 3) {
+      const words = String(text || "-").split(/\s+/);
+      let line = "";
+      let lines = 0;
+      words.forEach(word => {
+        const testLine = line ? `${line} ${word}` : word;
+        if (ctx.measureText(testLine).width > maxWidth && line) {
+          if (lines < maxLines) ctx.fillText(line, x, y);
+          y += lineHeight;
+          lines += 1;
+          line = word;
+        } else {
+          line = testLine;
+        }
+      });
+      if (line && lines < maxLines) ctx.fillText(line, x, y);
+      return y + lineHeight;
+    }
+
+    function drawReceiptCanvas() {
+      const canvas = document.createElement("canvas");
+      canvas.width = 2480;
+      canvas.height = 3508;
+      const ctx = canvas.getContext("2d");
+      const total = calc();
+      const shop = getShopProfile();
+      ctx.fillStyle = "#fffdf8";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = "#bd842b";
+      ctx.lineWidth = 7;
+      ctx.strokeRect(62, 62, 2356, 3384);
+      ctx.lineWidth = 2;
+      ctx.strokeRect(84, 84, 2312, 3340);
+
+      ctx.fillStyle = "#bd842b";
+      ctx.font = "bold 88px Tahoma, sans-serif";
+      ctx.fillText(shop.displayName || shop.name || "โชคดีการพิมพ์", 760, 250);
+      ctx.font = "bold 36px Tahoma, sans-serif";
+      ctx.letterSpacing = "0px";
+      ctx.fillText("CHOKDEE PRINTING", 920, 315);
+      ctx.font = "bold 64px Tahoma, sans-serif";
+      ctx.fillText(docLabels[docType], 1780, 245);
+      ctx.font = "bold 32px Tahoma, sans-serif";
+      ctx.fillText("(ต้นฉบับ)", 1910, 315);
+
+      ctx.strokeStyle = "#bd842b";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(1840, 390, 430, 210);
+      ctx.fillStyle = "#7a4f13";
+      ctx.font = "bold 32px Tahoma, sans-serif";
+      ctx.fillText("เลขที่", 1880, 460);
+      ctx.fillText("วันที่", 1880, 540);
+      ctx.fillStyle = "#111827";
+      ctx.font = "32px Tahoma, sans-serif";
+      ctx.fillText(els.docNo.value || "-", 2020, 460);
+      ctx.fillText(els.docDate.value || today(), 2020, 540);
+
+      ctx.fillStyle = "#111827";
+      ctx.font = "30px Tahoma, sans-serif";
+      drawWrappedText(ctx, shop.address || "-", 760, 410, 900, 42, 3);
+      ctx.fillText(`โทร. ${shop.phone || "-"}`, 760, 550);
+      ctx.fillText(`อีเมล ${shop.email || "-"}`, 1080, 550);
+      ctx.fillStyle = "#a86f1d";
+      ctx.fillText(`เลขประจำตัวผู้เสียภาษี ${shop.taxId || "-"}`, 760, 625);
+
+      ctx.strokeStyle = "#bd842b";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(140, 725, 2200, 340);
+      ctx.fillStyle = "#111827";
+      ctx.font = "bold 30px Tahoma, sans-serif";
+      ctx.fillText("ลูกค้า :", 190, 805);
+      ctx.fillText("ที่อยู่ :", 190, 880);
+      ctx.fillText("เลขภาษี :", 190, 1010);
+      ctx.fillText("ผู้ติดต่อ :", 1370, 805);
+      ctx.fillText("เบอร์โทร :", 1370, 880);
+      ctx.fillText("ช่องทาง :", 1370, 955);
+      ctx.fillText("พนักงาน :", 1370, 1030);
+      ctx.font = "30px Tahoma, sans-serif";
+      ctx.fillText(els.customerName.value || "-", 520, 805);
+      drawWrappedText(ctx, els.customerAddress.value || "-", 520, 880, 760, 42, 2);
+      ctx.fillText(els.taxId.value || "-", 520, 1010);
+      ctx.fillText(els.contactName.value || "-", 1710, 805);
+      ctx.fillText(els.phone.value || "-", 1710, 880);
+      ctx.fillText(paymentMethod || "-", 1710, 955);
+      ctx.fillText(els.seller.value || "-", 1710, 1030);
+
+      const tableX = 140;
+      const tableY = 1120;
+      const col = [0, 165, 600, 1130, 1385, 1605, 1885, 2200];
+      ctx.fillStyle = "#bd842b";
+      ctx.fillRect(tableX, tableY, 2200, 92);
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 28px Tahoma, sans-serif";
+      ["ลำดับ", "รายการ", "รายละเอียด", "จำนวน", "หน่วย", "ราคาต่อหน่วย", "จำนวนเงิน"].forEach((head, i) => ctx.fillText(head, tableX + col[i] + 28, tableY + 58));
+      ctx.strokeStyle = "#d8b56d";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(tableX, tableY, 2200, 870);
+      for (const x of col) {
+        ctx.beginPath();
+        ctx.moveTo(tableX + x, tableY);
+        ctx.lineTo(tableX + x, tableY + 870);
+        ctx.stroke();
+      }
+      ctx.fillStyle = "#111827";
+      ctx.font = "27px Tahoma, sans-serif";
+      items.slice(0, 8).forEach((item, index) => {
+        const y = tableY + 150 + index * 92;
+        ctx.fillText(String(index + 1), tableX + 70, y);
+        ctx.font = "bold 27px Tahoma, sans-serif";
+        drawWrappedText(ctx, item.name, tableX + 195, y, 380, 34, 2);
+        ctx.font = "27px Tahoma, sans-serif";
+        drawWrappedText(ctx, item.detail, tableX + 630, y, 460, 34, 2);
+        ctx.fillText(num(item.qty), tableX + 1170, y);
+        ctx.fillText(item.unit || "-", tableX + 1435, y);
+        ctx.fillText(num(item.price), tableX + 1660, y);
+        ctx.fillText(num(rowTotal(item)), tableX + 1940, y);
+      });
+
+      ctx.strokeStyle = "#bd842b";
+      ctx.strokeRect(140, 2070, 770, 300);
+      ctx.fillStyle = "#a86f1d";
+      ctx.font = "bold 30px Tahoma, sans-serif";
+      ctx.fillText("ช่องทางการชำระเงิน", 190, 2140);
+      ctx.fillText("จำนวนเงินที่รับ", 190, 2285);
+      ctx.fillStyle = "#111827";
+      ctx.font = "30px Tahoma, sans-serif";
+      ctx.fillText(paymentMethod || "-", 190, 2205);
+      ctx.fillText(baht(total.received || total.grand), 540, 2285);
+      ctx.fillText(`เงินทอน ${baht(total.change)}`, 190, 2345);
+
+      const sx = 1370;
+      ctx.fillStyle = "#111827";
+      ctx.font = "34px Tahoma, sans-serif";
+      [["รวมราคาสินค้า", total.sub], ["ส่วนลดท้ายบิล", total.discount], ["ภาษีมูลค่าเพิ่ม 7%", total.vat]].forEach((line, index) => {
+        const y = 2100 + index * 68;
+        ctx.fillText(line[0], sx, y);
+        ctx.fillText(num(line[1]), 2110, y);
+      });
+      ctx.fillStyle = "#bd842b";
+      ctx.fillRect(1350, 2320, 900, 100);
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 42px Tahoma, sans-serif";
+      ctx.fillText("ยอดรวมทั้งสิ้น", 1390, 2385);
+      ctx.fillText(baht(total.grand), 1900, 2385);
+      ctx.fillStyle = "#111827";
+      ctx.font = "30px Tahoma, sans-serif";
+      ctx.fillText(`(${bahtText(total.grand)})`, 1370, 2480);
+
+      ctx.strokeStyle = "#bd842b";
+      ctx.setLineDash([12, 12]);
+      ctx.beginPath();
+      ctx.moveTo(140, 2790);
+      ctx.lineTo(2340, 2790);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = "#7a4f13";
+      ctx.font = "30px Tahoma, sans-serif";
+      ctx.fillText("ผู้รับเงิน __________________________", 360, 2920);
+      ctx.fillText("ผู้ชำระเงิน __________________________", 1500, 2920);
+      ctx.fillText("วันที่ ____ / ____ / ____", 420, 3000);
+      ctx.fillText("วันที่ ____ / ____ / ____", 1560, 3000);
+      ctx.fillStyle = "#bd842b";
+      ctx.font = "bold 28px Tahoma, sans-serif";
+      ctx.fillText("ขอบคุณที่ไว้วางใจในบริการของเรา", 900, 3220);
+      return canvas;
+    }
+
+    async function documentToCanvas() {
+      renderPreview();
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      return drawReceiptCanvas();
+    }
+
+    function canvasToBlob(canvas, type, quality) {
+      return new Promise((resolve, reject) => {
+        canvas.toBlob(blob => {
+          if (blob) resolve(blob);
+          else reject(new Error("สร้างไฟล์ภาพไม่สำเร็จ"));
+        }, type, quality);
+      });
+    }
+
+    async function downloadDocumentPng() {
+      toast("กำลังสร้าง PNG A4...");
+      const canvas = await documentToCanvas();
+      const blob = await canvasToBlob(canvas, "image/png");
+      downloadBlob(blob, `${fileBaseName()}.png`);
+      toast("ดาวน์โหลด PNG A4 แล้ว");
+    }
+
+    function bytesFromDataUrl(dataUrl) {
+      const binary = atob(dataUrl.split(",")[1]);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+      return bytes;
+    }
+
+    function textBytes(text) {
+      return new TextEncoder().encode(text);
+    }
+
+    function joinBytes(chunks) {
+      const size = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+      const output = new Uint8Array(size);
+      let offset = 0;
+      chunks.forEach(chunk => {
+        output.set(chunk, offset);
+        offset += chunk.length;
+      });
+      return output;
+    }
+
+    function buildSingleImagePdf(jpegBytes) {
+      const width = 595.28;
+      const height = 841.89;
+      const objects = [
+        [textBytes("<< /Type /Catalog /Pages 2 0 R >>")],
+        [textBytes("<< /Type /Pages /Kids [3 0 R] /Count 1 >>")],
+        [textBytes(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${width} ${height}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>`)],
+        [
+          textBytes(`<< /Type /XObject /Subtype /Image /Width 2480 /Height 3508 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpegBytes.length} >>\nstream\n`),
+          jpegBytes,
+          textBytes("\nendstream")
+        ],
+        null
+      ];
+      const drawCommand = `q\n${width} 0 0 ${height} 0 0 cm\n/Im0 Do\nQ`;
+      objects[4] = [textBytes(`<< /Length ${textBytes(drawCommand).length} >>\nstream\n${drawCommand}\nendstream`)];
+      const chunks = [textBytes("%PDF-1.4\n")];
+      const offsets = [0];
+      objects.forEach((object, index) => {
+        offsets.push(chunks.reduce((sum, chunk) => sum + chunk.length, 0));
+        chunks.push(textBytes(`${index + 1} 0 obj\n`), ...object, textBytes("\nendobj\n"));
+      });
+      const xrefOffset = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+      chunks.push(textBytes(`xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`));
+      offsets.slice(1).forEach(offset => chunks.push(textBytes(`${String(offset).padStart(10, "0")} 00000 n \n`)));
+      chunks.push(textBytes(`trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`));
+      return new Blob([joinBytes(chunks)], { type: "application/pdf" });
+    }
+
+    async function downloadDocumentPdf() {
+      toast("กำลังสร้าง PDF A4...");
+      const canvas = await documentToCanvas();
+      const jpeg = canvas.toDataURL("image/jpeg", 0.95);
+      downloadBlob(buildSingleImagePdf(bytesFromDataUrl(jpeg)), `${fileBaseName()}.pdf`);
+      toast("ดาวน์โหลด PDF A4 แล้ว");
+    }
+
+    async function issueAndDownloadDocument() {
+      const errors = [];
+      issueDocument();
+      try {
+        await downloadDocumentPdf();
+      } catch (error) {
+        console.error(error);
+        errors.push("PDF");
+      }
+      try {
+        await downloadDocumentPng();
+      } catch (error) {
+        console.error(error);
+        errors.push("PNG");
+      }
+      if (errors.length) {
+        toast(`สร้างไฟล์ ${errors.join(" และ ")} ไม่สำเร็จ`);
+      } else {
+        toast("บันทึก PDF และ PNG สำเร็จ");
+      }
+    }
+
+    function addPreset(type) {
+      const presets = {
+        sticker: { name: "สติ๊กเกอร์ PVC ขาวมัน", detail: "10 x 10 cm / ไดคัท", qty: 100, unit: "แผ่น", price: 18, discount: 0 },
+        vinyl: { name: "ไวนิล Frontlit", detail: "120 x 200 cm", qty: 1, unit: "ชิ้น", price: 432, discount: 0 },
+        blank: { name: "", detail: "", qty: 1, unit: "ชิ้น", price: 0, discount: 0 }
+      };
+      items.push(presets[type] || presets.blank);
+      render();
+    }
+
+    document.querySelectorAll("[data-doc-type]").forEach(button => {
+      button.addEventListener("click", () => {
+        docType = button.dataset.docType;
+        document.querySelectorAll("[data-doc-type]").forEach(item => item.classList.toggle("active", item === button));
+        render();
+      });
+    });
+
+    document.querySelectorAll("[data-payment]").forEach(button => {
+      button.addEventListener("click", () => {
+        paymentMethod = button.dataset.payment;
+        document.querySelectorAll("[data-payment]").forEach(item => item.classList.toggle("active", item === button));
+        render();
+      });
+    });
+
+    document.querySelectorAll("input, select, textarea").forEach(el => el.addEventListener("input", render));
+    document.querySelectorAll("input[type='checkbox']").forEach(el => el.addEventListener("change", render));
+    document.querySelectorAll("[data-add-preset]").forEach(button => button.addEventListener("click", () => addPreset(button.dataset.addPreset)));
+    els.rows.addEventListener("input", event => {
+      const input = event.target.closest("[data-field]");
+      if (!input) return;
+      const item = items[Number(input.dataset.index)];
+      item[input.dataset.field] = ["qty", "price", "discount"].includes(input.dataset.field) ? Number(input.value) || 0 : input.value;
+      renderTotals();
+      renderPreview();
+    });
+    els.rows.addEventListener("click", event => {
+      const button = event.target.closest("[data-delete]");
+      if (!button) return;
+      items.splice(Number(button.dataset.delete), 1);
+      if (!items.length) addPreset("blank");
+      else render();
+    });
+
+    document.querySelector("#saveDraft").addEventListener("click", saveDraft);
+    document.querySelector("#saveDoc").addEventListener("click", issueAndDownloadDocument);
+    document.querySelector("#issueDoc").addEventListener("click", issueAndDownloadDocument);
+    document.querySelector("#printDoc").addEventListener("click", () => window.print());
+    document.querySelector("#downloadPdf").addEventListener("click", downloadDocumentPdf);
+    document.querySelector("#downloadPng").addEventListener("click", downloadDocumentPng);
+    document.querySelector("#loadDraft").addEventListener("click", () => {
+      loadData(JSON.parse(localStorage.getItem(STORE_KEY) || "null"));
+      toast("เปิดฉบับร่างแล้ว");
+    });
+    document.querySelector("#newDoc").addEventListener("click", () => {
+      localStorage.removeItem(STORE_KEY);
+      location.reload();
+    });
+    document.querySelector("#openShopSettings").addEventListener("click", () => {
+      fillShopForm();
+      els.shopDialog.showModal();
+    });
+    document.querySelector("#saveShopSettings").addEventListener("click", saveShopProfile);
+    document.querySelector("#closeShopSettings").addEventListener("click", () => els.shopDialog.close());
+
+    els.docDate.value = today();
+    els.dueDate.value = today();
+    els.docNo.value = `RC-${new Date().toISOString().slice(2,10).replaceAll("-", "")}-${String(Math.floor(Math.random() * 900) + 100)}`;
+    render();
+    autoLoadShopProfile();
+  </script>
+</body>
+</html>
