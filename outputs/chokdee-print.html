@@ -1090,6 +1090,31 @@
       margin-bottom: 0;
     }
 
+    .bulk-status-panel {
+      display: grid;
+      grid-template-columns: minmax(240px, 1fr) minmax(170px, .6fr) auto;
+      gap: 10px;
+      align-items: end;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfaf7;
+    }
+
+    body.dark .bulk-status-panel {
+      background: #0f1722;
+    }
+
+    .bulk-status-panel .field {
+      margin-bottom: 0;
+    }
+
+    .bulk-status-note {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.35;
+      padding-bottom: 7px;
+    }
+
     .slip-upload {
       min-height: 44px;
       border: 1px dashed var(--brand);
@@ -1303,7 +1328,8 @@
       }
 
       .report-controls,
-      .payment-panel {
+      .payment-panel,
+      .bulk-status-panel {
         grid-template-columns: 1fr;
         width: 100%;
       }
@@ -1630,6 +1656,18 @@
           <button class="btn secondary" id="savePayment" type="button">บันทึกชำระ</button>
         </div>
 
+        <div class="bulk-status-panel">
+          <div class="bulk-status-note">เปลี่ยนสถานะงานทั้งหมดของประเภทลูกค้าที่เลือกด้านบน</div>
+          <div class="field">
+            <label for="bulkPaymentStatus">สถานะใหม่</label>
+            <select id="bulkPaymentStatus">
+              <option value="จ่ายแล้ว">จ่ายแล้ว</option>
+              <option value="ค้างจ่าย">ค้างจ่าย</option>
+            </select>
+          </div>
+          <button class="btn secondary" id="applyBulkPaymentStatus" type="button">เปลี่ยนทั้งหมด</button>
+        </div>
+
         <div class="selection-bar" id="selectionBar" hidden>
           <strong id="selectionCount">เลือก 0 รายการ</strong>
           <div class="selection-actions">
@@ -1775,6 +1813,8 @@
       rowPaymentSlip: document.querySelector("#rowPaymentSlip"),
       rowPaymentSlipName: document.querySelector("#rowPaymentSlipName"),
       savePayment: document.querySelector("#savePayment"),
+      bulkPaymentStatus: document.querySelector("#bulkPaymentStatus"),
+      applyBulkPaymentStatus: document.querySelector("#applyBulkPaymentStatus"),
       filterDate: document.querySelector("#filterDate"),
       filterMonth: document.querySelector("#filterMonth"),
       customerDisplayFilter: document.querySelector("#customerDisplayFilter"),
@@ -1818,7 +1858,8 @@
       "printSizeSelect",
       "customerDisplayFilter",
       "paymentJobSelect",
-      "paymentCustomerSelect"
+      "paymentCustomerSelect",
+      "bulkPaymentStatus"
     ];
 
     function refreshUxSelect(select) {
@@ -2279,10 +2320,14 @@
       els.savePayment.disabled = totalBalance <= 0;
       if (totalBalance <= 0) {
         els.rowPaidAmount.value = "";
-        return;
       }
 
-      els.rowPaidAmount.value = totalBalance.toFixed(2);
+      if (totalBalance > 0) {
+        els.rowPaidAmount.value = totalBalance.toFixed(2);
+      }
+
+      const typeCount = records.filter(record => customerType(record) === els.paymentJobSelect.value).length;
+      els.applyBulkPaymentStatus.disabled = typeCount <= 0;
     }
 
     function paymentStatus(record) {
@@ -2465,18 +2510,22 @@
       }
     }
 
-    async function updateRecordPaymentStatus(recordId, nextStatus) {
-      const record = records.find(item => item.id === recordId);
-      if (!record) return;
-
+    function buildPaymentStatusRecord(record, nextStatus) {
       const saleTotal = Number(record.saleTotal) || 0;
-      const nextRecord = {
+      return {
         ...record,
         paymentStatus: nextStatus,
         paidAmount: nextStatus === "จ่ายแล้ว" ? saleTotal : 0,
         balanceTotal: nextStatus === "จ่ายแล้ว" ? 0 : saleTotal,
         updatedAt: new Date().toISOString()
       };
+    }
+
+    async function updateRecordPaymentStatus(recordId, nextStatus) {
+      const record = records.find(item => item.id === recordId);
+      if (!record) return;
+
+      const nextRecord = buildPaymentStatusRecord(record, nextStatus);
 
       records = records.map(item => item.id === recordId ? nextRecord : item);
       saveRecords();
@@ -2485,6 +2534,39 @@
 
       try {
         await sendToSheet(nextRecord);
+      } catch (error) {
+        updateSyncStatus("ซิงก์ไม่สำเร็จ");
+        toast("เปลี่ยนสถานะในเครื่องแล้ว แต่ส่งเข้า Sheet ไม่สำเร็จ");
+      }
+    }
+
+    async function updateCustomerTypePaymentStatus() {
+      const type = els.paymentJobSelect.value;
+      const nextStatus = els.bulkPaymentStatus.value;
+      const targetRecords = records.filter(record => customerType(record) === type);
+      if (!targetRecords.length) {
+        toast("ไม่มีรายการของประเภทลูกค้านี้");
+        return;
+      }
+
+      const confirmed = window.confirm(`ต้องการเปลี่ยนสถานะ ${targetRecords.length} รายการของ ${type} เป็น ${nextStatus} ใช่ไหม`);
+      if (!confirmed) return;
+
+      const updatedIds = new Set(targetRecords.map(record => record.id));
+      const nextRecords = targetRecords.map(record => buildPaymentStatusRecord(record, nextStatus));
+      const nextById = new Map(nextRecords.map(record => [record.id, record]));
+      records = records.map(record => updatedIds.has(record.id) ? nextById.get(record.id) : record);
+      saveRecords();
+      render();
+      toast(`เปลี่ยนสถานะ ${type} เป็น ${nextStatus} แล้ว`);
+
+      try {
+        updateSyncStatus("กำลังซิงก์สถานะ...");
+        for (const record of nextRecords) {
+          await sendToSheet(record);
+        }
+        updateSyncStatus("ซิงก์แล้ว");
+        toast("เปลี่ยนสถานะและส่งเข้า Google Sheet แล้ว");
       } catch (error) {
         updateSyncStatus("ซิงก์ไม่สำเร็จ");
         toast("เปลี่ยนสถานะในเครื่องแล้ว แต่ส่งเข้า Sheet ไม่สำเร็จ");
@@ -2996,6 +3078,7 @@
       els.rowPaymentSlipName.textContent = els.rowPaymentSlip.files[0]?.name || "รองรับรูปภาพหรือ PDF";
     });
     els.savePayment.addEventListener("click", () => saveCustomerPayment(els.paymentJobSelect.value, els.paymentCustomerSelect.value));
+    els.applyBulkPaymentStatus.addEventListener("click", updateCustomerTypePaymentStatus);
 
     els.viewSegments.forEach(button => {
       button.addEventListener("click", () => {
