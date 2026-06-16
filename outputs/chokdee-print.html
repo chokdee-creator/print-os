@@ -1715,7 +1715,7 @@
             </div>
           </section>
 
-          <section class="payment-card" aria-label="เปลี่ยนสถานะทั้งประเภทลูกค้า">
+          <section class="payment-card" id="bulkStatusCard" aria-label="เปลี่ยนสถานะทั้งประเภทลูกค้า" hidden>
             <div class="payment-card-header">
               <div>
                 <div class="payment-card-title">สถานะทั้งประเภท</div>
@@ -1880,6 +1880,7 @@
       rowPaymentSlip: document.querySelector("#rowPaymentSlip"),
       rowPaymentSlipName: document.querySelector("#rowPaymentSlipName"),
       savePayment: document.querySelector("#savePayment"),
+      bulkStatusCard: document.querySelector("#bulkStatusCard"),
       bulkPaymentStatus: document.querySelector("#bulkPaymentStatus"),
       applyBulkPaymentStatus: document.querySelector("#applyBulkPaymentStatus"),
       filterDate: document.querySelector("#filterDate"),
@@ -2380,6 +2381,9 @@
 
     function updatePaymentPanel() {
       const selectedCustomer = els.paymentCustomerSelect.value;
+      const canShowBulkStatus = Boolean(els.paymentJobSelect.value && selectedCustomer);
+      els.bulkStatusCard.hidden = !canShowBulkStatus;
+
       const totalBalance = filteredRecords()
         .filter(record => customerType(record) === els.paymentJobSelect.value)
         .filter(record => !selectedCustomer || customerName(record) === selectedCustomer)
@@ -2394,7 +2398,7 @@
       }
 
       const typeCount = records.filter(record => customerType(record) === els.paymentJobSelect.value).length;
-      els.applyBulkPaymentStatus.disabled = typeCount <= 0;
+      els.applyBulkPaymentStatus.disabled = !canShowBulkStatus || typeCount <= 0;
     }
 
     function paymentStatus(record) {
