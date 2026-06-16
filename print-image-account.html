@@ -634,6 +634,14 @@
       display: contents;
     }
 
+    .filter-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      align-items: end;
+      flex-wrap: wrap;
+    }
+
     .control-label {
       display: none;
     }
@@ -1615,6 +1623,25 @@
       grid-template-columns: repeat(6, minmax(150px, 1fr));
       gap: 12px;
       padding: 16px;
+      border-bottom: 1px solid rgba(212, 162, 79, .2);
+      border-radius: 12px 12px 0 0;
+      background: rgba(4, 16, 28, .46);
+    }
+
+    body.prince-image .filters {
+      grid-template-columns: minmax(220px, .9fr) minmax(190px, .75fr) minmax(260px, 1fr) minmax(270px, 1.2fr) auto;
+      align-items: end;
+      border-top: 0;
+      border-bottom: 1px solid rgba(212, 162, 79, .24);
+      background: rgba(6, 20, 34, .76);
+    }
+
+    body.prince-image .filter-actions {
+      min-width: 360px;
+    }
+
+    body.prince-image .filter-actions .btn {
+      min-height: 44px;
     }
 
     body.prince-image .summary .metric {
@@ -1740,6 +1767,16 @@
       body.prince-image .summary {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
+
+      body.prince-image .filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      body.prince-image .filter-actions {
+        min-width: 0;
+        grid-column: 1 / -1;
+        justify-content: flex-start;
+      }
     }
 
     @media (max-width: 720px) {
@@ -1765,6 +1802,15 @@
 
       body.prince-image .summary {
         grid-template-columns: 1fr;
+      }
+
+      body.prince-image .filters {
+        grid-template-columns: 1fr;
+      }
+
+      body.prince-image .filter-actions .btn {
+        width: 100%;
+        justify-content: center;
       }
     }
   </style>
@@ -1989,6 +2035,33 @@
       </form>
 
       <section class="panel list-panel">
+        <div class="summary">
+          <div class="metric">
+            <span>จำนวนงาน</span>
+            <strong id="sumCount">0</strong>
+          </div>
+          <div class="metric">
+            <span>พื้นที่รวม</span>
+            <strong id="sumArea">0.00 ตร.ม.</strong>
+          </div>
+          <div class="metric">
+            <span>ยอดขายรวม</span>
+            <strong id="sumSale">฿0.00</strong>
+          </div>
+          <div class="metric">
+            <span>กำไรรวม</span>
+            <strong id="sumProfit">฿0.00</strong>
+          </div>
+          <div class="metric">
+            <span>ลูกค้าชำระ</span>
+            <strong id="sumPaid">฿0.00</strong>
+          </div>
+          <div class="metric">
+            <span>ค้างจ่าย</span>
+            <strong id="sumUnpaid">฿0.00</strong>
+          </div>
+        </div>
+
         <div class="filters">
           <div class="filter-group">
             <span class="filter-label">ช่วงรายงาน</span>
@@ -2023,32 +2096,10 @@
               <button class="btn ghost" id="clearSearch" type="button" hidden>ล้าง</button>
             </div>
           </div>
-        </div>
-
-        <div class="summary">
-          <div class="metric">
-            <span>จำนวนงาน</span>
-            <strong id="sumCount">0</strong>
-          </div>
-          <div class="metric">
-            <span>พื้นที่รวม</span>
-            <strong id="sumArea">0.00 ตร.ม.</strong>
-          </div>
-          <div class="metric">
-            <span>ยอดขายรวม</span>
-            <strong id="sumSale">฿0.00</strong>
-          </div>
-          <div class="metric">
-            <span>กำไรรวม</span>
-            <strong id="sumProfit">฿0.00</strong>
-          </div>
-          <div class="metric">
-            <span>ลูกค้าชำระ</span>
-            <strong id="sumPaid">฿0.00</strong>
-          </div>
-          <div class="metric">
-            <span>ค้างจ่าย</span>
-            <strong id="sumUnpaid">฿0.00</strong>
+          <div class="filter-actions">
+            <button class="btn" id="quickExportPdf" type="button">รายงาน PDF</button>
+            <button class="btn secondary" id="quickExportPng" type="button">รายงาน PNG</button>
+            <button class="btn ghost" id="quickExportCsv" type="button">ส่งออก CSV</button>
           </div>
         </div>
 
@@ -3629,6 +3680,9 @@
     document.querySelector("#exportCsv").addEventListener("click", exportCsv);
     document.querySelector("#exportPdf").addEventListener("click", exportReportPdf);
     document.querySelector("#exportPng").addEventListener("click", exportReportPng);
+    document.querySelector("#quickExportCsv").addEventListener("click", exportCsv);
+    document.querySelector("#quickExportPdf").addEventListener("click", exportReportPdf);
+    document.querySelector("#quickExportPng").addEventListener("click", exportReportPng);
     document.querySelector("#syncNow").addEventListener("click", syncAll);
 
     document.querySelector("#openSettings").addEventListener("click", () => {
