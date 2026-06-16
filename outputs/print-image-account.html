@@ -105,6 +105,21 @@
       white-space: nowrap;
     }
 
+    .ui-icon {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 18px;
+      display: inline-flex;
+      color: currentColor;
+    }
+
+    .ui-icon svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      stroke: currentColor;
+    }
+
     .btn.secondary {
       background: var(--panel);
       color: var(--ink);
@@ -1652,8 +1667,7 @@
       padding-left: 74px;
     }
 
-    body.prince-image .summary .metric::before {
-      content: "";
+    body.prince-image .summary .metric-icon {
       position: absolute;
       left: 20px;
       top: 50%;
@@ -1661,8 +1675,30 @@
       height: 42px;
       border-radius: 50%;
       transform: translateY(-50%);
-      background: radial-gradient(circle, rgba(244, 197, 107, .85), rgba(212, 162, 79, .36));
+      display: grid;
+      place-items: center;
+      color: #081827;
+      background: radial-gradient(circle, rgba(244, 197, 107, .92), rgba(212, 162, 79, .52));
       box-shadow: 0 0 28px rgba(212, 162, 79, .22);
+    }
+
+    body.prince-image .summary .metric-icon svg {
+      width: 22px;
+      height: 22px;
+      stroke: currentColor;
+    }
+
+    body.prince-image .summary .metric:nth-child(2) .metric-icon {
+      background: radial-gradient(circle, rgba(79, 195, 247, .94), rgba(52, 132, 182, .52));
+    }
+
+    body.prince-image .summary .metric:nth-child(4) .metric-icon,
+    body.prince-image .summary .metric:nth-child(5) .metric-icon {
+      background: radial-gradient(circle, rgba(67, 215, 133, .9), rgba(39, 133, 89, .5));
+    }
+
+    body.prince-image .summary .metric:nth-child(6) .metric-icon {
+      background: radial-gradient(circle, rgba(255, 100, 115, .92), rgba(153, 54, 65, .52));
     }
 
     body.prince-image .metric strong {
@@ -1829,26 +1865,26 @@
         </div>
       </div>
       <div class="actions">
-        <a class="btn secondary" href="index.html">หน้าหลัก</a>
-        <a class="btn secondary" href="calculator.html">คำนวณราคา</a>
+        <a class="btn secondary" href="index.html"><span class="ui-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10.5V20h5v-5h4v5h5v-9.5"/></svg></span>หน้าหลัก</a>
+        <a class="btn secondary" href="calculator.html"><span class="ui-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h2m4 0h2M8 15h2m4 0h2"/></svg></span>คำนวณราคา</a>
         <details class="menu">
-          <summary class="btn secondary">ออกบิล</summary>
+          <summary class="btn secondary"><span class="ui-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M7 3h8l4 4v14H7z"/><path d="M15 3v5h5M9 13h6M9 17h6"/></svg></span>ออกบิล</summary>
           <div class="menu-panel">
             <a class="btn secondary" href="invoice.html">บิลปริ้นอิมเมจ</a>
             <a class="btn secondary" href="chokdee-invoice.html">บิลโชคดี</a>
           </div>
         </details>
-        <a class="btn secondary" href="chokdee-print.html">โชคดีการพิมพ์</a>
-        <button class="btn secondary" id="themeToggle" type="button">ธีมมืด</button>
+        <a class="btn secondary" href="chokdee-print.html"><span class="ui-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M6 9V4h12v5"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6z"/></svg></span>โชคดีการพิมพ์</a>
+        <button class="btn secondary" id="themeToggle" type="button"><span class="ui-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M20 14.5A8 8 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z"/></svg></span><span class="btn-label">ธีมมืด</span></button>
         <details class="menu">
-          <summary class="btn secondary">รายงาน</summary>
+          <summary class="btn secondary"><span class="ui-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M4 19V5"/><path d="M8 17v-6m4 6V8m4 9v-4m4 6H4"/></svg></span>รายงาน</summary>
           <div class="menu-panel">
             <button class="btn secondary" id="exportPdf" type="button">รายงาน PDF</button>
             <button class="btn secondary" id="exportPng" type="button">รายงาน PNG</button>
           </div>
         </details>
         <details class="menu">
-          <summary class="btn">จัดการข้อมูล</summary>
+          <summary class="btn"><span class="ui-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><ellipse cx="12" cy="5" rx="7" ry="3"/><path d="M5 5v6c0 1.7 3.1 3 7 3s7-1.3 7-3V5"/><path d="M5 11v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/></svg></span>จัดการข้อมูล</summary>
           <div class="menu-panel">
             <button class="btn secondary" id="syncNow" type="button">ซิงก์ Sheets</button>
             <button class="btn secondary" id="loadFromSheet" type="button">โหลดจาก Sheets</button>
@@ -2037,26 +2073,32 @@
       <section class="panel list-panel">
         <div class="summary">
           <div class="metric">
+            <span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13"/><rect x="3" y="4" width="2" height="2"/><rect x="3" y="10" width="2" height="2"/><rect x="3" y="16" width="2" height="2"/></svg></span>
             <span>จำนวนงาน</span>
             <strong id="sumCount">0</strong>
           </div>
           <div class="metric">
+            <span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4"/><rect x="8" y="8" width="8" height="8" rx="1"/></svg></span>
             <span>พื้นที่รวม</span>
             <strong id="sumArea">0.00 ตร.ม.</strong>
           </div>
           <div class="metric">
+            <span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 7v10M9 10c0-1.4 1.4-2 3-2s3 .6 3 2-1.2 2-3 2-3 .6-3 2 1.4 2 3 2 3-.6 3-2"/></svg></span>
             <span>ยอดขายรวม</span>
             <strong id="sumSale">฿0.00</strong>
           </div>
           <div class="metric">
+            <span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M4 19h16"/><path d="M7 16v-5m5 5V7m5 9v-9"/><path d="m7 11 5-4 5 3"/></svg></span>
             <span>กำไรรวม</span>
             <strong id="sumProfit">฿0.00</strong>
           </div>
           <div class="metric">
+            <span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M20 7H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"/><path d="M16 3v4M8 3v4M7 13h4"/></svg></span>
             <span>ลูกค้าชำระ</span>
             <strong id="sumPaid">฿0.00</strong>
           </div>
           <div class="metric">
+            <span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M4 7h16v10H4z"/><path d="M8 11h8M8 15h5"/><path d="M6 5h12"/></svg></span>
             <span>ค้างจ่าย</span>
             <strong id="sumUnpaid">฿0.00</strong>
           </div>
@@ -2097,14 +2139,14 @@
             </div>
           </div>
           <div class="filter-actions">
-            <button class="btn" id="quickExportPdf" type="button">รายงาน PDF</button>
-            <button class="btn secondary" id="quickExportPng" type="button">รายงาน PNG</button>
-            <button class="btn ghost" id="quickExportCsv" type="button">ส่งออก CSV</button>
+            <button class="btn" id="quickExportPdf" type="button"><span class="ui-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M7 3h8l4 4v14H7z"/><path d="M15 3v5h5M9 13h6M9 17h4"/></svg></span>รายงาน PDF</button>
+            <button class="btn secondary" id="quickExportPng" type="button"><span class="ui-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="m8 15 3-3 2 2 3-4 2 5"/><circle cx="9" cy="9" r="1"/></svg></span>รายงาน PNG</button>
+            <button class="btn ghost" id="quickExportCsv" type="button"><span class="ui-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 19h14"/></svg></span>ส่งออก CSV</button>
           </div>
         </div>
 
         <div class="payment-toggle-row">
-          <button class="btn secondary" id="togglePaymentPanel" type="button" aria-expanded="false">ลูกค้าชำระ</button>
+          <button class="btn secondary" id="togglePaymentPanel" type="button" aria-expanded="false"><span class="ui-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M20 7H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"/><path d="M16 3v4M8 3v4M7 13h4"/></svg></span><span class="btn-label">ลูกค้าชำระ</span></button>
         </div>
 
         <div class="payment-workspace" id="paymentWorkspace" hidden>
@@ -2351,7 +2393,7 @@
       paymentPanelOpen = open;
       els.paymentWorkspace.hidden = !open;
       els.togglePaymentPanel.setAttribute("aria-expanded", open ? "true" : "false");
-      els.togglePaymentPanel.textContent = open ? "ซ่อนลูกค้าชำระ" : "ลูกค้าชำระ";
+      els.togglePaymentPanel.querySelector(".btn-label").textContent = open ? "ซ่อนลูกค้าชำระ" : "ลูกค้าชำระ";
     }
 
     function updateCategoryFilterLabel() {
@@ -2442,7 +2484,7 @@
     function applyTheme(theme) {
       const isDark = theme === "dark";
       document.body.classList.toggle("dark", isDark);
-      els.themeToggle.textContent = isDark ? "ธีมสว่าง" : "ธีมมืด";
+      els.themeToggle.querySelector(".btn-label").textContent = isDark ? "ธีมสว่าง" : "ธีมมืด";
       localStorage.setItem(THEME_KEY, isDark ? "dark" : "light");
     }
 
