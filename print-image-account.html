@@ -1072,18 +1072,56 @@
       font-weight: 800;
     }
 
-    .payment-panel {
+    .payment-workspace {
       display: grid;
-      grid-template-columns: minmax(190px, 1fr) minmax(190px, 1fr) minmax(140px, .7fr) minmax(180px, .9fr) auto;
-      gap: 10px;
-      align-items: end;
+      grid-template-columns: minmax(0, 1.35fr) minmax(280px, .65fr);
+      gap: 14px;
       padding: 16px;
       border-bottom: 1px solid var(--line);
       background: #fffdfa;
     }
 
-    body.dark .payment-panel {
+    body.dark .payment-workspace {
       background: #111827;
+    }
+
+    .payment-card {
+      min-width: 0;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    body.dark .payment-card {
+      background: #0f1722;
+    }
+
+    .payment-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .payment-card-title {
+      font-weight: 900;
+      color: var(--text);
+    }
+
+    .payment-card-note {
+      margin-top: 3px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .payment-panel {
+      display: grid;
+      grid-template-columns: minmax(170px, 1fr) minmax(170px, 1fr) minmax(130px, .65fr) minmax(180px, .8fr) auto;
+      gap: 10px;
+      align-items: end;
     }
 
     .payment-panel .field {
@@ -1092,27 +1130,13 @@
 
     .bulk-status-panel {
       display: grid;
-      grid-template-columns: minmax(240px, 1fr) minmax(170px, .6fr) auto;
+      grid-template-columns: 1fr auto;
       gap: 10px;
       align-items: end;
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--line);
-      background: #fbfaf7;
-    }
-
-    body.dark .bulk-status-panel {
-      background: #0f1722;
     }
 
     .bulk-status-panel .field {
       margin-bottom: 0;
-    }
-
-    .bulk-status-note {
-      font-size: 12px;
-      color: var(--muted);
-      line-height: 1.35;
-      padding-bottom: 7px;
     }
 
     .slip-upload {
@@ -1328,6 +1352,7 @@
       }
 
       .report-controls,
+      .payment-workspace,
       .payment-panel,
       .bulk-status-panel {
         grid-template-columns: 1fr;
@@ -1629,43 +1654,60 @@
           </div>
         </div>
 
-        <div class="payment-panel">
-          <div class="field">
-            <label for="paymentJobSelect">เลือกประเภทลูกค้าที่ชำระ</label>
-            <select id="paymentJobSelect"></select>
-          </div>
-          <div class="field">
-            <label for="paymentCustomerSelect">เลือกลูกค้าที่ชำระ</label>
-            <select id="paymentCustomerSelect"></select>
-          </div>
-          <div class="field">
-            <label for="rowPaidAmount">ยอดที่ลูกค้าชำระ</label>
-            <input id="rowPaidAmount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0">
-          </div>
-          <div class="field">
-            <label for="rowPaymentSlip">แนบสลิป</label>
-            <label class="slip-upload" for="rowPaymentSlip">
-              <span class="slip-upload-icon">⇧</span>
-              <span class="slip-upload-text">
-                <strong>เลือกไฟล์สลิป</strong>
-                <span class="slip-file-name" id="rowPaymentSlipName">รองรับรูปภาพหรือ PDF</span>
-              </span>
-              <input id="rowPaymentSlip" type="file" accept="image/*,.pdf">
-            </label>
-          </div>
-          <button class="btn secondary" id="savePayment" type="button">บันทึกชำระ</button>
-        </div>
+        <div class="payment-workspace">
+          <section class="payment-card" aria-label="บันทึกลูกค้าชำระ">
+            <div class="payment-card-header">
+              <div>
+                <div class="payment-card-title">รับชำระ</div>
+                <div class="payment-card-note">เลือกประเภทและลูกค้า เพื่อบันทึกยอดชำระพร้อมสลิป</div>
+              </div>
+            </div>
+            <div class="payment-panel">
+              <div class="field">
+                <label for="paymentJobSelect">ประเภทลูกค้า</label>
+                <select id="paymentJobSelect"></select>
+              </div>
+              <div class="field">
+                <label for="paymentCustomerSelect">ลูกค้าที่ชำระ</label>
+                <select id="paymentCustomerSelect"></select>
+              </div>
+              <div class="field">
+                <label for="rowPaidAmount">ยอดชำระ</label>
+                <input id="rowPaidAmount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0">
+              </div>
+              <div class="field">
+                <label for="rowPaymentSlip">แนบสลิป</label>
+                <label class="slip-upload" for="rowPaymentSlip">
+                  <span class="slip-upload-icon">⇧</span>
+                  <span class="slip-upload-text">
+                    <strong>เลือกไฟล์สลิป</strong>
+                    <span class="slip-file-name" id="rowPaymentSlipName">รองรับรูปภาพหรือ PDF</span>
+                  </span>
+                  <input id="rowPaymentSlip" type="file" accept="image/*,.pdf">
+                </label>
+              </div>
+              <button class="btn secondary" id="savePayment" type="button">บันทึกชำระ</button>
+            </div>
+          </section>
 
-        <div class="bulk-status-panel">
-          <div class="bulk-status-note">เปลี่ยนสถานะงานทั้งหมดของประเภทลูกค้าที่เลือกด้านบน</div>
-          <div class="field">
-            <label for="bulkPaymentStatus">สถานะใหม่</label>
-            <select id="bulkPaymentStatus">
-              <option value="จ่ายแล้ว">จ่ายแล้ว</option>
-              <option value="ค้างจ่าย">ค้างจ่าย</option>
-            </select>
-          </div>
-          <button class="btn secondary" id="applyBulkPaymentStatus" type="button">เปลี่ยนทั้งหมด</button>
+          <section class="payment-card" aria-label="เปลี่ยนสถานะทั้งประเภทลูกค้า">
+            <div class="payment-card-header">
+              <div>
+                <div class="payment-card-title">สถานะทั้งประเภท</div>
+                <div class="payment-card-note">ใช้ประเภทลูกค้าที่เลือกในช่องรับชำระ</div>
+              </div>
+            </div>
+            <div class="bulk-status-panel">
+              <div class="field">
+                <label for="bulkPaymentStatus">สถานะใหม่</label>
+                <select id="bulkPaymentStatus">
+                  <option value="จ่ายแล้ว">จ่ายแล้ว</option>
+                  <option value="ค้างจ่าย">ค้างจ่าย</option>
+                </select>
+              </div>
+              <button class="btn secondary" id="applyBulkPaymentStatus" type="button">เปลี่ยนทั้งหมด</button>
+            </div>
+          </section>
         </div>
 
         <div class="selection-bar" id="selectionBar" hidden>
