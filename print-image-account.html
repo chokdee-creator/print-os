@@ -2684,7 +2684,7 @@
 
     function renderPrintSizeOptions() {
       const previous = els.printSizeSelect.value;
-      const canCustom = ["งานพิมพ์", "ไวนิล"].includes(els.category.value);
+      const canCustom = ["งานพิมพ์", "ไวนิล", "สติ๊กเกอร์"].includes(els.category.value);
       const stickerOptions = els.category.value === "สติ๊กเกอร์"
         ? Object.entries(STICKER_SIZE_PRESETS).map(([value, size]) => `<option value="${value}">${size.label}</option>`).join("")
         : "";
