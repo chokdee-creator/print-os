@@ -649,14 +649,6 @@
       display: contents;
     }
 
-    .filter-actions {
-      display: flex;
-      gap: 10px;
-      justify-content: flex-end;
-      align-items: end;
-      flex-wrap: wrap;
-    }
-
     .control-label {
       display: none;
     }
@@ -1655,19 +1647,11 @@
     }
 
     body.prince-image .filters {
-      grid-template-columns: minmax(220px, .9fr) minmax(190px, .75fr) minmax(260px, 1fr) minmax(270px, 1.2fr) auto;
+      grid-template-columns: minmax(220px, .9fr) minmax(190px, .75fr) minmax(260px, 1fr) minmax(270px, 1.2fr);
       align-items: end;
       border-top: 0;
       border-bottom: 1px solid rgba(212, 162, 79, .24);
       background: rgba(6, 20, 34, .76);
-    }
-
-    body.prince-image .filter-actions {
-      min-width: 360px;
-    }
-
-    body.prince-image .filter-actions .btn {
-      min-height: 44px;
     }
 
     body.prince-image .summary .metric {
@@ -1819,11 +1803,6 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
-      body.prince-image .filter-actions {
-        min-width: 0;
-        grid-column: 1 / -1;
-        justify-content: flex-start;
-      }
     }
 
     @media (max-width: 720px) {
@@ -1855,10 +1834,6 @@
         grid-template-columns: 1fr;
       }
 
-      body.prince-image .filter-actions .btn {
-        width: 100%;
-        justify-content: center;
-      }
     }
   </style>
 </head>
@@ -2148,11 +2123,6 @@
               <input id="searchInput" type="search" placeholder="วันที่, ลูกค้า, รายชื่องาน, ชำระเงิน" hidden>
               <button class="btn ghost" id="clearSearch" type="button" hidden>ล้าง</button>
             </div>
-          </div>
-          <div class="filter-actions">
-            <button class="btn" id="quickExportPdf" type="button"><span class="ui-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M7 3h8l4 4v14H7z"/><path d="M15 3v5h5M9 13h6M9 17h4"/></svg></span>รายงาน PDF</button>
-            <button class="btn secondary" id="quickExportPng" type="button"><span class="ui-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="m8 15 3-3 2 2 3-4 2 5"/><circle cx="9" cy="9" r="1"/></svg></span>รายงาน PNG</button>
-            <button class="btn ghost" id="quickExportCsv" type="button"><span class="ui-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 19h14"/></svg></span>ส่งออก CSV</button>
           </div>
         </div>
 
@@ -3774,9 +3744,6 @@
     document.querySelector("#exportCsv").addEventListener("click", exportCsv);
     document.querySelector("#exportPdf").addEventListener("click", exportReportPdf);
     document.querySelector("#exportPng").addEventListener("click", exportReportPng);
-    document.querySelector("#quickExportCsv").addEventListener("click", exportCsv);
-    document.querySelector("#quickExportPdf").addEventListener("click", exportReportPdf);
-    document.querySelector("#quickExportPng").addEventListener("click", exportReportPng);
     document.querySelector("#syncNow").addEventListener("click", syncAll);
 
     document.querySelector("#openSettings").addEventListener("click", () => {
