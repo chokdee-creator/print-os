@@ -115,7 +115,8 @@ function buildRow_(data, existingValues) {
     Number(data.costTotal) || 0,
     Number(data.profit) || 0,
     data.createdAt || new Date().toISOString(),
-    data.updatedAt || ""
+    data.updatedAt || "",
+    Number(data.discount) || 0
   ];
 }
 
@@ -297,7 +298,8 @@ function getSheet_(sheetName) {
     "ต้นทุน",
     "กำไร",
     "เวลาบันทึก",
-    "เวลาแก้ไขล่าสุด"
+    "เวลาแก้ไขล่าสุด",
+    "ส่วนลด"
   ];
 
   if (!sheet) {

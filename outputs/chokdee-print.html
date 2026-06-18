@@ -1592,6 +1592,11 @@
           </div>
         </div>
 
+        <div class="field">
+          <label for="discount">ส่วนลด (บาท)</label>
+          <input id="discount" name="discount" type="number" inputmode="decimal" min="0" step="0.01" value="0" placeholder="0">
+        </div>
+
         <input id="width" name="width" type="hidden" value="0">
         <input id="length" name="length" type="hidden" value="0">
 
@@ -1893,6 +1898,7 @@
       piecePricePanel: document.querySelector("#piecePricePanel"),
       pieceSaleRate: document.querySelector("#pieceSaleRate"),
       pieceCostRate: document.querySelector("#pieceCostRate"),
+      discount: document.querySelector("#discount"),
       laminationOption: document.querySelector("#laminationOption"),
       lamination: document.querySelector("#lamination"),
       vinylFrameOptions: document.querySelector("#vinylFrameOptions"),
@@ -2153,7 +2159,9 @@
       const costRate = Number(els.costRate.value) || materialCost + inkCost + electricityCost + maintenanceCost;
       const area = width * length * quantity;
       const usePiecePricing = ["ไวนิล", "สติ๊กเกอร์", "งานพิมพ์"].includes(els.category.value) && (pieceSaleRate > 0 || pieceCostRate > 0);
-      const saleTotal = usePiecePricing ? quantity * pieceSaleRate : area * saleRate;
+      const grossSaleTotal = usePiecePricing ? quantity * pieceSaleRate : area * saleRate;
+      const discount = Math.min(Math.max(Number(els.discount.value) || 0, 0), grossSaleTotal);
+      const saleTotal = Math.max(grossSaleTotal - discount, 0);
       const costTotal = usePiecePricing ? quantity * pieceCostRate : area * costRate;
       const paidAmount = 0;
       const balanceTotal = Math.max(saleTotal - paidAmount, 0);
@@ -2168,6 +2176,8 @@
         maintenanceCost,
         costRate,
         area,
+        grossSaleTotal,
+        discount,
         saleTotal,
         paidAmount,
         balanceTotal,
@@ -2836,7 +2846,8 @@
         costTotal: row[20 + customerNameOffset],
         profit: row[21 + customerNameOffset],
         createdAt: row[22 + customerNameOffset],
-        updatedAt: row[23 + customerNameOffset]
+        updatedAt: row[23 + customerNameOffset],
+        discount: row[24 + customerNameOffset]
       } : row;
       const rawStatus = String(record.paymentStatus || "");
       const saleTotalValue = Number(record.saleTotal) || 0;
@@ -2881,6 +2892,7 @@
         electricityCost: Number(record.electricityCost) || 0,
         maintenanceCost: Number(record.maintenanceCost) || 0,
         costRate: Number(record.costRate) || 0,
+        discount: Math.max(Number(record.discount) || 0, 0),
         saleTotal: saleTotalValue,
         paidAmount: paidAmountValue,
         balanceTotal: balanceTotalValue,
@@ -2923,11 +2935,11 @@
     }
 
     function exportCsv() {
-      const header = ["วันที่", "หมวดหมู่", "ประเภทลูกค้า", "รายชื่อลูกค้า", "สถานะชำระเงิน", "รายชื่องาน", "กว้าง", "ยาว", "จำนวนชิ้นงาน", "พื้นที่", "ราคาขายต่อตร.ม.", "ค่าวัสดุต่อตร.ม.", "ค่าหมึกต่อตร.ม.", "ค่าไฟต่อตร.ม.", "ค่า Maintenance เครื่องพิมพ์ต่อตร.ม.", "ต้นทุนต่อตร.ม.", "ราคาขาย", "ลูกค้าชำระ", "ค้างเหลือ", "ลิงก์สลิป", "ต้นทุน", "กำไร"];
+      const header = ["วันที่", "หมวดหมู่", "ประเภทลูกค้า", "รายชื่อลูกค้า", "สถานะชำระเงิน", "รายชื่องาน", "กว้าง", "ยาว", "จำนวนชิ้นงาน", "พื้นที่", "ราคาขายต่อตร.ม.", "ค่าวัสดุต่อตร.ม.", "ค่าหมึกต่อตร.ม.", "ค่าไฟต่อตร.ม.", "ค่า Maintenance เครื่องพิมพ์ต่อตร.ม.", "ต้นทุนต่อตร.ม.", "ส่วนลด", "ราคาขาย", "ลูกค้าชำระ", "ค้างเหลือ", "ลิงก์สลิป", "ต้นทุน", "กำไร"];
       const rows = filteredRecords().map(record => [
         record.date, record.category, customerType(record), customerName(record), paymentStatus(record), record.name, record.width, record.length, record.quantity || 1, record.area,
         record.saleRate, record.materialCost, record.inkCost, record.electricityCost, record.maintenanceCost,
-        record.costRate, record.saleTotal, paidAmount(record), balanceAmount(record), record.paymentSlipUrl || record.paymentSlipName || "",
+        record.costRate, record.discount || 0, record.saleTotal, paidAmount(record), balanceAmount(record), record.paymentSlipUrl || record.paymentSlipName || "",
         record.costTotal, record.profit
       ]);
       const csv = [header, ...rows].map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
@@ -3010,6 +3022,7 @@
       els.customerType.value = "มานา เด็กดื้อ";
       els.customerName.value = "";
       els.quantity.value = "1";
+      els.discount.value = "0";
       editingId = null;
       els.saveJob.textContent = "บันทึกรายการ";
       document.querySelector("#resetForm").textContent = "ล้างฟอร์ม";
@@ -3044,6 +3057,10 @@
         els.pieceSaleRate.value = Number(record.saleRate) ? Number(record.saleRate).toFixed(2) : "";
         els.pieceCostRate.value = Number(record.costRate) ? Number(record.costRate).toFixed(2) : "";
       }
+      const editableGrossSale = ["ไวนิล", "สติ๊กเกอร์", "งานพิมพ์"].includes(record.category)
+        ? (Number(record.quantity) || 1) * (Number(record.saleRate) || 0)
+        : (Number(record.area) || 0) * (Number(record.saleRate) || 0);
+      els.discount.value = Math.max(Number(record.discount) || editableGrossSale - (Number(record.saleTotal) || 0), 0).toFixed(2);
       renderPrintSizeOptions();
       const selectedPrintSize = Object.entries({ ...STICKER_SIZE_PRESETS, ...PRINT_JOB_SIZE_PRESETS, ...PRINT_SIZE_PRESETS }).find(([, size]) => size.label === record.name);
       if (selectedPrintSize) {
@@ -3136,6 +3153,7 @@
         electricityCost: calc.electricityCost,
         maintenanceCost: calc.maintenanceCost,
         costRate: calc.costRate,
+        discount: calc.discount,
         saleTotal: calc.saleTotal,
         paidAmount: nextPaidAmount,
         balanceTotal: nextBalanceTotal,

@@ -81,7 +81,8 @@ function makeRow(data, old) {
     Number(data.costTotal) || 0,
     Number(data.profit) || 0,
     data.createdAt || new Date().toISOString(),
-    data.updatedAt || ""
+    data.updatedAt || "",
+    Number(data.discount) || 0
   ];
 }
 
@@ -98,7 +99,7 @@ function getSheet(sheetName) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const name = cleanName(sheetName) || DEFAULT_SHEET_NAME;
   let sheet = ss.getSheetByName(name);
-  const headers = ["ID", "วันที่", "หมวดหมู่", "ประเภทลูกค้า", "รายชื่อลูกค้า", "สถานะชำระเงิน", "รายชื่องาน", "กว้าง (เมตร)", "ยาว (เมตร)", "จำนวนชิ้นงาน", "พื้นที่ (ตร.ม.)", "ราคาขาย/ตร.ม.", "ค่าวัสดุ/ตร.ม.", "ค่าหมึก/ตร.ม.", "ค่าไฟ/ตร.ม.", "ค่า Maintenance เครื่องพิมพ์/ตร.ม.", "ต้นทุน/ตร.ม.", "ราคาขาย", "ลูกค้าชำระ", "ค้างเหลือ", "ลิงก์สลิป", "ต้นทุน", "กำไร", "เวลาบันทึก", "เวลาแก้ไขล่าสุด"];
+  const headers = ["ID", "วันที่", "หมวดหมู่", "ประเภทลูกค้า", "รายชื่อลูกค้า", "สถานะชำระเงิน", "รายชื่องาน", "กว้าง (เมตร)", "ยาว (เมตร)", "จำนวนชิ้นงาน", "พื้นที่ (ตร.ม.)", "ราคาขาย/ตร.ม.", "ค่าวัสดุ/ตร.ม.", "ค่าหมึก/ตร.ม.", "ค่าไฟ/ตร.ม.", "ค่า Maintenance เครื่องพิมพ์/ตร.ม.", "ต้นทุน/ตร.ม.", "ราคาขาย", "ลูกค้าชำระ", "ค้างเหลือ", "ลิงก์สลิป", "ต้นทุน", "กำไร", "เวลาบันทึก", "เวลาแก้ไขล่าสุด", "ส่วนลด"];
   if (!sheet) sheet = ss.insertSheet(name);
   if (sheet.getLastRow() === 0) sheet.appendRow(headers);
   else {
