@@ -709,6 +709,17 @@
 
     .table-wrap {
       overflow: auto;
+      cursor: grab;
+      scrollbar-gutter: stable;
+    }
+
+    .table-wrap.drag-scrolling {
+      cursor: grabbing;
+      user-select: none;
+    }
+
+    .table-wrap :is(button, input, select, a, label, summary) {
+      cursor: pointer;
     }
 
     table {
@@ -2343,6 +2354,7 @@
       costPreview: document.querySelector("#costPreview"),
       balancePreview: document.querySelector("#balancePreview"),
       syncStatus: document.querySelector("#syncStatus"),
+      tableWrap: document.querySelector(".table-wrap"),
       rows: document.querySelector("#jobRows"),
       empty: document.querySelector("#emptyState"),
       selectionBar: document.querySelector("#selectionBar"),
@@ -2388,6 +2400,46 @@
     let editingId = null;
     let selectedIds = new Set();
     let paymentPanelOpen = false;
+
+    function enableTableDragScroll() {
+      const scroller = els.tableWrap;
+      let dragging = false;
+      let startX = 0;
+      let startScrollLeft = 0;
+
+      scroller.addEventListener("pointerdown", event => {
+        if (event.pointerType !== "mouse" || event.button !== 0) return;
+        if (event.target.closest("button, input, select, a, label, summary")) return;
+
+        dragging = true;
+        startX = event.clientX;
+        startScrollLeft = scroller.scrollLeft;
+        scroller.classList.add("drag-scrolling");
+        scroller.setPointerCapture(event.pointerId);
+      });
+
+      scroller.addEventListener("pointermove", event => {
+        if (!dragging) return;
+        scroller.scrollLeft = startScrollLeft - (event.clientX - startX);
+        event.preventDefault();
+      });
+
+      const stopDragging = event => {
+        if (!dragging) return;
+        dragging = false;
+        scroller.classList.remove("drag-scrolling");
+        if (scroller.hasPointerCapture(event.pointerId)) {
+          scroller.releasePointerCapture(event.pointerId);
+        }
+      };
+
+      scroller.addEventListener("pointerup", stopDragging);
+      scroller.addEventListener("pointercancel", stopDragging);
+      scroller.addEventListener("lostpointercapture", () => {
+        dragging = false;
+        scroller.classList.remove("drag-scrolling");
+      });
+    }
 
     function setPaymentPanelOpen(open) {
       paymentPanelOpen = open;
@@ -3764,6 +3816,7 @@
     els.filterDate.value = today();
     els.filterMonth.value = thisMonth();
     applyTheme(localStorage.getItem(THEME_KEY) || "light");
+    enableTableDragScroll();
     initUxSelects();
     updateCategoryFilterLabel();
     applyProductQuery();
