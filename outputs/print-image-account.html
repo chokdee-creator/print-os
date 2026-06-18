@@ -2648,7 +2648,7 @@
       const defaults = CATEGORY_DEFAULTS[els.category.value];
       els.printTypePanel.hidden = !["ไวนิล", "สติ๊กเกอร์", "งานพิมพ์"].includes(els.category.value);
       els.areaRateFields.hidden = els.category.value === "งานพิมพ์";
-      els.piecePricePanel.hidden = !["ไวนิล", "สติ๊กเกอร์", "งานพิมพ์"].includes(els.category.value);
+      els.piecePricePanel.hidden = els.category.value !== "งานพิมพ์";
       if (els.piecePricePanel.hidden) {
         els.pieceSaleRate.value = "";
         els.pieceCostRate.value = "";
@@ -3476,11 +3476,11 @@
       els.maintenanceCost.value = record.maintenanceCost;
       els.costRate.value = record.costRate;
       applyCategoryDefaults();
-      if (["ไวนิล", "สติ๊กเกอร์", "งานพิมพ์"].includes(record.category)) {
+      if (record.category === "งานพิมพ์") {
         els.pieceSaleRate.value = Number(record.saleRate) ? Number(record.saleRate).toFixed(2) : "";
         els.pieceCostRate.value = Number(record.costRate) ? Number(record.costRate).toFixed(2) : "";
       }
-      const editableGrossSale = ["ไวนิล", "สติ๊กเกอร์", "งานพิมพ์"].includes(record.category)
+      const editableGrossSale = record.category === "งานพิมพ์"
         ? (Number(record.quantity) || 1) * (Number(record.saleRate) || 0)
         : (Number(record.area) || 0) * (Number(record.saleRate) || 0);
       els.discount.value = Math.max(Number(record.discount) || editableGrossSale - (Number(record.saleTotal) || 0), 0).toFixed(2);
