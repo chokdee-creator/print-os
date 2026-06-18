@@ -158,6 +158,18 @@
       justify-content: flex-end;
     }
 
+    .selection-summary {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .selection-sale-total {
+      color: var(--brand-strong);
+      font-size: 15px;
+    }
+
     .select-cell {
       text-align: center;
       width: 46px;
@@ -1771,7 +1783,10 @@
         </div>
 
         <div class="selection-bar" id="selectionBar" hidden>
-          <strong id="selectionCount">เลือก 0 รายการ</strong>
+          <div class="selection-summary">
+            <strong id="selectionCount">เลือก 0 รายการ</strong>
+            <strong class="selection-sale-total" id="selectionSaleTotal">ยอดขายรวม ฿0.00</strong>
+          </div>
           <div class="selection-actions">
             <button class="btn small secondary" id="editSelected" type="button">แก้ไข</button>
             <button class="btn small danger" id="deleteSelected" type="button">ลบ</button>
@@ -1908,6 +1923,7 @@
       empty: document.querySelector("#emptyState"),
       selectionBar: document.querySelector("#selectionBar"),
       selectionCount: document.querySelector("#selectionCount"),
+      selectionSaleTotal: document.querySelector("#selectionSaleTotal"),
       editSelected: document.querySelector("#editSelected"),
       deleteSelected: document.querySelector("#deleteSelected"),
       paymentWorkspace: document.querySelector("#paymentWorkspace"),
@@ -2619,9 +2635,12 @@
     }
 
     function updateSelectionBar() {
-      const count = selectedRecords().length;
+      const selected = selectedRecords();
+      const count = selected.length;
+      const saleTotal = selected.reduce((sum, record) => sum + (Number(record.saleTotal) || 0), 0);
       els.selectionBar.hidden = count === 0;
       els.selectionCount.textContent = `เลือก ${count.toLocaleString("th-TH")} รายการ`;
+      els.selectionSaleTotal.textContent = `ยอดขายรวม ${baht(saleTotal)}`;
       els.editSelected.disabled = count !== 1;
       els.deleteSelected.disabled = count === 0;
     }
