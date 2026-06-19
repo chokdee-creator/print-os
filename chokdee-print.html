@@ -284,6 +284,14 @@
       padding: 18px;
       position: sticky;
       top: 18px;
+      max-height: calc(100vh - 36px);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: none;
+    }
+
+    .form-panel::-webkit-scrollbar {
+      display: none;
     }
 
     .panel-head {
@@ -1351,6 +1359,8 @@
 
       .form-panel {
         position: static;
+        max-height: none;
+        overflow: visible;
       }
 
       .filters {
@@ -2010,14 +2020,6 @@
         dragging = false;
         scroller.classList.remove("drag-scrolling");
       });
-    }
-
-    function enableFormWheelPageScroll() {
-      els.form.addEventListener("wheel", event => {
-        if (event.ctrlKey || event.target.closest(".ux-select-menu")) return;
-        event.preventDefault();
-        window.scrollBy({ top: event.deltaY, left: 0, behavior: "auto" });
-      }, { passive: false });
     }
 
     function setPaymentPanelOpen(open) {
@@ -3408,7 +3410,6 @@
     els.filterMonth.value = thisMonth();
     applyTheme(localStorage.getItem(THEME_KEY) || "light");
     enableTableDragScroll();
-    enableFormWheelPageScroll();
     initUxSelects();
     updateCategoryFilterLabel();
     applyProductQuery();
