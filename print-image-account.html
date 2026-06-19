@@ -2433,6 +2433,14 @@
       });
     }
 
+    function enableFormWheelPageScroll() {
+      els.form.addEventListener("wheel", event => {
+        if (event.ctrlKey || event.target.closest(".ux-select-menu")) return;
+        event.preventDefault();
+        window.scrollBy({ top: event.deltaY, left: 0, behavior: "auto" });
+      }, { passive: false });
+    }
+
     function setPaymentPanelOpen(open) {
       paymentPanelOpen = open;
       els.paymentWorkspace.hidden = !open;
@@ -3821,6 +3829,7 @@
     els.filterMonth.value = thisMonth();
     applyTheme(localStorage.getItem(THEME_KEY) || "light");
     enableTableDragScroll();
+    enableFormWheelPageScroll();
     initUxSelects();
     updateCategoryFilterLabel();
     applyProductQuery();
