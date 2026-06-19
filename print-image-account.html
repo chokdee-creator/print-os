@@ -614,7 +614,17 @@
     }
 
     .list-panel {
-      overflow: hidden;
+      position: sticky;
+      top: 18px;
+      max-height: calc(100vh - 36px);
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: none;
+    }
+
+    .list-panel::-webkit-scrollbar {
+      display: none;
     }
 
     .filters {
@@ -1308,6 +1318,8 @@
       left: -10000px;
       top: 0;
       width: 1500px;
+      max-height: none;
+      overflow: visible;
       background: #fffdfa;
       color: #202326;
       padding: 18px;
@@ -1343,6 +1355,9 @@
       }
 
       body.print-report .list-panel {
+        position: static;
+        max-height: none;
+        overflow: visible;
         border: 0;
         box-shadow: none;
       }
@@ -1372,7 +1387,8 @@
         grid-template-columns: 1fr;
       }
 
-      .form-panel {
+      .form-panel,
+      .list-panel {
         position: static;
         max-height: none;
         overflow: visible;
@@ -1613,6 +1629,12 @@
       max-height: calc(100vh - 144px);
     }
 
+    body.prince-image .list-panel {
+      position: sticky;
+      top: 126px;
+      max-height: calc(100vh - 144px);
+    }
+
     body.prince-image .panel-head h2::before {
       content: "";
       display: inline-block;
@@ -1814,7 +1836,8 @@
         grid-template-columns: 1fr;
       }
 
-      body.prince-image .form-panel {
+      body.prince-image .form-panel,
+      body.prince-image .list-panel {
         position: static;
         max-height: none;
         overflow: visible;
