@@ -713,7 +713,7 @@
 
     .summary {
       display: grid;
-      grid-template-columns: repeat(6, 1fr);
+      grid-template-columns: repeat(7, 1fr);
       gap: 10px;
       padding: 16px;
       border-bottom: 1px solid var(--line);
@@ -1683,7 +1683,7 @@
     }
 
     body.prince-image .summary {
-      grid-template-columns: repeat(6, minmax(150px, 1fr));
+      grid-template-columns: repeat(7, minmax(140px, 1fr));
       gap: 12px;
       padding: 16px;
       border-bottom: 1px solid rgba(212, 162, 79, .2);
@@ -1732,12 +1732,13 @@
       background: radial-gradient(circle, rgba(79, 195, 247, .94), rgba(52, 132, 182, .52));
     }
 
-    body.prince-image .summary .metric:nth-child(4) .metric-icon,
-    body.prince-image .summary .metric:nth-child(5) .metric-icon {
+    body.prince-image .summary .metric:nth-child(5) .metric-icon,
+    body.prince-image .summary .metric:nth-child(6) .metric-icon {
       background: radial-gradient(circle, rgba(67, 215, 133, .9), rgba(39, 133, 89, .5));
     }
 
-    body.prince-image .summary .metric:nth-child(6) .metric-icon {
+    body.prince-image .summary .metric:nth-child(4) .metric-icon,
+    body.prince-image .summary .metric:nth-child(7) .metric-icon {
       background: radial-gradient(circle, rgba(255, 100, 115, .92), rgba(153, 54, 65, .52));
     }
 
@@ -2127,6 +2128,11 @@
             <strong id="sumSale">฿0.00</strong>
           </div>
           <div class="metric">
+            <span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M4 7h16v10H4z"/><path d="M8 11h8M8 15h5"/><path d="M6 5h12"/></svg></span>
+            <span>ต้นทุนรวม</span>
+            <strong id="sumCost">฿0.00</strong>
+          </div>
+          <div class="metric">
             <span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M4 19h16"/><path d="M7 16v-5m5 5V7m5 9v-9"/><path d="m7 11 5-4 5 3"/></svg></span>
             <span>กำไรรวม</span>
             <strong id="sumProfit">฿0.00</strong>
@@ -2415,6 +2421,7 @@
       sumCount: document.querySelector("#sumCount"),
       sumArea: document.querySelector("#sumArea"),
       sumSale: document.querySelector("#sumSale"),
+      sumCost: document.querySelector("#sumCost"),
       sumProfit: document.querySelector("#sumProfit"),
       sumPaid: document.querySelector("#sumPaid"),
       sumUnpaid: document.querySelector("#sumUnpaid"),
@@ -2860,6 +2867,7 @@
       els.sumCount.textContent = rows.length.toLocaleString("th-TH");
       els.sumArea.textContent = `${number(totals.area)} ตร.ม.`;
       els.sumSale.textContent = baht(totals.sale);
+      els.sumCost.textContent = baht(totals.cost);
       els.sumProfit.textContent = baht(totals.profit);
       els.sumPaid.textContent = baht(totals.paid);
       els.sumUnpaid.textContent = baht(totals.unpaid);

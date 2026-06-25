@@ -698,7 +698,7 @@
 
     .summary {
       display: grid;
-      grid-template-columns: repeat(6, 1fr);
+      grid-template-columns: repeat(7, 1fr);
       gap: 10px;
       padding: 16px;
       border-bottom: 1px solid var(--line);
@@ -1740,6 +1740,10 @@
             <strong id="sumSale">฿0.00</strong>
           </div>
           <div class="metric">
+            <span>ต้นทุนรวม</span>
+            <strong id="sumCost">฿0.00</strong>
+          </div>
+          <div class="metric">
             <span>กำไรรวม</span>
             <strong id="sumProfit">฿0.00</strong>
           </div>
@@ -1984,6 +1988,7 @@
       sumCount: document.querySelector("#sumCount"),
       sumArea: document.querySelector("#sumArea"),
       sumSale: document.querySelector("#sumSale"),
+      sumCost: document.querySelector("#sumCost"),
       sumProfit: document.querySelector("#sumProfit"),
       sumPaid: document.querySelector("#sumPaid"),
       sumUnpaid: document.querySelector("#sumUnpaid"),
@@ -2429,6 +2434,7 @@
       els.sumCount.textContent = rows.length.toLocaleString("th-TH");
       els.sumArea.textContent = `${number(totals.area)} ตร.ม.`;
       els.sumSale.textContent = baht(totals.sale);
+      els.sumCost.textContent = baht(totals.cost);
       els.sumProfit.textContent = baht(totals.profit);
       els.sumPaid.textContent = baht(totals.paid);
       els.sumUnpaid.textContent = baht(totals.unpaid);
