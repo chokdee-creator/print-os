@@ -696,6 +696,29 @@
       outline: 0;
     }
 
+    .remember-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      color: #d7e0ef;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .remember-row input {
+      width: 18px;
+      min-height: 18px;
+      margin-top: 2px;
+      flex: 0 0 auto;
+      accent-color: var(--brand);
+    }
+
+    .remember-row small {
+      display: block;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
     .toast {
       position: fixed;
       right: 18px;
@@ -782,6 +805,7 @@
     const h = React.createElement;
     const { useEffect, useMemo, useRef, useState } = React;
     const STORAGE_KEY = "printos.secureVault.encrypted.v1";
+    const REMEMBER_KEY = "printos.secureVault.rememberedMaster.v1";
     const LEGACY_KEY = "printos.secureVault.v1";
 
     const categories = [
@@ -847,7 +871,15 @@
         return () => document.removeEventListener("keydown", onKey);
       }, []);
 
-      async function setupVault(password) {
+      function updateRememberedPassword(password, remember) {
+        if (remember) {
+          localStorage.setItem(REMEMBER_KEY, password);
+        } else {
+          localStorage.removeItem(REMEMBER_KEY);
+        }
+      }
+
+      async function setupVault(password, remember) {
         if (password.length < 6) {
           notify("รหัสหลักควรมีอย่างน้อย 6 ตัวอักษร");
           return;
@@ -855,16 +887,18 @@
         setMaster(password);
         setEntries(sampleEntries);
         await saveEncrypted(sampleEntries, password);
+        updateRememberedPassword(password, remember);
         localStorage.removeItem(LEGACY_KEY);
         setMode("ready");
         notify("สร้างคลังรหัสผ่านแล้ว");
       }
 
-      async function unlockVault(password) {
+      async function unlockVault(password, remember) {
         try {
           const data = await loadEncrypted(password);
           setMaster(password);
           setEntries(Array.isArray(data.entries) ? data.entries : []);
+          updateRememberedPassword(password, remember);
           setMode("ready");
           notify("ปลดล็อกสำเร็จ");
         } catch (error) {
@@ -1018,11 +1052,27 @@
         setMode("locked");
       }
 
+      function forgotPassword() {
+        const first = confirm("ถ้าลืมรหัสหลัก จะไม่สามารถกู้ข้อมูลที่เข้ารหัสเดิมได้ ต้องการรีเซ็ตคลังรหัสผ่านในเครื่องนี้หรือไม่");
+        if (!first) return;
+        const second = confirm("ยืนยันอีกครั้ง: การรีเซ็ตจะลบข้อมูล Secure Vault ในเครื่องนี้ทั้งหมด ควรมีไฟล์สำรองก่อนดำเนินการ");
+        if (!second) return;
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(REMEMBER_KEY);
+        localStorage.removeItem(LEGACY_KEY);
+        setMaster("");
+        setEntries([]);
+        setVisibleIds(new Set());
+        setMode("setup");
+        notify("รีเซ็ตคลังรหัสผ่านแล้ว");
+      }
+
       if (mode !== "ready") {
         return h(LockScreen, {
           mode,
           onSetup: setupVault,
           onUnlock: unlockVault,
+          onForgot: forgotPassword,
           toast
         });
       }
@@ -1130,9 +1180,11 @@
       );
     }
 
-    function LockScreen({ mode, onSetup, onUnlock, toast }) {
-      const [password, setPassword] = useState("");
+    function LockScreen({ mode, onSetup, onUnlock, onForgot, toast }) {
+      const rememberedPassword = localStorage.getItem(REMEMBER_KEY) || "";
+      const [password, setPassword] = useState(mode === "locked" ? rememberedPassword : "");
       const [confirm, setConfirm] = useState("");
+      const [remember, setRemember] = useState(Boolean(rememberedPassword));
       const isSetup = mode === "setup";
       return h("div", { className: "lock-screen" },
         h("form", {
@@ -1140,7 +1192,7 @@
           onSubmit: event => {
             event.preventDefault();
             if (isSetup && password !== confirm) return;
-            isSetup ? onSetup(password) : onUnlock(password);
+            isSetup ? onSetup(password, remember) : onUnlock(password, remember);
           }
         },
           h("div", { className: "brand" },
@@ -1165,7 +1217,19 @@
             placeholder: "ยืนยันรหัสหลัก"
           }),
           isSetup && password && confirm && password !== confirm && h("small", { style: { color: "#ffb4bf" } }, "รหัสยืนยันไม่ตรงกัน"),
+          h("label", { className: "remember-row" },
+            h("input", {
+              type: "checkbox",
+              checked: remember,
+              onChange: e => setRemember(e.target.checked)
+            }),
+            h("span", null,
+              "จดจำรหัสผ่านในเครื่องนี้",
+              h("small", null, "เหมาะกับเครื่องส่วนตัวเท่านั้น เพราะรหัสหลักจะถูกเก็บไว้ในเบราว์เซอร์ของเครื่องนี้")
+            )
+          ),
           h("button", { className: "primary-button", type: "submit" }, isSetup ? "สร้างคลังรหัสผ่าน" : "ปลดล็อก"),
+          !isSetup && h("button", { className: "danger-button", type: "button", onClick: onForgot }, "ลืมรหัสผ่าน"),
           h("a", { className: "ghost-button", href: "index.html" }, "กลับหน้าหลัก")
         ),
         toast && h("div", { className: "toast" }, toast)
