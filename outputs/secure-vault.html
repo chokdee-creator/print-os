@@ -1422,7 +1422,7 @@
                 h("small", null, "เหมาะกับเครื่องส่วนตัวเท่านั้น เพราะรหัสหลักจะถูกเก็บไว้ในเบราว์เซอร์ของเครื่องนี้")
               )
             ),
-            !isSetup && h("button", { className: "danger-button", type: "button", onClick: onForgot }, "ลืมรหัสผ่าน")
+            h("button", { className: "danger-button", type: "button", onClick: onForgot }, "ลืมรหัสผ่าน?")
           ),
           h("button", { className: "primary-button", type: "submit" }, isSetup ? "สร้างคลังรหัสผ่าน" : "ปลดล็อก"),
           h("a", { className: "ghost-button", href: "index.html" }, "กลับหน้าหลัก")
@@ -1501,7 +1501,7 @@
               }),
               h("span", null, "จดจำอุปกรณ์นี้")
             ),
-            !isSetup && h("button", { className: "danger-button", type: "button", onClick: onForgot }, "ลืมรหัสผ่าน?")
+            h("button", { className: "danger-button", type: "button", onClick: onForgot }, "ลืมรหัสผ่าน?")
           ),
           h("button", { className: "primary-button", type: "submit" }, isSetup ? "สร้างคลังรหัสผ่าน" : "เข้าสู่ระบบ"),
           h("div", { className: "login-divider" }, "หรือเข้าสู่ระบบด้วย"),
