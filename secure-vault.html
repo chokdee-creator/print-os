@@ -821,6 +821,9 @@
     const STORAGE_KEY = "printos.secureVault.encrypted.v1";
     const REMEMBER_KEY = "printos.secureVault.rememberedMaster.v1";
     const LEGACY_KEY = "printos.secureVault.v1";
+    const SHEET_URL_KEY = "printos.secureVault.sheetUrl.v1";
+    const DEFAULT_SHEET_URL = "https://script.google.com/macros/s/AKfycbzDF5-Kvqf03RLCxpToRL7C9PAqlfhUvC_xLgnEExF7H4go7gybvzLaKDwtKVBHl6if/exec";
+    const VAULT_SHEET_NAME = "SecureVault";
 
     const categories = [
       { id: "ทั้งหมด", label: "ทั้งหมด", icon: iconGrid },
@@ -901,6 +904,7 @@
         setMaster(password);
         setEntries(sampleEntries);
         await saveEncrypted(sampleEntries, password);
+        syncVaultToSheet(sampleEntries, true);
         updateRememberedPassword(password, remember);
         localStorage.removeItem(LEGACY_KEY);
         setMode("ready");
@@ -923,6 +927,7 @@
       async function persist(nextEntries) {
         setEntries(nextEntries);
         await saveEncrypted(nextEntries, master);
+        syncVaultToSheet(nextEntries, true);
       }
 
       function notify(message) {
@@ -1041,6 +1046,82 @@
         notify("ส่งออกไฟล์สำรองแล้ว");
       }
 
+      function getSheetUrl() {
+        return (localStorage.getItem(SHEET_URL_KEY) || DEFAULT_SHEET_URL).trim();
+      }
+
+      async function syncVaultToSheet(nextEntries = entries, silent = false) {
+        const url = getSheetUrl();
+        const encryptedVault = localStorage.getItem(STORAGE_KEY);
+        if (!url || !encryptedVault) {
+          if (!silent) notify("ยังไม่มีข้อมูลสำหรับซิงก์");
+          return false;
+        }
+        try {
+          await fetch(url, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({
+              action: "vaultSave",
+              sheetName: VAULT_SHEET_NAME,
+              id: "secure-vault",
+              itemCount: nextEntries.filter(item => !item.deleted).length,
+              encryptedVault,
+              updatedAt: new Date().toISOString(),
+              source: location.href
+            })
+          });
+          if (!silent) notify("ซิงก์ข้อมูลเข้ารหัสไป Google Sheet แล้ว");
+          return true;
+        } catch (error) {
+          if (!silent) notify("ซิงก์ Sheets ไม่สำเร็จ");
+          return false;
+        }
+      }
+
+      function loadVaultFromSheet() {
+        const url = getSheetUrl();
+        if (!url) {
+          notify("ยังไม่ได้ตั้งค่า Google Sheet URL");
+          return;
+        }
+        const callbackName = `vaultSheetCallback_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+        const script = document.createElement("script");
+        const cleanup = () => {
+          delete window[callbackName];
+          script.remove();
+        };
+        window[callbackName] = payload => {
+          try {
+            if (!payload || !payload.ok || !payload.vault || !payload.vault.encryptedVault) {
+              notify("ไม่พบข้อมูล Vault ใน Google Sheet");
+              return;
+            }
+            if (localStorage.getItem(STORAGE_KEY) && !confirm("โหลดข้อมูลจาก Google Sheet จะเขียนทับข้อมูล Vault ในเครื่องนี้ ต้องการดำเนินการไหม")) return;
+            localStorage.setItem(STORAGE_KEY, payload.vault.encryptedVault);
+            setMaster("");
+            setEntries([]);
+            setVisibleIds(new Set());
+            setMode("locked");
+            notify("โหลดข้อมูลเข้ารหัสจาก Sheets แล้ว กรุณาใส่รหัสหลักเดิม");
+          } finally {
+            cleanup();
+          }
+        };
+        const sheetUrl = new URL(url);
+        sheetUrl.searchParams.set("action", "vaultLoad");
+        sheetUrl.searchParams.set("sheetName", VAULT_SHEET_NAME);
+        sheetUrl.searchParams.set("id", "secure-vault");
+        sheetUrl.searchParams.set("callback", callbackName);
+        script.src = sheetUrl.toString();
+        script.onerror = () => {
+          cleanup();
+          notify("โหลดจาก Sheets ไม่สำเร็จ");
+        };
+        document.body.appendChild(script);
+      }
+
       function importBackup(file) {
         if (!file) return;
         const reader = new FileReader();
@@ -1087,6 +1168,7 @@
           onSetup: setupVault,
           onUnlock: unlockVault,
           onForgot: forgotPassword,
+          onLoadSheet: loadVaultFromSheet,
           toast
         });
       }
@@ -1136,6 +1218,8 @@
             h("div", { className: "top-actions" },
               h("a", { className: "ghost-button", href: "index.html" }, "หน้าหลัก"),
               h("button", { className: "icon-button", type: "button", title: "รายการที่ควรเปลี่ยนรหัส", onClick: () => setActiveCategory("ทั้งหมด") }, iconBell(), stats.needsRotation > 0 && h("span", { className: "alert-dot" })),
+              h("button", { className: "ghost-button", type: "button", onClick: () => syncVaultToSheet(entries, false) }, iconGlobe(), "ซิงก์ Sheets"),
+              h("button", { className: "ghost-button", type: "button", onClick: loadVaultFromSheet }, iconDownload(), "โหลด Sheets"),
               h("button", { className: "ghost-button", type: "button", onClick: exportBackup }, iconDownload(), "สำรอง"),
               h("button", { className: "ghost-button", type: "button", onClick: () => importRef.current?.click() }, iconUpload(), "นำเข้า"),
               h("input", { ref: importRef, className: "file-input", type: "file", accept: "application/json", onChange: e => importBackup(e.target.files[0]) }),
@@ -1194,7 +1278,7 @@
       );
     }
 
-    function LockScreen({ mode, onSetup, onUnlock, onForgot, toast }) {
+    function LockScreen({ mode, onSetup, onUnlock, onForgot, onLoadSheet, toast }) {
       const rememberedPassword = localStorage.getItem(REMEMBER_KEY) || "";
       const [password, setPassword] = useState(mode === "locked" ? rememberedPassword : "");
       const [confirm, setConfirm] = useState("");
@@ -1246,6 +1330,7 @@
             !isSetup && h("button", { className: "danger-button", type: "button", onClick: onForgot }, "ลืมรหัสผ่าน")
           ),
           h("button", { className: "primary-button", type: "submit" }, isSetup ? "สร้างคลังรหัสผ่าน" : "ปลดล็อก"),
+          h("button", { className: "ghost-button", type: "button", onClick: onLoadSheet }, "โหลดจาก Sheets"),
           h("a", { className: "ghost-button", href: "index.html" }, "กลับหน้าหลัก")
         ),
         toast && h("div", { className: "toast" }, toast)

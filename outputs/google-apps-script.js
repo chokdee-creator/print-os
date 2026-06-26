@@ -10,6 +10,12 @@ function doPost(e) {
       .createTextOutput(JSON.stringify({ ok: true, profile: profile }))
       .setMimeType(ContentService.MimeType.JSON);
   }
+  if (data.action === "vaultSave") {
+    const vault = saveVault_(data);
+    return ContentService
+      .createTextOutput(JSON.stringify({ ok: true, vault: vault }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
   const sheet = getSheet_(data.sheetName);
   const rowIndex = findRowById_(sheet, data.id);
   if (data.action === "delete") {
@@ -180,6 +186,20 @@ function parsePayload_(e) {
 
 function doGet(e) {
   const params = e && e.parameter ? e.parameter : {};
+  if (params.action === "vaultLoad") {
+    const payload = {
+      ok: true,
+      sheetName: sanitizeSheetName_(params.sheetName) || "SecureVault",
+      vault: getVault_(params.sheetName, params.id)
+    };
+    const json = JSON.stringify(payload);
+    if (params.callback) {
+      return ContentService
+        .createTextOutput(params.callback + "(" + json + ");")
+        .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    }
+    return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
+  }
   if (params.action === "profile") {
     const payload = {
       ok: true,
@@ -260,6 +280,58 @@ function getProfileSheet_() {
     sheet.getRange(1, 1, 1, 3).setValues([["key", "value", "label"]]).setFontWeight("bold");
     sheet.setFrozenRows(1);
   }
+  return sheet;
+}
+
+function saveVault_(data) {
+  const sheet = getVaultSheet_(data.sheetName);
+  const row = [
+    data.id || "secure-vault",
+    data.updatedAt || new Date().toISOString(),
+    Number(data.itemCount) || 0,
+    data.encryptedVault || "",
+    data.source || ""
+  ];
+  sheet.getRange(2, 1, 1, row.length).setValues([row]);
+  return {
+    id: row[0],
+    updatedAt: row[1],
+    itemCount: row[2]
+  };
+}
+
+function getVault_(sheetName, id) {
+  const sheet = getVaultSheet_(sheetName);
+  if (sheet.getLastRow() < 2) return null;
+  const targetId = id || "secure-vault";
+  const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 5).getValues();
+  for (let i = 0; i < rows.length; i += 1) {
+    if (String(rows[i][0] || "") === targetId) {
+      return {
+        id: rows[i][0],
+        updatedAt: rows[i][1],
+        itemCount: rows[i][2],
+        encryptedVault: rows[i][3],
+        source: rows[i][4]
+      };
+    }
+  }
+  return null;
+}
+
+function getVaultSheet_(sheetName) {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const targetSheetName = sanitizeSheetName_(sheetName) || "SecureVault";
+  let sheet = spreadsheet.getSheetByName(targetSheetName);
+  const headers = ["ID", "updatedAt", "itemCount", "encryptedVault", "source"];
+  if (!sheet) sheet = spreadsheet.insertSheet(targetSheetName);
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(headers);
+  } else {
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  }
+  sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold");
+  sheet.setFrozenRows(1);
   return sheet;
 }
 
