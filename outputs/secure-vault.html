@@ -693,6 +693,37 @@
       letter-spacing: 0;
     }
 
+    .lock-title-brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin: 2px 0 0;
+    }
+
+    .lock-title-brand .brand-mark {
+      width: 42px;
+      height: 42px;
+      padding: 0;
+    }
+
+    .lock-title-brand strong {
+      display: block;
+      font-size: 22px;
+      line-height: 1.05;
+      color: var(--ink);
+      letter-spacing: 0;
+    }
+
+    .lock-title-brand small {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
     .lock-card p {
       margin: -8px 0 0;
       color: var(--muted);
@@ -1392,7 +1423,12 @@
             h("span", { className: "brand-mark" }, iconShield()),
             h("span", null, h("strong", null, "Secure Vault"), h("small", null, "PRINT OS Password Manager"))
           ),
-          h("h1", null, isSetup ? "ตั้งรหัสหลัก" : "ปลดล็อกคลังรหัสผ่าน"),
+          isSetup
+            ? h("div", { className: "lock-title-brand" },
+              h("span", { className: "brand-mark" }, iconShield()),
+              h("span", null, h("strong", null, "Secure Vault"), h("small", null, "Password Manager"))
+            )
+            : h("h1", null, "ปลดล็อกคลังรหัสผ่าน"),
           h("p", null, isSetup
             ? "รหัสหลักนี้ใช้เข้ารหัสข้อมูลในเครื่อง หากลืมจะไม่สามารถถอดรหัสข้อมูลเดิมได้"
             : "ใส่รหัสหลักที่ตั้งไว้เพื่อเปิดคลังรหัสผ่าน"),
@@ -1455,7 +1491,12 @@
             h("span", { className: "brand-mark" }, iconShield()),
             h("span", null, h("strong", null, "Secure Vault"), h("small", null, "PRINT OS Password Manager"))
           ),
-          h("h1", null, isSetup ? "ตั้งรหัสหลัก" : "ยินดีต้อนรับกลับ"),
+          isSetup
+            ? h("div", { className: "lock-title-brand" },
+              h("span", { className: "brand-mark" }, iconShield()),
+              h("span", null, h("strong", null, "Secure Vault"), h("small", null, "Password Manager"))
+            )
+            : h("h1", null, "ยินดีต้อนรับกลับ"),
           h("p", null, isSetup ? "สร้างรหัสหลักเพื่อเข้ารหัสคลังรหัสผ่านของคุณ" : "เข้าสู่ระบบเพื่อเข้าถึงรหัสผ่านของคุณ"),
           h("div", { className: "login-fields" },
             h("div", { className: "login-field" },
