@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Secure Vault Members | PRINT OS</title>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    :root {
+      --bg: #07111f;
+      --panel: #101b2e;
+      --panel-2: #142238;
+      --line: rgba(148, 163, 184, .18);
+      --ink: #f8fbff;
+      --muted: #9aa8bd;
+      --brand: #4f65ff;
+      --brand-2: #7c4dff;
+      --green: #35d38b;
+      --amber: #f5b84b;
+      --red: #ff6677;
+      --shadow: 0 24px 70px rgba(0, 0, 0, .38);
+      font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+      color: var(--ink);
+      background: radial-gradient(circle at top right, rgba(79, 101, 255, .25), transparent 32%), var(--bg);
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; }
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+    a { color: inherit; text-decoration: none; }
+
+    .shell {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 24px 0 40px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-mark {
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      color: #fff;
+      background: linear-gradient(135deg, #163cff, #764cff);
+      box-shadow: 0 14px 35px rgba(66, 92, 255, .28);
+    }
+
+    .brand strong { display: block; font-size: 19px; line-height: 1.05; }
+    .brand small { display: block; color: var(--muted); margin-top: 4px; font-weight: 700; }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .button {
+      min-height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 0 14px;
+      color: var(--ink);
+      background: rgba(255, 255, 255, .04);
+      font-weight: 800;
+    }
+
+    .button.primary {
+      border-color: transparent;
+      background: linear-gradient(135deg, var(--brand), var(--brand-2));
+      box-shadow: 0 14px 32px rgba(79, 101, 255, .3);
+    }
+
+    .button.danger { color: #ffdce1; border-color: rgba(255, 102, 119, .35); }
+    .button:disabled { opacity: .55; cursor: not-allowed; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(320px, 430px) 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(16, 27, 46, .92), rgba(11, 20, 35, .92));
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .card h1, .card h2, .card h3 { margin: 0; letter-spacing: 0; }
+    .card h1 { font-size: clamp(28px, 4vw, 42px); }
+    .card h2 { font-size: 22px; }
+    .card h3 { font-size: 17px; }
+    .card p { margin: 8px 0 0; color: var(--muted); line-height: 1.6; }
+
+    .stack { display: grid; gap: 12px; }
+    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    label.field { display: grid; gap: 7px; color: var(--muted); font-size: 13px; font-weight: 800; }
+    input, select, textarea {
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 0 12px;
+      color: var(--ink);
+      background: rgba(7, 12, 22, .82);
+      outline: none;
+    }
+
+    textarea { min-height: 110px; padding-top: 12px; resize: vertical; }
+    input:focus, select:focus, textarea:focus { border-color: rgba(79, 101, 255, .75); }
+
+    .notice {
+      border: 1px solid rgba(245, 184, 75, .32);
+      border-radius: 12px;
+      padding: 12px;
+      color: #ffe5aa;
+      background: rgba(245, 184, 75, .08);
+      line-height: 1.55;
+      font-size: 13px;
+    }
+
+    .profile-row, .user-row {
+      display: grid;
+      grid-template-columns: 46px 1fr auto;
+      gap: 12px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      background: rgba(255, 255, 255, .035);
+    }
+
+    .avatar {
+      width: 46px;
+      height: 46px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      color: #fff;
+      font-weight: 900;
+      background: linear-gradient(135deg, #233cff, #6d4cff);
+    }
+
+    .meta strong { display: block; }
+    .meta span { display: block; color: var(--muted); font-size: 13px; margin-top: 3px; }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 28px;
+      border-radius: 999px;
+      padding: 0 10px;
+      color: #dce6ff;
+      background: rgba(79, 101, 255, .16);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .pill.owner { color: #ffe4a3; background: rgba(245, 184, 75, .18); }
+    .pill.admin { color: #caf0ff; background: rgba(66, 165, 255, .18); }
+    .pill.staff { color: #c7ffdd; background: rgba(53, 211, 139, .16); }
+    .pill.viewer { color: #e8dcff; background: rgba(124, 77, 255, .16); }
+    .pill.disabled { color: #ffd5dc; background: rgba(255, 102, 119, .14); }
+
+    .permission-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .permission-card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      background: rgba(255, 255, 255, .035);
+    }
+
+    .permission-card strong { display: block; font-size: 15px; }
+    .permission-card span { display: block; color: var(--muted); font-size: 12px; margin-top: 4px; line-height: 1.45; }
+
+    .hidden { display: none !important; }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 22px;
+      transform: translateX(-50%);
+      z-index: 20;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px 16px;
+      color: #fff;
+      background: #111827;
+      box-shadow: var(--shadow);
+      font-weight: 800;
+    }
+
+    .code-box {
+      overflow: auto;
+      max-height: 300px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      color: #dbeafe;
+      background: #050b15;
+      font-family: Consolas, monospace;
+      font-size: 12px;
+      white-space: pre;
+    }
+
+    @media (max-width: 900px) {
+      .grid, .two, .permission-grid { grid-template-columns: 1fr; }
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .actions, .button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <a class="brand" href="secure-vault.html">
+        <span class="brand-mark" data-lucide="shield-check"></span>
+        <span><strong>Secure Vault</strong><small>Team Access Control</small></span>
+      </a>
+      <nav class="actions">
+        <a class="button" href="secure-vault.html"><span data-lucide="lock"></span>คลังรหัสผ่าน</a>
+        <a class="button" href="index.html"><span data-lucide="home"></span>หน้าหลัก</a>
+        <button id="signOutBtn" class="button danger hidden" type="button"><span data-lucide="log-out"></span>ออกจากระบบ</button>
+      </nav>
+    </header>
+
+    <main class="grid">
+      <section class="card stack">
+        <div>
+          <h1>ระบบสมาชิก</h1>
+          <p>ล็อกอินแยกบัญชี จัดบทบาท และแยกสิทธิ์สำหรับ Secure Vault ด้วย Firebase Auth + Firestore</p>
+        </div>
+
+        <div id="configPanel" class="stack">
+          <div class="notice">
+            ขั้นแรกให้สร้าง Firebase Project แล้วนำค่า firebaseConfig มาวางที่นี่ ค่านี้ไม่ใช่รหัสลับ แต่ Security Rules ด้านขวาคือส่วนที่ป้องกันข้อมูลจริง
+          </div>
+          <label class="field">Firebase config JSON
+            <textarea id="firebaseConfigInput" spellcheck="false" placeholder='{"apiKey":"...","authDomain":"...","projectId":"...","appId":"..."}'></textarea>
+          </label>
+          <button id="saveConfigBtn" class="button primary" type="button"><span data-lucide="save"></span>บันทึกและเริ่มใช้งาน</button>
+        </div>
+
+        <form id="loginPanel" class="stack hidden">
+          <label class="field">อีเมล
+            <input id="loginEmail" type="email" autocomplete="username" required>
+          </label>
+          <label class="field">รหัสผ่าน
+            <input id="loginPassword" type="password" autocomplete="current-password" required>
+          </label>
+          <button class="button primary" type="submit"><span data-lucide="log-in"></span>เข้าสู่ระบบ</button>
+          <button id="resetPasswordBtn" class="button" type="button"><span data-lucide="key-round"></span>ลืมรหัสผ่าน?</button>
+        </form>
+
+        <section id="bootstrapPanel" class="stack hidden">
+          <div class="notice">
+            ยังไม่มีเจ้าของระบบ ให้บัญชีที่ล็อกอินอยู่นี้เป็น Owner คนแรกก่อน จากนั้น Owner จะเพิ่มผู้ใช้คนอื่นได้
+          </div>
+          <button id="becomeOwnerBtn" class="button primary" type="button"><span data-lucide="crown"></span>ตั้งบัญชีนี้เป็น Owner</button>
+        </section>
+
+        <section id="profilePanel" class="stack hidden">
+          <div class="profile-row">
+            <span id="profileAvatar" class="avatar">U</span>
+            <span class="meta"><strong id="profileName">-</strong><span id="profileEmail">-</span></span>
+            <span id="profileRole" class="pill">viewer</span>
+          </div>
+          <div class="permission-grid">
+            <div class="permission-card"><strong>Owner</strong><span>จัดการทุกอย่าง รวมผู้ใช้และสิทธิ์</span></div>
+            <div class="permission-card"><strong>Admin</strong><span>เพิ่มผู้ใช้และจัดการรายการ Vault</span></div>
+            <div class="permission-card"><strong>Staff</strong><span>เพิ่ม/แก้ไขรายการ Vault ได้</span></div>
+            <div class="permission-card"><strong>Viewer</strong><span>ดูรายการได้ แต่ไม่เห็นรหัสผ่าน</span></div>
+          </div>
+        </section>
+      </section>
+
+      <section class="card stack">
+        <div class="topbar" style="margin:0">
+          <div>
+            <h2>ผู้ใช้และสิทธิ์</h2>
+            <p>Owner/Admin สามารถเพิ่มผู้ใช้และกำหนดบทบาทได้</p>
+          </div>
+          <button id="refreshBtn" class="button" type="button"><span data-lucide="refresh-cw"></span>โหลดใหม่</button>
+        </div>
+
+        <form id="addUserPanel" class="stack hidden">
+          <div class="two">
+            <label class="field">ชื่อผู้ใช้
+              <input id="newName" type="text" placeholder="เช่น พนักงานหน้าร้าน">
+            </label>
+            <label class="field">อีเมล
+              <input id="newEmail" type="email" placeholder="user@example.com">
+            </label>
+          </div>
+          <div class="two">
+            <label class="field">รหัสผ่านเริ่มต้น
+              <input id="newPassword" type="password" minlength="6" placeholder="อย่างน้อย 6 ตัวอักษร">
+            </label>
+            <label class="field">สิทธิ์
+              <select id="newRole">
+                <option value="viewer">Viewer</option>
+                <option value="staff">Staff</option>
+                <option value="admin">Admin</option>
+              </select>
+            </label>
+          </div>
+          <button class="button primary" type="submit"><span data-lucide="user-plus"></span>เพิ่มผู้ใช้</button>
+        </form>
+
+        <div id="accessPanel" class="notice hidden">บัญชีนี้ยังไม่มีสิทธิ์ ให้ Owner/Admin เพิ่มบัญชีนี้ในระบบก่อน</div>
+        <div id="usersList" class="stack"></div>
+
+        <details class="stack">
+          <summary class="button" style="width:max-content"><span data-lucide="shield"></span>Security Rules ที่ต้องใช้</summary>
+          <pre id="rulesBox" class="code-box"></pre>
+        </details>
+      </section>
+    </main>
+  </div>
+  <div id="toast" class="toast hidden"></div>
+
+  <script type="module">
+    import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import {
+      getAuth,
+      onAuthStateChanged,
+      signInWithEmailAndPassword,
+      createUserWithEmailAndPassword,
+      sendPasswordResetEmail,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+    import {
+      getFirestore,
+      doc,
+      getDoc,
+      setDoc,
+      collection,
+      getDocs,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+    const CONFIG_KEY = "printos.secureVault.firebaseConfig.v1";
+    const roles = {
+      owner: { label: "Owner", canManageUsers: true, canEditVault: true, canViewPasswords: true },
+      admin: { label: "Admin", canManageUsers: true, canEditVault: true, canViewPasswords: true },
+      staff: { label: "Staff", canManageUsers: false, canEditVault: true, canViewPasswords: true },
+      viewer: { label: "Viewer", canManageUsers: false, canEditVault: false, canViewPasswords: false }
+    };
+
+    const rulesText = `rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+    function profile(uid) {
+      return get(/databases/$(database)/documents/vaultUsers/$(uid)).data;
+    }
+    function active() {
+      return signedIn() && profile(request.auth.uid).status == "active";
+    }
+    function role() {
+      return profile(request.auth.uid).role;
+    }
+    function manager() {
+      return active() && role() in ["owner", "admin"];
+    }
+    function owner() {
+      return active() && role() == "owner";
+    }
+
+    match /system/settings {
+      allow read: if signedIn();
+      allow create: if signedIn() && !exists(/databases/$(database)/documents/system/settings);
+      allow update, delete: if owner();
+    }
+
+    match /vaultUsers/{uid} {
+      allow read: if active() || request.auth.uid == uid;
+      allow create: if signedIn() &&
+        (
+          (!exists(/databases/$(database)/documents/system/settings) && request.auth.uid == uid && request.resource.data.role == "owner") ||
+          manager()
+        );
+      allow update: if manager() || (active() && request.auth.uid == uid && request.resource.data.role == resource.data.role);
+      allow delete: if owner() && request.auth.uid != uid;
+    }
+
+    match /vaultEntries/{entryId} {
+      allow read: if active();
+      allow create, update: if active() && role() in ["owner", "admin", "staff"];
+      allow delete: if manager();
+    }
+  }
+}`;
+
+    let app;
+    let auth;
+    let db;
+    let currentUser;
+    let currentProfile;
+
+    const el = id => document.getElementById(id);
+    const show = (id, value) => el(id).classList.toggle("hidden", !value);
+
+    el("rulesBox").textContent = rulesText;
+
+    function toast(message) {
+      el("toast").textContent = message;
+      show("toast", true);
+      clearTimeout(toast.timer);
+      toast.timer = setTimeout(() => show("toast", false), 2600);
+    }
+
+    function iconRefresh() {
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function initials(text) {
+      return (text || "?").trim().slice(0, 2).toUpperCase();
+    }
+
+    function loadConfig() {
+      const raw = localStorage.getItem(CONFIG_KEY);
+      if (!raw) return null;
+      try { return JSON.parse(raw); } catch { return null; }
+    }
+
+    async function startFirebase(config) {
+      app = initializeApp(config);
+      auth = getAuth(app);
+      db = getFirestore(app);
+      show("configPanel", false);
+      show("loginPanel", true);
+      onAuthStateChanged(auth, handleAuth);
+    }
+
+    async function handleAuth(user) {
+      currentUser = user;
+      show("signOutBtn", Boolean(user));
+      show("loginPanel", !user);
+      show("profilePanel", false);
+      show("bootstrapPanel", false);
+      show("addUserPanel", false);
+      show("accessPanel", false);
+      el("usersList").innerHTML = "";
+      if (!user) return;
+
+      const system = await getDoc(doc(db, "system", "settings"));
+      const profileSnap = await getDoc(doc(db, "vaultUsers", user.uid));
+
+      if (!system.exists()) {
+        show("bootstrapPanel", true);
+        return;
+      }
+
+      if (!profileSnap.exists() || profileSnap.data().status !== "active") {
+        show("accessPanel", true);
+        return;
+      }
+
+      currentProfile = profileSnap.data();
+      renderProfile(user, currentProfile);
+      show("profilePanel", true);
+      show("addUserPanel", roles[currentProfile.role]?.canManageUsers);
+      await loadUsers();
+    }
+
+    function renderProfile(user, profile) {
+      el("profileAvatar").textContent = initials(profile.displayName || user.email);
+      el("profileName").textContent = profile.displayName || user.email;
+      el("profileEmail").textContent = user.email;
+      el("profileRole").textContent = roles[profile.role]?.label || profile.role;
+      el("profileRole").className = `pill ${profile.role}`;
+    }
+
+    async function loadUsers() {
+      if (!currentProfile) return;
+      const canManage = roles[currentProfile.role]?.canManageUsers;
+      const snaps = await getDocs(collection(db, "vaultUsers"));
+      const rows = [];
+      snaps.forEach(snap => rows.push({ uid: snap.id, ...snap.data() }));
+      rows.sort((a, b) => (a.displayName || a.email || "").localeCompare(b.displayName || b.email || "", "th"));
+
+      el("usersList").innerHTML = rows.map(user => {
+        const disabled = user.status !== "active";
+        return `
+          <article class="user-row" data-uid="${user.uid}">
+            <span class="avatar">${initials(user.displayName || user.email)}</span>
+            <span class="meta"><strong>${escapeHtml(user.displayName || "-")}</strong><span>${escapeHtml(user.email || "-")}</span></span>
+            <span class="actions">
+              <span class="pill ${disabled ? "disabled" : user.role}">${disabled ? "disabled" : roles[user.role]?.label || user.role}</span>
+              ${canManage ? roleSelect(user) : ""}
+            </span>
+          </article>
+        `;
+      }).join("") || `<div class="notice">ยังไม่มีผู้ใช้ในระบบ</div>`;
+
+      document.querySelectorAll("[data-role-update]").forEach(select => {
+        select.addEventListener("change", async event => {
+          const uid = event.target.closest("[data-uid]").dataset.uid;
+          await setDoc(doc(db, "vaultUsers", uid), { role: event.target.value, updatedAt: serverTimestamp() }, { merge: true });
+          toast("อัปเดตสิทธิ์แล้ว");
+          await loadUsers();
+        });
+      });
+      iconRefresh();
+    }
+
+    function roleSelect(user) {
+      const opts = ["viewer", "staff", "admin", "owner"].map(role =>
+        `<option value="${role}" ${user.role === role ? "selected" : ""}>${roles[role].label}</option>`
+      ).join("");
+      return `<select data-role-update aria-label="เปลี่ยนสิทธิ์">${opts}</select>`;
+    }
+
+    async function createManagedUser({ email, password, displayName, role }) {
+      const secondary = initializeApp(app.options, `secondary-${Date.now()}`);
+      try {
+        const secondaryAuth = getAuth(secondary);
+        const credential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
+        await setDoc(doc(db, "vaultUsers", credential.user.uid), {
+          email,
+          displayName,
+          role,
+          status: "active",
+          createdBy: currentUser.uid,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+      } finally {
+        await deleteApp(secondary);
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value || "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+      })[char]);
+    }
+
+    el("saveConfigBtn").addEventListener("click", async () => {
+      try {
+        const config = JSON.parse(el("firebaseConfigInput").value.trim());
+        if (!config.apiKey || !config.projectId || !config.authDomain) throw new Error("missing config");
+        localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+        await startFirebase(config);
+        toast("บันทึก Firebase config แล้ว");
+      } catch (error) {
+        toast("Firebase config ไม่ถูกต้อง");
+      }
+    });
+
+    el("loginPanel").addEventListener("submit", async event => {
+      event.preventDefault();
+      try {
+        await signInWithEmailAndPassword(auth, el("loginEmail").value.trim(), el("loginPassword").value);
+        toast("เข้าสู่ระบบแล้ว");
+      } catch (error) {
+        toast("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+      }
+    });
+
+    el("resetPasswordBtn").addEventListener("click", async () => {
+      const email = el("loginEmail").value.trim();
+      if (!email) return toast("ใส่อีเมลก่อนกดลืมรหัสผ่าน");
+      await sendPasswordResetEmail(auth, email);
+      toast("ส่งลิงก์รีเซ็ตรหัสผ่านไปที่อีเมลแล้ว");
+    });
+
+    el("becomeOwnerBtn").addEventListener("click", async () => {
+      if (!currentUser) return;
+      await setDoc(doc(db, "vaultUsers", currentUser.uid), {
+        email: currentUser.email,
+        displayName: currentUser.email?.split("@")[0] || "Owner",
+        role: "owner",
+        status: "active",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+      await setDoc(doc(db, "system", "settings"), {
+        initialized: true,
+        ownerUid: currentUser.uid,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+      toast("ตั้ง Owner สำเร็จ");
+      await handleAuth(currentUser);
+    });
+
+    el("addUserPanel").addEventListener("submit", async event => {
+      event.preventDefault();
+      const email = el("newEmail").value.trim();
+      const password = el("newPassword").value;
+      const displayName = el("newName").value.trim() || email.split("@")[0];
+      const role = el("newRole").value;
+      if (!email || password.length < 6) return toast("กรอกอีเมลและรหัสผ่านอย่างน้อย 6 ตัว");
+      await createManagedUser({ email, password, displayName, role });
+      event.target.reset();
+      toast("เพิ่มผู้ใช้แล้ว");
+      await loadUsers();
+    });
+
+    el("refreshBtn").addEventListener("click", () => handleAuth(currentUser));
+    el("signOutBtn").addEventListener("click", () => signOut(auth));
+
+    const savedConfig = loadConfig();
+    if (savedConfig) {
+      el("firebaseConfigInput").value = JSON.stringify(savedConfig, null, 2);
+      startFirebase(savedConfig).catch(() => {
+        localStorage.removeItem(CONFIG_KEY);
+        show("configPanel", true);
+        toast("Firebase config ใช้งานไม่ได้");
+      });
+    } else {
+      show("configPanel", true);
+    }
+    iconRefresh();
+  </script>
+</body>
+</html>
