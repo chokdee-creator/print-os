@@ -696,10 +696,19 @@
       outline: 0;
     }
 
+    .remember-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
     .remember-row {
       display: flex;
       align-items: flex-start;
       gap: 10px;
+      flex: 1 1 250px;
       color: #d7e0ef;
       font-size: 14px;
       line-height: 1.45;
@@ -717,6 +726,11 @@
       display: block;
       color: var(--muted);
       margin-top: 2px;
+    }
+
+    .remember-actions .danger-button {
+      min-height: 40px;
+      flex: 0 0 auto;
     }
 
     .toast {
@@ -1217,19 +1231,21 @@
             placeholder: "ยืนยันรหัสหลัก"
           }),
           isSetup && password && confirm && password !== confirm && h("small", { style: { color: "#ffb4bf" } }, "รหัสยืนยันไม่ตรงกัน"),
-          h("label", { className: "remember-row" },
-            h("input", {
-              type: "checkbox",
-              checked: remember,
-              onChange: e => setRemember(e.target.checked)
-            }),
-            h("span", null,
-              "จดจำรหัสผ่านในเครื่องนี้",
-              h("small", null, "เหมาะกับเครื่องส่วนตัวเท่านั้น เพราะรหัสหลักจะถูกเก็บไว้ในเบราว์เซอร์ของเครื่องนี้")
-            )
+          h("div", { className: "remember-actions" },
+            h("label", { className: "remember-row" },
+              h("input", {
+                type: "checkbox",
+                checked: remember,
+                onChange: e => setRemember(e.target.checked)
+              }),
+              h("span", null,
+                "จดจำรหัสผ่านในเครื่องนี้",
+                h("small", null, "เหมาะกับเครื่องส่วนตัวเท่านั้น เพราะรหัสหลักจะถูกเก็บไว้ในเบราว์เซอร์ของเครื่องนี้")
+              )
+            ),
+            !isSetup && h("button", { className: "danger-button", type: "button", onClick: onForgot }, "ลืมรหัสผ่าน")
           ),
           h("button", { className: "primary-button", type: "submit" }, isSetup ? "สร้างคลังรหัสผ่าน" : "ปลดล็อก"),
-          !isSetup && h("button", { className: "danger-button", type: "button", onClick: onForgot }, "ลืมรหัสผ่าน"),
           h("a", { className: "ghost-button", href: "index.html" }, "กลับหน้าหลัก")
         ),
         toast && h("div", { className: "toast" }, toast)
