@@ -572,6 +572,7 @@
 
     .metric {
       min-height: 82px;
+      min-width: 0;
       border: 1px solid var(--line);
       border-radius: 8px;
       padding: 11px;
@@ -594,9 +595,10 @@
 
     .metric strong {
       display: block;
-      font-size: 18px;
+      font-size: clamp(16px, 1.2vw, 18px);
       line-height: 1.2;
       overflow-wrap: anywhere;
+      word-break: normal;
     }
 
     .form-actions {
@@ -713,7 +715,7 @@
 
     .summary {
       display: grid;
-      grid-template-columns: repeat(9, minmax(120px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(148px, 100%), 1fr));
       gap: 10px;
       padding: 16px;
       border-bottom: 1px solid var(--line);
@@ -1683,7 +1685,7 @@
     }
 
     body.prince-image .summary {
-      grid-template-columns: repeat(9, minmax(128px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(168px, 100%), 1fr));
       gap: 12px;
       padding: 16px;
       border-bottom: 1px solid rgba(212, 162, 79, .2);
@@ -1745,7 +1747,7 @@
 
     body.prince-image .metric strong {
       color: #edf6ff;
-      font-size: 20px;
+      font-size: clamp(17px, 1.25vw, 20px);
     }
 
     body.prince-image .segments {
