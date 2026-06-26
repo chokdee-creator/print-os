@@ -1,0 +1,1385 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Secure Vault | PRINT OS</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <style>
+    :root {
+      --bg: #070c17;
+      --panel: #101827;
+      --panel-2: #121d31;
+      --panel-3: #17233a;
+      --ink: #f8fbff;
+      --muted: #92a0b8;
+      --line: rgba(148, 163, 184, .16);
+      --brand: #425cff;
+      --brand-2: #7c4dff;
+      --green: #36d98b;
+      --amber: #f5b84b;
+      --red: #ff6677;
+      --blue: #42a5ff;
+      --shadow: 0 24px 70px rgba(0, 0, 0, .38);
+      font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 78% -5%, rgba(66, 92, 255, .18), transparent 34%),
+        radial-gradient(circle at 16% 12%, rgba(124, 77, 255, .15), transparent 28%),
+        linear-gradient(140deg, #050913, #0a1220 46%, #08101d);
+    }
+
+    button, input, select, textarea {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .vault-shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 264px minmax(0, 1fr);
+    }
+
+    .sidebar {
+      border-right: 1px solid var(--line);
+      background: rgba(8, 14, 26, .82);
+      backdrop-filter: blur(18px);
+      padding: 22px 14px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 22px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 8px;
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      background: linear-gradient(135deg, #163cff, #6f42ff);
+      box-shadow: 0 14px 35px rgba(66, 92, 255, .28);
+    }
+
+    .brand-mark svg,
+    .nav-icon svg,
+    .tool-icon svg,
+    .action-icon svg,
+    .stat-icon svg {
+      width: 19px;
+      height: 19px;
+      stroke: currentColor;
+    }
+
+    .brand strong {
+      display: block;
+      font-size: 17px;
+      line-height: 1.1;
+    }
+
+    .brand small {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .nav-list {
+      display: grid;
+      gap: 5px;
+      align-content: start;
+    }
+
+    .nav-item {
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      padding: 0 10px;
+      background: transparent;
+      color: #b8c3d6;
+      display: grid;
+      grid-template-columns: 24px 1fr auto;
+      align-items: center;
+      gap: 9px;
+      text-align: left;
+      transition: background .16s ease, border-color .16s ease, transform .16s ease, color .16s ease;
+    }
+
+    .nav-item:hover,
+    .nav-item.active {
+      color: #fff;
+      background: linear-gradient(135deg, rgba(66, 92, 255, .95), rgba(91, 61, 245, .92));
+      border-color: rgba(255, 255, 255, .14);
+      transform: translateY(-1px);
+    }
+
+    .nav-count {
+      min-width: 30px;
+      min-height: 22px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      color: #cbd5e1;
+      background: rgba(148, 163, 184, .12);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .nav-item.active .nav-count,
+    .nav-item:hover .nav-count {
+      color: #fff;
+      background: rgba(255, 255, 255, .18);
+    }
+
+    .security-card {
+      border: 1px solid rgba(54, 217, 139, .26);
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(21, 43, 39, .85), rgba(13, 25, 30, .88));
+      padding: 14px;
+      color: #dfffee;
+      display: grid;
+      gap: 10px;
+    }
+
+    .security-card strong {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .security-card small {
+      color: #9be9c7;
+      line-height: 1.5;
+    }
+
+    .user-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 8px 0;
+      color: #d7deea;
+    }
+
+    .avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #f5b84b, #7c4dff);
+      font-weight: 900;
+      flex: 0 0 auto;
+    }
+
+    .main {
+      min-width: 0;
+      padding: 18px 22px 28px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) auto;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .search-box {
+      min-height: 50px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(17, 27, 45, .76);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .03);
+      display: grid;
+      grid-template-columns: 24px 1fr auto;
+      align-items: center;
+      gap: 10px;
+      padding: 0 14px;
+      color: var(--muted);
+    }
+
+    .search-box input {
+      width: 100%;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: #fff;
+      min-width: 0;
+    }
+
+    .search-box kbd {
+      min-width: 40px;
+      min-height: 24px;
+      border: 1px solid rgba(148, 163, 184, .22);
+      border-radius: 7px;
+      display: grid;
+      place-items: center;
+      color: #bec8d8;
+      font-size: 12px;
+      background: rgba(255, 255, 255, .04);
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .icon-button,
+    .primary-button,
+    .ghost-button {
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      color: #fff;
+      background: rgba(17, 27, 45, .8);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 13px;
+      font-weight: 850;
+      transition: transform .16s ease, border-color .16s ease, background .16s ease;
+    }
+
+    .icon-button {
+      width: 44px;
+      padding: 0;
+      position: relative;
+    }
+
+    .icon-button:hover,
+    .ghost-button:hover {
+      transform: translateY(-1px);
+      border-color: rgba(148, 163, 184, .32);
+      background: rgba(25, 38, 61, .95);
+    }
+
+    .primary-button {
+      border: 0;
+      background: linear-gradient(135deg, #3457ff, #7c4dff);
+      box-shadow: 0 16px 35px rgba(66, 92, 255, .28);
+    }
+
+    .primary-button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 18px 42px rgba(66, 92, 255, .34);
+    }
+
+    .alert-dot {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--red);
+      box-shadow: 0 0 0 3px rgba(255, 102, 119, .18);
+    }
+
+    .page-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .page-head h1 {
+      margin: 0;
+      font-size: clamp(26px, 3vw, 36px);
+      letter-spacing: 0;
+    }
+
+    .page-head p {
+      margin: 6px 0 0;
+      color: var(--muted);
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(160px, 1fr));
+      gap: 14px;
+    }
+
+    .stat-card,
+    .vault-panel {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(24, 36, 58, .9), rgba(14, 22, 38, .92));
+      box-shadow: var(--shadow);
+    }
+
+    .stat-card {
+      min-height: 112px;
+      padding: 18px;
+      display: grid;
+      grid-template-columns: 54px 1fr;
+      gap: 14px;
+      align-items: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .stat-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: rgba(66, 92, 255, .18);
+      color: #6d87ff;
+    }
+
+    .stat-card:nth-child(2) .stat-icon {
+      color: #ff6677;
+      background: rgba(255, 102, 119, .14);
+    }
+
+    .stat-card:nth-child(3) .stat-icon {
+      color: #f5b84b;
+      background: rgba(245, 184, 75, .16);
+    }
+
+    .stat-card:nth-child(4) .stat-icon {
+      color: #42a5ff;
+      background: rgba(66, 165, 255, .14);
+    }
+
+    .stat-card strong {
+      display: block;
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    .stat-card span {
+      display: block;
+      color: var(--muted);
+      margin-top: 5px;
+      font-size: 13px;
+    }
+
+    .stat-card small {
+      color: #6ee7b7;
+      font-weight: 750;
+      font-size: 12px;
+    }
+
+    .vault-panel {
+      overflow: hidden;
+    }
+
+    .panel-head {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .panel-head h2 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .panel-tools {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      flex-wrap: wrap;
+    }
+
+    .select {
+      min-height: 38px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: #dbe6f8;
+      background: rgba(10, 17, 31, .78);
+      outline: 0;
+    }
+
+    .vault-list {
+      display: grid;
+    }
+
+    .vault-row {
+      min-height: 78px;
+      padding: 12px 18px;
+      display: grid;
+      grid-template-columns: 52px minmax(160px, 1fr) minmax(150px, .9fr) minmax(120px, .55fr) auto;
+      gap: 14px;
+      align-items: center;
+      border-bottom: 1px solid rgba(148, 163, 184, .09);
+      transition: background .16s ease;
+    }
+
+    .vault-row:hover {
+      background: rgba(66, 92, 255, .06);
+    }
+
+    .site-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-weight: 950;
+      color: #fff;
+      background: linear-gradient(135deg, #1877f2, #53a3ff);
+    }
+
+    .site-icon.bank { background: linear-gradient(135deg, #a855f7, #f59e0b); }
+    .site-icon.social { background: linear-gradient(135deg, #1877f2, #00d4ff); }
+    .site-icon.hosting { background: linear-gradient(135deg, #f97316, #f59e0b); }
+    .site-icon.device { background: linear-gradient(135deg, #64748b, #94a3b8); }
+    .site-icon.email { background: linear-gradient(135deg, #22c55e, #14b8a6); }
+    .site-icon.software { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+
+    .row-main {
+      min-width: 0;
+      display: grid;
+      gap: 4px;
+    }
+
+    .row-main strong,
+    .row-password strong {
+      overflow-wrap: anywhere;
+    }
+
+    .row-main a {
+      color: var(--muted);
+      font-size: 13px;
+      overflow-wrap: anywhere;
+    }
+
+    .pill {
+      width: fit-content;
+      min-height: 24px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      color: #85d7ff;
+      background: rgba(66, 165, 255, .12);
+      font-weight: 800;
+      font-size: 12px;
+    }
+
+    .row-date {
+      color: var(--muted);
+      font-size: 13px;
+      text-align: right;
+    }
+
+    .row-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 5px;
+    }
+
+    .action-icon {
+      width: 34px;
+      height: 34px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      color: #c4cede;
+      background: transparent;
+      display: grid;
+      place-items: center;
+    }
+
+    .action-icon:hover,
+    .action-icon.active {
+      color: #fff;
+      background: rgba(255, 255, 255, .08);
+      border-color: rgba(148, 163, 184, .18);
+    }
+
+    .action-icon.favorite.active {
+      color: var(--amber);
+    }
+
+    .empty {
+      min-height: 220px;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      text-align: center;
+      padding: 32px;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      background: rgba(0, 0, 0, .55);
+      display: grid;
+      place-items: center;
+      padding: 20px;
+    }
+
+    .modal {
+      width: min(760px, 100%);
+      max-height: calc(100vh - 40px);
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: linear-gradient(180deg, #141f34, #0c1424);
+      box-shadow: 0 30px 100px rgba(0, 0, 0, .55);
+    }
+
+    .modal header {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .modal h2 {
+      margin: 0;
+      font-size: 21px;
+    }
+
+    .form-grid {
+      padding: 20px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    .field label {
+      color: #d7e0ef;
+      font-size: 13px;
+      font-weight: 850;
+    }
+
+    .field input,
+    .field select,
+    .field textarea {
+      width: 100%;
+      min-height: 46px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      color: #fff;
+      background: rgba(7, 12, 22, .75);
+      padding: 0 12px;
+      outline: 0;
+    }
+
+    .field textarea {
+      min-height: 92px;
+      padding: 12px;
+      resize: vertical;
+    }
+
+    .password-line {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+    }
+
+    .strength {
+      height: 8px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(148, 163, 184, .16);
+    }
+
+    .strength span {
+      display: block;
+      height: 100%;
+      width: var(--w);
+      background: var(--c);
+      transition: width .2s ease;
+    }
+
+    .modal footer {
+      padding: 16px 20px 20px;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      border-top: 1px solid var(--line);
+    }
+
+    .danger-button {
+      min-height: 44px;
+      border: 1px solid rgba(255, 102, 119, .32);
+      border-radius: 9px;
+      color: #ffdce1;
+      background: rgba(255, 102, 119, .08);
+      padding: 0 13px;
+      font-weight: 850;
+    }
+
+    .lock-screen {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 22px;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(66, 92, 255, .2), transparent 35%),
+        linear-gradient(140deg, #050913, #0a1220);
+    }
+
+    .lock-card {
+      width: min(480px, 100%);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(21, 31, 51, .96), rgba(10, 17, 31, .96));
+      box-shadow: var(--shadow);
+      padding: 26px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .lock-card h1 {
+      margin: 0;
+      font-size: 28px;
+    }
+
+    .lock-card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .lock-card input {
+      width: 100%;
+      min-height: 48px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      color: #fff;
+      background: rgba(7, 12, 22, .8);
+      padding: 0 13px;
+      outline: 0;
+    }
+
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 80;
+      min-height: 48px;
+      max-width: min(420px, calc(100% - 36px));
+      padding: 12px 16px;
+      border-radius: 10px;
+      background: #f8fbff;
+      color: #0f172a;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, .32);
+      font-weight: 850;
+    }
+
+    .file-input {
+      display: none;
+    }
+
+    @media (max-width: 1040px) {
+      .vault-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: static;
+        grid-template-rows: auto;
+      }
+
+      .nav-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .security-card,
+      .user-card {
+        display: none;
+      }
+
+      .stat-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      .main {
+        padding: 14px;
+      }
+
+      .topbar,
+      .vault-row,
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .top-actions,
+      .panel-tools {
+        justify-content: stretch;
+      }
+
+      .primary-button,
+      .ghost-button,
+      .select {
+        width: 100%;
+      }
+
+      .stat-grid,
+      .nav-list {
+        grid-template-columns: 1fr;
+      }
+
+      .row-date {
+        text-align: left;
+      }
+
+      .row-actions {
+        justify-content: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script>
+    const h = React.createElement;
+    const { useEffect, useMemo, useRef, useState } = React;
+    const STORAGE_KEY = "printos.secureVault.encrypted.v1";
+    const LEGACY_KEY = "printos.secureVault.v1";
+
+    const categories = [
+      { id: "ทั้งหมด", label: "ทั้งหมด", icon: iconGrid },
+      { id: "ธนาคาร", label: "ธนาคาร", icon: iconBank },
+      { id: "โซเชียลมีเดีย", label: "โซเชียลมีเดีย", icon: iconUsers },
+      { id: "เว็บ / ลูกค้า", label: "เว็บ / ลูกค้า", icon: iconScreen },
+      { id: "โฮสติ้ง / โดเมน", label: "โฮสติ้ง / โดเมน", icon: iconGlobe },
+      { id: "เครื่องมือ / โปรแกรม", label: "เครื่องมือ / โปรแกรม", icon: iconTools },
+      { id: "Wi-Fi / เครือข่าย", label: "Wi-Fi / เครือข่าย", icon: iconWifi },
+      { id: "เอกสารสำคัญ", label: "เอกสารสำคัญ", icon: iconDoc },
+      { id: "รายการโปรด", label: "รายการโปรด", icon: iconStar },
+      { id: "ถังขยะ", label: "ถังขยะ", icon: iconTrash }
+    ];
+
+    const sampleEntries = [
+      makeEntry("Facebook ร้าน", "shopname@email.com", "โซเชียลมีเดีย", "https://facebook.com", "Fb-Shop-2026!", true, "บัญชีเพจร้าน"),
+      makeEntry("SCB Easy", "winnapa@email.com", "ธนาคาร", "https://scbeasy.com", "Bank-SCB-8x2Q", false, "บัญชีธนาคาร"),
+      makeEntry("LINE Official Account", "@shopname", "โซเชียลมีเดีย", "https://manager.line.biz", "LineOA-2026-safe", true, "ตอบลูกค้า"),
+      makeEntry("cPanel Hosting", "hosting@example.com", "โฮสติ้ง / โดเมน", "https://cpanel.example.com", "Host-cP-9921", false, "โดเมนหลัก"),
+      makeEntry("เครื่องพิมพ์ Epson L805", "192.168.1.100", "เครื่องมือ / โปรแกรม", "", "PrinterAdmin-805", false, "อุปกรณ์ในร้าน")
+    ];
+
+    function makeEntry(title, username, category, url, password, favorite, notes) {
+      const now = new Date().toISOString();
+      return {
+        id: crypto.randomUUID(),
+        title,
+        username,
+        category,
+        url,
+        password,
+        favorite: Boolean(favorite),
+        notes: notes || "",
+        deleted: false,
+        createdAt: now,
+        updatedAt: now
+      };
+    }
+
+    function App() {
+      const [mode, setMode] = useState(localStorage.getItem(STORAGE_KEY) ? "locked" : "setup");
+      const [master, setMaster] = useState("");
+      const [entries, setEntries] = useState([]);
+      const [query, setQuery] = useState("");
+      const [activeCategory, setActiveCategory] = useState("ทั้งหมด");
+      const [sortMode, setSortMode] = useState("updated");
+      const [toast, setToast] = useState("");
+      const [visibleIds, setVisibleIds] = useState(new Set());
+      const [editing, setEditing] = useState(null);
+      const [showForm, setShowForm] = useState(false);
+      const importRef = useRef(null);
+      const searchRef = useRef(null);
+
+      useEffect(() => {
+        const onKey = event => {
+          if (event.key === "/" && !event.target.matches("input, textarea")) {
+            event.preventDefault();
+            searchRef.current?.focus();
+          }
+        };
+        document.addEventListener("keydown", onKey);
+        return () => document.removeEventListener("keydown", onKey);
+      }, []);
+
+      async function setupVault(password) {
+        if (password.length < 6) {
+          notify("รหัสหลักควรมีอย่างน้อย 6 ตัวอักษร");
+          return;
+        }
+        setMaster(password);
+        setEntries(sampleEntries);
+        await saveEncrypted(sampleEntries, password);
+        localStorage.removeItem(LEGACY_KEY);
+        setMode("ready");
+        notify("สร้างคลังรหัสผ่านแล้ว");
+      }
+
+      async function unlockVault(password) {
+        try {
+          const data = await loadEncrypted(password);
+          setMaster(password);
+          setEntries(Array.isArray(data.entries) ? data.entries : []);
+          setMode("ready");
+          notify("ปลดล็อกสำเร็จ");
+        } catch (error) {
+          notify("รหัสหลักไม่ถูกต้อง หรือข้อมูลเสียหาย");
+        }
+      }
+
+      async function persist(nextEntries) {
+        setEntries(nextEntries);
+        await saveEncrypted(nextEntries, master);
+      }
+
+      function notify(message) {
+        setToast(message);
+        window.clearTimeout(notify._timer);
+        notify._timer = window.setTimeout(() => setToast(""), 2400);
+      }
+
+      const filtered = useMemo(() => {
+        const keyword = query.trim().toLowerCase();
+        return entries
+          .filter(item => activeCategory === "ถังขยะ" ? item.deleted : !item.deleted)
+          .filter(item => activeCategory === "ทั้งหมด" || activeCategory === "ถังขยะ" ? true : activeCategory === "รายการโปรด" ? item.favorite : item.category === activeCategory)
+          .filter(item => !keyword || [item.title, item.username, item.category, item.url, item.notes].join(" ").toLowerCase().includes(keyword))
+          .sort((a, b) => {
+            if (sortMode === "title") return a.title.localeCompare(b.title, "th");
+            if (sortMode === "category") return a.category.localeCompare(b.category, "th");
+            return new Date(b.updatedAt) - new Date(a.updatedAt);
+          });
+      }, [entries, query, activeCategory, sortMode]);
+
+      const stats = useMemo(() => {
+        const active = entries.filter(item => !item.deleted);
+        const favorite = active.filter(item => item.favorite).length;
+        const needsRotation = active.filter(item => daysSince(item.updatedAt) > 180 || passwordStrength(item.password).score < 3).length;
+        const folders = new Set(active.map(item => item.category)).size;
+        return { total: active.length, needsRotation, favorite, folders };
+      }, [entries]);
+
+      const categoryCounts = useMemo(() => {
+        const counts = Object.fromEntries(categories.map(item => [item.id, 0]));
+        entries.forEach(item => {
+          if (item.deleted) {
+            counts["ถังขยะ"] += 1;
+            return;
+          }
+          counts["ทั้งหมด"] += 1;
+          counts[item.category] = (counts[item.category] || 0) + 1;
+          if (item.favorite) counts["รายการโปรด"] += 1;
+        });
+        return counts;
+      }, [entries]);
+
+      function saveItem(form) {
+        const now = new Date().toISOString();
+        const next = form.id
+          ? entries.map(item => item.id === form.id ? { ...item, ...form, updatedAt: now } : item)
+          : [{ ...form, id: crypto.randomUUID(), deleted: false, createdAt: now, updatedAt: now }, ...entries];
+        persist(next);
+        setShowForm(false);
+        setEditing(null);
+        notify(form.id ? "แก้ไขรายการแล้ว" : "เพิ่มรายการใหม่แล้ว");
+      }
+
+      function toggleFavorite(id) {
+        persist(entries.map(item => item.id === id ? { ...item, favorite: !item.favorite, updatedAt: new Date().toISOString() } : item));
+      }
+
+      function softDelete(id) {
+        if (!confirm("ต้องการย้ายรายการนี้ไปถังขยะใช่ไหม")) return;
+        persist(entries.map(item => item.id === id ? { ...item, deleted: true, updatedAt: new Date().toISOString() } : item));
+        notify("ย้ายไปถังขยะแล้ว");
+      }
+
+      function restoreItem(id) {
+        persist(entries.map(item => item.id === id ? { ...item, deleted: false, updatedAt: new Date().toISOString() } : item));
+        notify("กู้คืนรายการแล้ว");
+      }
+
+      function removeForever(id) {
+        if (!confirm("ลบถาวรแล้วกู้คืนไม่ได้ ต้องการลบใช่ไหม")) return;
+        persist(entries.filter(item => item.id !== id));
+        notify("ลบถาวรแล้ว");
+      }
+
+      async function copyText(text, label) {
+        try {
+          if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(text || "");
+          } else {
+            const area = document.createElement("textarea");
+            area.value = text || "";
+            area.style.position = "fixed";
+            area.style.left = "-9999px";
+            document.body.appendChild(area);
+            area.focus();
+            area.select();
+            document.execCommand("copy");
+            area.remove();
+          }
+          notify(`คัดลอก${label}แล้ว`);
+        } catch (error) {
+          notify("คัดลอกไม่สำเร็จ");
+        }
+      }
+
+      function toggleVisible(id) {
+        const next = new Set(visibleIds);
+        next.has(id) ? next.delete(id) : next.add(id);
+        setVisibleIds(next);
+      }
+
+      function exportBackup() {
+        const payload = {
+          exportedAt: new Date().toISOString(),
+          app: "PRINT OS Secure Vault",
+          entries
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `secure-vault-backup-${new Date().toISOString().slice(0, 10)}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+        notify("ส่งออกไฟล์สำรองแล้ว");
+      }
+
+      function importBackup(file) {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async () => {
+          try {
+            const payload = JSON.parse(reader.result);
+            const incoming = Array.isArray(payload.entries) ? payload.entries : [];
+            const byId = new Map(entries.map(item => [item.id, item]));
+            incoming.forEach(item => byId.set(item.id || crypto.randomUUID(), { ...item, id: item.id || crypto.randomUUID() }));
+            await persist([...byId.values()]);
+            notify("นำเข้าข้อมูลสำเร็จ");
+          } catch (error) {
+            notify("ไฟล์นำเข้าไม่ถูกต้อง");
+          }
+        };
+        reader.readAsText(file);
+      }
+
+      function lock() {
+        setMaster("");
+        setEntries([]);
+        setVisibleIds(new Set());
+        setMode("locked");
+      }
+
+      if (mode !== "ready") {
+        return h(LockScreen, {
+          mode,
+          onSetup: setupVault,
+          onUnlock: unlockVault,
+          toast
+        });
+      }
+
+      return h("div", { className: "vault-shell" },
+        h("aside", { className: "sidebar" },
+          h("a", { className: "brand", href: "index.html" },
+            h("span", { className: "brand-mark" }, iconShield()),
+            h("span", null, h("strong", null, "Secure Vault"), h("small", null, "Password Manager"))
+          ),
+          h("nav", { className: "nav-list", "aria-label": "หมวดหมู่รหัสผ่าน" },
+            categories.map(item => h("button", {
+              key: item.id,
+              className: `nav-item ${activeCategory === item.id ? "active" : ""}`,
+              type: "button",
+              onClick: () => setActiveCategory(item.id)
+            },
+              h("span", { className: "nav-icon" }, item.icon()),
+              h("span", null, item.label),
+              h("span", { className: "nav-count" }, categoryCounts[item.id] || 0)
+            ))
+          ),
+          h("div", null,
+            h("div", { className: "security-card" },
+              h("strong", null, iconShield(), "ความปลอดภัย"),
+              h("small", null, "ข้อมูลถูกเข้ารหัสในเครื่องด้วยรหัสหลักของคุณ ก่อนเก็บใน localStorage"),
+              h("small", null, "2FA: เปิดใช้งานแยกกับบริการจริงตามต้องการ")
+            ),
+            h("div", { className: "user-card" },
+              h("span", { className: "avatar" }, "PI"),
+              h("span", null, h("strong", null, "PRINT OS"), h("small", null, "Local encrypted vault"))
+            )
+          )
+        ),
+        h("main", { className: "main" },
+          h("div", { className: "topbar" },
+            h("label", { className: "search-box" },
+              iconSearch(),
+              h("input", {
+                ref: searchRef,
+                value: query,
+                onChange: e => setQuery(e.target.value),
+                placeholder: "ค้นหารหัสผ่าน ชื่อเว็บ อีเมล หมวดหมู่..."
+              }),
+              h("kbd", null, "/")
+            ),
+            h("div", { className: "top-actions" },
+              h("a", { className: "ghost-button", href: "index.html" }, "หน้าหลัก"),
+              h("button", { className: "icon-button", type: "button", title: "รายการที่ควรเปลี่ยนรหัส", onClick: () => setActiveCategory("ทั้งหมด") }, iconBell(), stats.needsRotation > 0 && h("span", { className: "alert-dot" })),
+              h("button", { className: "ghost-button", type: "button", onClick: exportBackup }, iconDownload(), "สำรอง"),
+              h("button", { className: "ghost-button", type: "button", onClick: () => importRef.current?.click() }, iconUpload(), "นำเข้า"),
+              h("input", { ref: importRef, className: "file-input", type: "file", accept: "application/json", onChange: e => importBackup(e.target.files[0]) }),
+              h("button", { className: "primary-button", type: "button", onClick: () => { setEditing(null); setShowForm(true); } }, iconPlus(), "เพิ่มรายการใหม่"),
+              h("button", { className: "icon-button", type: "button", title: "ล็อกคลัง", onClick: lock }, iconLock())
+            )
+          ),
+          h("section", { className: "page-head" },
+            h("div", null,
+              h("h1", null, "แดชบอร์ด"),
+              h("p", null, "จัดการรหัสผ่าน บัญชีร้าน และข้อมูลสำคัญของระบบ PRINT OS")
+            )
+          ),
+          h("section", { className: "stat-grid", "aria-label": "ภาพรวมคลังรหัสผ่าน" },
+            h(StatCard, { icon: iconGrid, value: stats.total, label: "รายการทั้งหมด", hint: "+ เข้ารหัสไว้ในเครื่อง" }),
+            h(StatCard, { icon: iconShield, value: stats.needsRotation, label: "รายการที่ควรเปลี่ยน", hint: "รหัสอ่อนหรือเกิน 180 วัน" }),
+            h(StatCard, { icon: iconStar, value: stats.favorite, label: "รายการโปรด", hint: "เข้าถึงบ่อย" }),
+            h(StatCard, { icon: iconFolder, value: stats.folders, label: "หมวดหมู่ทั้งหมด", hint: "จัดเก็บเป็นหมวดหมู่" })
+          ),
+          h("section", { className: "vault-panel" },
+            h("div", { className: "panel-head" },
+              h("h2", null, activeCategory === "ทั้งหมด" ? "รายการล่าสุด" : activeCategory),
+              h("div", { className: "panel-tools" },
+                h("select", { className: "select", value: sortMode, onChange: e => setSortMode(e.target.value), "aria-label": "เรียงรายการ" },
+                  h("option", { value: "updated" }, "เรียงตามล่าสุด"),
+                  h("option", { value: "title" }, "เรียงตามชื่อ"),
+                  h("option", { value: "category" }, "เรียงตามหมวด")
+                ),
+                h("button", { className: "ghost-button", type: "button", onClick: () => setQuery("") }, "ล้างค้นหา")
+              )
+            ),
+            h("div", { className: "vault-list" },
+              filtered.length
+                ? filtered.map(item => h(VaultRow, {
+                    key: item.id,
+                    item,
+                    visible: visibleIds.has(item.id),
+                    onToggleVisible: toggleVisible,
+                    onCopy: copyText,
+                    onFavorite: toggleFavorite,
+                    onEdit: item => { setEditing(item); setShowForm(true); },
+                    onDelete: softDelete,
+                    onRestore: restoreItem,
+                    onRemoveForever: removeForever
+                  }))
+                : h("div", { className: "empty" }, h("div", null, h("strong", null, "ไม่พบรายการ"), h("p", null, "ลองเปลี่ยนคำค้นหา หรือเพิ่มรายการใหม่")))
+            )
+          )
+        ),
+        showForm && h(EntryForm, {
+          entry: editing,
+          onSave: saveItem,
+          onClose: () => { setShowForm(false); setEditing(null); }
+        }),
+        toast && h("div", { className: "toast" }, toast)
+      );
+    }
+
+    function LockScreen({ mode, onSetup, onUnlock, toast }) {
+      const [password, setPassword] = useState("");
+      const [confirm, setConfirm] = useState("");
+      const isSetup = mode === "setup";
+      return h("div", { className: "lock-screen" },
+        h("form", {
+          className: "lock-card",
+          onSubmit: event => {
+            event.preventDefault();
+            if (isSetup && password !== confirm) return;
+            isSetup ? onSetup(password) : onUnlock(password);
+          }
+        },
+          h("div", { className: "brand" },
+            h("span", { className: "brand-mark" }, iconShield()),
+            h("span", null, h("strong", null, "Secure Vault"), h("small", null, "PRINT OS Password Manager"))
+          ),
+          h("h1", null, isSetup ? "ตั้งรหัสหลัก" : "ปลดล็อกคลังรหัสผ่าน"),
+          h("p", null, isSetup
+            ? "รหัสหลักนี้ใช้เข้ารหัสข้อมูลในเครื่อง หากลืมจะไม่สามารถถอดรหัสข้อมูลเดิมได้"
+            : "ใส่รหัสหลักที่ตั้งไว้เพื่อเปิดคลังรหัสผ่าน"),
+          h("input", {
+            type: "password",
+            value: password,
+            onChange: e => setPassword(e.target.value),
+            placeholder: "รหัสหลัก",
+            autoFocus: true
+          }),
+          isSetup && h("input", {
+            type: "password",
+            value: confirm,
+            onChange: e => setConfirm(e.target.value),
+            placeholder: "ยืนยันรหัสหลัก"
+          }),
+          isSetup && password && confirm && password !== confirm && h("small", { style: { color: "#ffb4bf" } }, "รหัสยืนยันไม่ตรงกัน"),
+          h("button", { className: "primary-button", type: "submit" }, isSetup ? "สร้างคลังรหัสผ่าน" : "ปลดล็อก"),
+          h("a", { className: "ghost-button", href: "index.html" }, "กลับหน้าหลัก")
+        ),
+        toast && h("div", { className: "toast" }, toast)
+      );
+    }
+
+    function StatCard({ icon, value, label, hint }) {
+      return h("article", { className: "stat-card" },
+        h("span", { className: "stat-icon" }, icon()),
+        h("span", null, h("strong", null, value), h("span", null, label), h("small", null, hint))
+      );
+    }
+
+    function VaultRow({ item, visible, onToggleVisible, onCopy, onFavorite, onEdit, onDelete, onRestore, onRemoveForever }) {
+      const iconClass = categoryIconClass(item.category);
+      return h("article", { className: "vault-row" },
+        h("span", { className: `site-icon ${iconClass}` }, initials(item.title)),
+        h("div", { className: "row-main" },
+          h("strong", null, item.title),
+          item.url ? h("a", { href: item.url, target: "_blank", rel: "noreferrer" }, item.url.replace(/^https?:\/\//, "")) : h("a", null, item.username)
+        ),
+        h("div", { className: "row-main" },
+          h("span", { className: "pill" }, item.category),
+          h("small", { style: { color: "#92a0b8" } }, item.username)
+        ),
+        h("div", { className: "row-password" },
+          h("strong", null, visible ? item.password : "••••••••••••"),
+          h("div", { className: "row-date" }, dateShort(item.updatedAt))
+        ),
+        h("div", { className: "row-actions" },
+          h("button", { className: `action-icon favorite ${item.favorite ? "active" : ""}`, type: "button", title: "ติดดาว", onClick: () => onFavorite(item.id) }, iconStar()),
+          h("button", { className: "action-icon", type: "button", title: "ดู/ซ่อนรหัส", onClick: () => onToggleVisible(item.id) }, visible ? iconEyeOff() : iconEye()),
+          h("button", { className: "action-icon", type: "button", title: "คัดลอกรหัส", onClick: () => onCopy(item.password, "รหัสผ่าน") }, iconCopy()),
+          h("button", { className: "action-icon", type: "button", title: "แก้ไข", onClick: () => onEdit(item) }, iconEdit()),
+          item.deleted
+            ? h("button", { className: "action-icon", type: "button", title: "กู้คืน", onClick: () => onRestore(item.id) }, iconUpload())
+            : h("button", { className: "action-icon", type: "button", title: "ลบ", onClick: () => onDelete(item.id) }, iconTrash()),
+          item.deleted && h("button", { className: "action-icon", type: "button", title: "ลบถาวร", onClick: () => onRemoveForever(item.id) }, iconClose())
+        )
+      );
+    }
+
+    function EntryForm({ entry, onSave, onClose }) {
+      const [form, setForm] = useState(entry || {
+        title: "",
+        username: "",
+        password: "",
+        url: "",
+        category: "เว็บ / ลูกค้า",
+        notes: "",
+        favorite: false
+      });
+      const strength = passwordStrength(form.password);
+
+      function update(name, value) {
+        setForm(prev => ({ ...prev, [name]: value }));
+      }
+
+      function submit(event) {
+        event.preventDefault();
+        if (!form.title.trim() || !form.password.trim()) return;
+        onSave({ ...form, title: form.title.trim(), username: form.username.trim(), url: form.url.trim() });
+      }
+
+      return h("div", { className: "modal-backdrop", role: "dialog", "aria-modal": "true" },
+        h("form", { className: "modal", onSubmit: submit },
+          h("header", null,
+            h("h2", null, entry ? "แก้ไขรายการ" : "เพิ่มรายการใหม่"),
+            h("button", { className: "icon-button", type: "button", onClick: onClose, "aria-label": "ปิด" }, iconClose())
+          ),
+          h("div", { className: "form-grid" },
+            h(Field, { label: "ชื่อรายการ" }, h("input", { value: form.title, onChange: e => update("title", e.target.value), placeholder: "เช่น Facebook ร้าน", required: true })),
+            h(Field, { label: "หมวดหมู่" }, h("select", { value: form.category, onChange: e => update("category", e.target.value) },
+              categories.filter(item => !["ทั้งหมด", "รายการโปรด", "ถังขยะ"].includes(item.id)).map(item => h("option", { key: item.id, value: item.id }, item.label))
+            )),
+            h(Field, { label: "ชื่อผู้ใช้ / อีเมล" }, h("input", { value: form.username, onChange: e => update("username", e.target.value), placeholder: "username@email.com" })),
+            h(Field, { label: "ลิงก์เว็บไซต์" }, h("input", { value: form.url, onChange: e => update("url", e.target.value), placeholder: "https://example.com" })),
+            h(Field, { label: "รหัสผ่าน", className: "full" },
+              h("div", { className: "password-line" },
+                h("input", { value: form.password, onChange: e => update("password", e.target.value), placeholder: "ใส่รหัสผ่าน", required: true }),
+                h("button", { className: "ghost-button", type: "button", onClick: () => update("password", generatePassword()) }, "สร้างรหัส")
+              ),
+              h("div", { className: "strength", title: strength.label }, h("span", { style: { "--w": `${strength.width}%`, "--c": strength.color } }))
+            ),
+            h(Field, { label: "หมายเหตุ", className: "full" }, h("textarea", { value: form.notes, onChange: e => update("notes", e.target.value), placeholder: "รายละเอียดเพิ่มเติม" })),
+            h("label", { className: "field full", style: { display: "flex", alignItems: "center", gap: "10px" } },
+              h("input", { type: "checkbox", checked: form.favorite, onChange: e => update("favorite", e.target.checked), style: { width: "18px", minHeight: "18px" } }),
+              h("span", null, "เพิ่มเป็นรายการโปรด")
+            )
+          ),
+          h("footer", null,
+            h("button", { className: "ghost-button", type: "button", onClick: onClose }, "ยกเลิก"),
+            h("button", { className: "primary-button", type: "submit" }, entry ? "บันทึกการแก้ไข" : "เพิ่มรายการ")
+          )
+        )
+      );
+    }
+
+    function Field({ label, className, children }) {
+      return h("label", { className: `field ${className || ""}` }, h("span", null, label), children);
+    }
+
+    async function saveEncrypted(entries, password) {
+      const salt = crypto.getRandomValues(new Uint8Array(16));
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const key = await deriveKey(password, salt);
+      const encoded = new TextEncoder().encode(JSON.stringify({ entries }));
+      const cipher = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, encoded);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        salt: toBase64(salt),
+        iv: toBase64(iv),
+        cipher: toBase64(new Uint8Array(cipher))
+      }));
+    }
+
+    async function loadEncrypted(password) {
+      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+      const salt = fromBase64(stored.salt);
+      const iv = fromBase64(stored.iv);
+      const cipher = fromBase64(stored.cipher);
+      const key = await deriveKey(password, salt);
+      const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, cipher);
+      return JSON.parse(new TextDecoder().decode(plain));
+    }
+
+    async function deriveKey(password, salt) {
+      const material = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveKey"]);
+      return crypto.subtle.deriveKey(
+        { name: "PBKDF2", salt, iterations: 120000, hash: "SHA-256" },
+        material,
+        { name: "AES-GCM", length: 256 },
+        false,
+        ["encrypt", "decrypt"]
+      );
+    }
+
+    function toBase64(bytes) {
+      return btoa(String.fromCharCode(...bytes));
+    }
+
+    function fromBase64(text) {
+      return Uint8Array.from(atob(text || ""), char => char.charCodeAt(0));
+    }
+
+    function passwordStrength(password) {
+      let score = 0;
+      if ((password || "").length >= 10) score += 1;
+      if ((password || "").length >= 14) score += 1;
+      if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score += 1;
+      if (/\d/.test(password)) score += 1;
+      if (/[^A-Za-z0-9]/.test(password)) score += 1;
+      const width = Math.min(100, Math.max(12, score * 20));
+      const color = score >= 4 ? "#36d98b" : score >= 3 ? "#f5b84b" : "#ff6677";
+      const label = score >= 4 ? "แข็งแรง" : score >= 3 ? "ปานกลาง" : "ควรปรับปรุง";
+      return { score, width, color, label };
+    }
+
+    function generatePassword() {
+      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%&*";
+      const bytes = crypto.getRandomValues(new Uint8Array(18));
+      return Array.from(bytes, byte => chars[byte % chars.length]).join("");
+    }
+
+    function daysSince(date) {
+      return Math.floor((Date.now() - new Date(date || Date.now()).getTime()) / 86400000);
+    }
+
+    function dateShort(date) {
+      return new Date(date || Date.now()).toLocaleDateString("th-TH", { day: "2-digit", month: "short", year: "numeric" });
+    }
+
+    function initials(text) {
+      return String(text || "?").trim().slice(0, 2).toUpperCase();
+    }
+
+    function categoryIconClass(category) {
+      if (category.includes("ธนาคาร")) return "bank";
+      if (category.includes("โซเชียล")) return "social";
+      if (category.includes("โฮสติ้ง")) return "hosting";
+      if (category.includes("เครื่องมือ")) return "device";
+      if (category.includes("Wi-Fi")) return "software";
+      if (category.includes("เอกสาร")) return "email";
+      return "";
+    }
+
+    function iconSvg(paths) {
+      return h("svg", { viewBox: "0 0 24 24", fill: "none", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, paths.map((d, i) => h("path", { key: i, d })));
+    }
+
+    function iconShield() { return iconSvg(["M12 3 20 6v5c0 5-3.4 8.4-8 10-4.6-1.6-8-5-8-10V6l8-3Z", "m9 12 2 2 4-5"]); }
+    function iconGrid() { return iconSvg(["M4 4h7v7H4z", "M13 4h7v7h-7z", "M4 13h7v7H4z", "M13 13h7v7h-7z"]); }
+    function iconBank() { return iconSvg(["M3 10h18", "M5 10V8l7-4 7 4v2", "M6 10v8", "M10 10v8", "M14 10v8", "M18 10v8", "M4 18h16"]); }
+    function iconUsers() { return iconSvg(["M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", "M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8", "M22 21v-2a4 4 0 0 0-3-3.87", "M16 3.13a4 4 0 0 1 0 7.75"]); }
+    function iconScreen() { return iconSvg(["M4 5h16v11H4z", "M8 21h8", "M12 16v5"]); }
+    function iconGlobe() { return iconSvg(["M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z", "M2 12h20", "M12 2c2.5 2.7 4 6.1 4 10s-1.5 7.3-4 10", "M12 2c-2.5 2.7-4 6.1-4 10s1.5 7.3 4 10"]); }
+    function iconTools() { return iconSvg(["M14.7 6.3a4 4 0 0 0-5 5L3 18v3h3l6.7-6.7a4 4 0 0 0 5-5l-2.4 2.4-3-3 2.4-2.4Z"]); }
+    function iconWifi() { return iconSvg(["M5 13a10 10 0 0 1 14 0", "M8.5 16.5a5 5 0 0 1 7 0", "M12 20h.01", "M2 9a15 15 0 0 1 20 0"]); }
+    function iconDoc() { return iconSvg(["M7 3h7l5 5v13H7z", "M14 3v5h5", "M9 13h6", "M9 17h6"]); }
+    function iconStar() { return iconSvg(["m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.1-5.6-3-5.6 3 1.1-6.1L3 9.6l6.2-.9L12 3Z"]); }
+    function iconTrash() { return iconSvg(["M3 6h18", "M8 6V4h8v2", "M6 6l1 15h10l1-15"]); }
+    function iconSearch() { return iconSvg(["M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z", "m21 21-4.3-4.3"]); }
+    function iconBell() { return iconSvg(["M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9", "M10 21h4"]); }
+    function iconPlus() { return iconSvg(["M12 5v14", "M5 12h14"]); }
+    function iconLock() { return iconSvg(["M6 10V8a6 6 0 0 1 12 0v2", "M5 10h14v11H5z"]); }
+    function iconDownload() { return iconSvg(["M12 3v12", "m7 10 5 5 5-5", "M5 21h14"]); }
+    function iconUpload() { return iconSvg(["M12 21V9", "m7 14 5-5 5 5", "M5 3h14"]); }
+    function iconEye() { return iconSvg(["M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z", "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"]); }
+    function iconEyeOff() { return iconSvg(["M3 3l18 18", "M10.6 10.6A3 3 0 0 0 13.4 13.4", "M9.9 5.3A10.8 10.8 0 0 1 12 5c6 0 10 7 10 7a17.8 17.8 0 0 1-3.2 4.2", "M6.4 6.4C3.7 8.2 2 12 2 12s4 7 10 7c1.7 0 3.2-.5 4.5-1.2"]); }
+    function iconCopy() { return iconSvg(["M8 8h11v11H8z", "M5 16H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h11a1 1 0 0 1 1 1v1"]); }
+    function iconEdit() { return iconSvg(["M12 20h9", "M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"]); }
+    function iconClose() { return iconSvg(["M18 6 6 18", "M6 6l12 12"]); }
+    function iconFolder() { return iconSvg(["M3 6h7l2 2h9v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"]); }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(h(App));
+  </script>
+</body>
+</html>
