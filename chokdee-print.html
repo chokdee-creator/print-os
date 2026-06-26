@@ -698,7 +698,7 @@
 
     .summary {
       display: grid;
-      grid-template-columns: repeat(7, 1fr);
+      grid-template-columns: repeat(9, minmax(120px, 1fr));
       gap: 10px;
       padding: 16px;
       border-bottom: 1px solid var(--line);
@@ -1744,6 +1744,14 @@
             <strong id="sumCost">฿0.00</strong>
           </div>
           <div class="metric">
+            <span>ทุนไวนิล</span>
+            <strong id="sumVinylCost">฿0.00</strong>
+          </div>
+          <div class="metric">
+            <span>ทุนสติ๊กเกอร์</span>
+            <strong id="sumStickerCost">฿0.00</strong>
+          </div>
+          <div class="metric">
             <span>กำไรรวม</span>
             <strong id="sumProfit">฿0.00</strong>
           </div>
@@ -1989,6 +1997,8 @@
       sumArea: document.querySelector("#sumArea"),
       sumSale: document.querySelector("#sumSale"),
       sumCost: document.querySelector("#sumCost"),
+      sumVinylCost: document.querySelector("#sumVinylCost"),
+      sumStickerCost: document.querySelector("#sumStickerCost"),
       sumProfit: document.querySelector("#sumProfit"),
       sumPaid: document.querySelector("#sumPaid"),
       sumUnpaid: document.querySelector("#sumUnpaid"),
@@ -2425,16 +2435,20 @@
         acc.area += record.area;
         acc.sale += record.saleTotal;
         acc.cost += record.costTotal;
+        if (record.category === "ไวนิล") acc.vinylCost += Number(record.costTotal) || 0;
+        if (record.category === "สติ๊กเกอร์") acc.stickerCost += Number(record.costTotal) || 0;
         acc.profit += record.profit;
         acc.paid += paidAmount(record);
         acc.unpaid += balanceAmount(record);
         return acc;
-      }, { area: 0, sale: 0, cost: 0, profit: 0, paid: 0, unpaid: 0 });
+      }, { area: 0, sale: 0, cost: 0, vinylCost: 0, stickerCost: 0, profit: 0, paid: 0, unpaid: 0 });
 
       els.sumCount.textContent = rows.length.toLocaleString("th-TH");
       els.sumArea.textContent = `${number(totals.area)} ตร.ม.`;
       els.sumSale.textContent = baht(totals.sale);
       els.sumCost.textContent = baht(totals.cost);
+      els.sumVinylCost.textContent = baht(totals.vinylCost);
+      els.sumStickerCost.textContent = baht(totals.stickerCost);
       els.sumProfit.textContent = baht(totals.profit);
       els.sumPaid.textContent = baht(totals.paid);
       els.sumUnpaid.textContent = baht(totals.unpaid);

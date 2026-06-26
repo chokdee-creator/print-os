@@ -713,7 +713,7 @@
 
     .summary {
       display: grid;
-      grid-template-columns: repeat(7, 1fr);
+      grid-template-columns: repeat(9, minmax(120px, 1fr));
       gap: 10px;
       padding: 16px;
       border-bottom: 1px solid var(--line);
@@ -1683,7 +1683,7 @@
     }
 
     body.prince-image .summary {
-      grid-template-columns: repeat(7, minmax(140px, 1fr));
+      grid-template-columns: repeat(9, minmax(128px, 1fr));
       gap: 12px;
       padding: 16px;
       border-bottom: 1px solid rgba(212, 162, 79, .2);
@@ -1732,13 +1732,14 @@
       background: radial-gradient(circle, rgba(79, 195, 247, .94), rgba(52, 132, 182, .52));
     }
 
-    body.prince-image .summary .metric:nth-child(5) .metric-icon,
-    body.prince-image .summary .metric:nth-child(6) .metric-icon {
+    body.prince-image .summary .metric:nth-child(7) .metric-icon,
+    body.prince-image .summary .metric:nth-child(8) .metric-icon {
       background: radial-gradient(circle, rgba(67, 215, 133, .9), rgba(39, 133, 89, .5));
     }
 
     body.prince-image .summary .metric:nth-child(4) .metric-icon,
-    body.prince-image .summary .metric:nth-child(7) .metric-icon {
+    body.prince-image .summary .metric:nth-child(5) .metric-icon,
+    body.prince-image .summary .metric:nth-child(9) .metric-icon {
       background: radial-gradient(circle, rgba(255, 100, 115, .92), rgba(153, 54, 65, .52));
     }
 
@@ -2133,6 +2134,16 @@
             <strong id="sumCost">฿0.00</strong>
           </div>
           <div class="metric">
+            <span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M4 6h16v12H4z"/><path d="M8 10h8M8 14h5"/><path d="M6 4h12v2H6z"/></svg></span>
+            <span>ทุนไวนิล</span>
+            <strong id="sumVinylCost">฿0.00</strong>
+          </div>
+          <div class="metric">
+            <span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M7 3h10l4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4Z"/><path d="M17 3v5h5"/><path d="M8 13h8M8 17h5"/></svg></span>
+            <span>ทุนสติ๊กเกอร์</span>
+            <strong id="sumStickerCost">฿0.00</strong>
+          </div>
+          <div class="metric">
             <span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M4 19h16"/><path d="M7 16v-5m5 5V7m5 9v-9"/><path d="m7 11 5-4 5 3"/></svg></span>
             <span>กำไรรวม</span>
             <strong id="sumProfit">฿0.00</strong>
@@ -2422,6 +2433,8 @@
       sumArea: document.querySelector("#sumArea"),
       sumSale: document.querySelector("#sumSale"),
       sumCost: document.querySelector("#sumCost"),
+      sumVinylCost: document.querySelector("#sumVinylCost"),
+      sumStickerCost: document.querySelector("#sumStickerCost"),
       sumProfit: document.querySelector("#sumProfit"),
       sumPaid: document.querySelector("#sumPaid"),
       sumUnpaid: document.querySelector("#sumUnpaid"),
@@ -2858,16 +2871,20 @@
         acc.area += record.area;
         acc.sale += record.saleTotal;
         acc.cost += record.costTotal;
+        if (record.category === "ไวนิล") acc.vinylCost += Number(record.costTotal) || 0;
+        if (record.category === "สติ๊กเกอร์") acc.stickerCost += Number(record.costTotal) || 0;
         acc.profit += record.profit;
         acc.paid += paidAmount(record);
         acc.unpaid += balanceAmount(record);
         return acc;
-      }, { area: 0, sale: 0, cost: 0, profit: 0, paid: 0, unpaid: 0 });
+      }, { area: 0, sale: 0, cost: 0, vinylCost: 0, stickerCost: 0, profit: 0, paid: 0, unpaid: 0 });
 
       els.sumCount.textContent = rows.length.toLocaleString("th-TH");
       els.sumArea.textContent = `${number(totals.area)} ตร.ม.`;
       els.sumSale.textContent = baht(totals.sale);
       els.sumCost.textContent = baht(totals.cost);
+      els.sumVinylCost.textContent = baht(totals.vinylCost);
+      els.sumStickerCost.textContent = baht(totals.stickerCost);
       els.sumProfit.textContent = baht(totals.profit);
       els.sumPaid.textContent = baht(totals.paid);
       els.sumUnpaid.textContent = baht(totals.unpaid);
