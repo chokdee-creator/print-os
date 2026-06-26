@@ -1168,7 +1168,6 @@
           onSetup: setupVault,
           onUnlock: unlockVault,
           onForgot: forgotPassword,
-          onLoadSheet: loadVaultFromSheet,
           toast
         });
       }
@@ -1219,7 +1218,6 @@
               h("a", { className: "ghost-button", href: "index.html" }, "หน้าหลัก"),
               h("button", { className: "icon-button", type: "button", title: "รายการที่ควรเปลี่ยนรหัส", onClick: () => setActiveCategory("ทั้งหมด") }, iconBell(), stats.needsRotation > 0 && h("span", { className: "alert-dot" })),
               h("button", { className: "ghost-button", type: "button", onClick: () => syncVaultToSheet(entries, false) }, iconGlobe(), "ซิงก์ Sheets"),
-              h("button", { className: "ghost-button", type: "button", onClick: loadVaultFromSheet }, iconDownload(), "โหลด Sheets"),
               h("button", { className: "ghost-button", type: "button", onClick: exportBackup }, iconDownload(), "สำรอง"),
               h("button", { className: "ghost-button", type: "button", onClick: () => importRef.current?.click() }, iconUpload(), "นำเข้า"),
               h("input", { ref: importRef, className: "file-input", type: "file", accept: "application/json", onChange: e => importBackup(e.target.files[0]) }),
@@ -1278,7 +1276,7 @@
       );
     }
 
-    function LockScreen({ mode, onSetup, onUnlock, onForgot, onLoadSheet, toast }) {
+    function LockScreen({ mode, onSetup, onUnlock, onForgot, toast }) {
       const rememberedPassword = localStorage.getItem(REMEMBER_KEY) || "";
       const [password, setPassword] = useState(mode === "locked" ? rememberedPassword : "");
       const [confirm, setConfirm] = useState("");
@@ -1330,7 +1328,6 @@
             !isSetup && h("button", { className: "danger-button", type: "button", onClick: onForgot }, "ลืมรหัสผ่าน")
           ),
           h("button", { className: "primary-button", type: "submit" }, isSetup ? "สร้างคลังรหัสผ่าน" : "ปลดล็อก"),
-          h("button", { className: "ghost-button", type: "button", onClick: onLoadSheet }, "โหลดจาก Sheets"),
           h("a", { className: "ghost-button", href: "index.html" }, "กลับหน้าหลัก")
         ),
         toast && h("div", { className: "toast" }, toast)
