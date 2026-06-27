@@ -953,6 +953,74 @@
       background: rgba(148, 163, 184, .18);
     }
 
+    .social-login-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .social-login-button {
+      min-height: 48px;
+      border: 1px solid rgba(148, 163, 184, .24);
+      border-radius: 10px;
+      background: rgba(7, 12, 22, .74);
+      color: #f8fafc;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      font-weight: 900;
+      cursor: pointer;
+      transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease;
+    }
+
+    .social-login-button:hover {
+      transform: translateY(-1px);
+      border-color: rgba(99, 102, 241, .75);
+      background: rgba(59, 130, 246, .13);
+      box-shadow: 0 12px 26px rgba(15, 23, 42, .28);
+    }
+
+    .social-login-button:disabled {
+      opacity: .65;
+      cursor: wait;
+      transform: none;
+    }
+
+    .social-mark {
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      display: inline-grid;
+      place-items: center;
+      font-size: 12px;
+      font-weight: 950;
+      color: #fff;
+    }
+
+    .social-mark.google {
+      background: linear-gradient(135deg, #4285f4, #34a853);
+    }
+
+    .social-mark.x {
+      background: linear-gradient(135deg, #0f172a, #475569);
+      border: 1px solid rgba(255, 255, 255, .18);
+    }
+
+    .social-mark.line {
+      background: linear-gradient(135deg, #06c755, #00a83e);
+      font-size: 9px;
+      letter-spacing: 0;
+    }
+
+    .social-login-note {
+      margin-top: -6px;
+      color: #8ea0bd;
+      text-align: center;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
     .lock-card .primary-button,
     .lock-card .ghost-button {
       width: 100%;
@@ -1020,8 +1088,13 @@
 
       .primary-button,
       .ghost-button,
+      .social-login-button,
       .select {
         width: 100%;
+      }
+
+      .social-login-grid {
+        grid-template-columns: 1fr;
       }
 
       .stat-grid,
@@ -1054,6 +1127,19 @@
     const ACTIVE_ACCOUNT_KEY = "printos.secureVault.activeAccount.v1";
     const DEFAULT_SHEET_URL = "https://script.google.com/macros/s/AKfycbzDF5-Kvqf03RLCxpToRL7C9PAqlfhUvC_xLgnEExF7H4go7gybvzLaKDwtKVBHl6if/exec";
     const VAULT_SHEET_NAME = "SecureVault";
+    const SOCIAL_AUTH_CONFIG = {
+      firebase: {
+        apiKey: "",
+        authDomain: "",
+        projectId: "",
+        appId: ""
+      },
+      line: {
+        channelId: "",
+        redirectUri: ""
+      }
+    };
+    const SOCIAL_AUTH_STATE_KEY = "printos.secureVault.socialState.v1";
 
     const categories = [
       { id: "ทั้งหมด", label: "ทั้งหมด", icon: iconGrid },
@@ -1122,6 +1208,83 @@
     function displayNameFromLogin(login) {
       const clean = String(login || "Local User").trim();
       return clean.includes("@") ? clean.split("@")[0] : clean;
+    }
+
+    function providerLabel(provider) {
+      return provider === "google" ? "Google" : provider === "x" ? "X" : "LINE";
+    }
+
+    function firebaseConfigured() {
+      const cfg = SOCIAL_AUTH_CONFIG.firebase || {};
+      return Boolean(cfg.apiKey && cfg.authDomain && cfg.projectId && cfg.appId);
+    }
+
+    function lineConfigured() {
+      return Boolean((SOCIAL_AUTH_CONFIG.line || {}).channelId);
+    }
+
+    function loadExternalScript(src) {
+      const existing = document.querySelector(`script[src="${src}"]`);
+      if (existing) return Promise.resolve();
+      return new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = src;
+        script.async = true;
+        script.onload = resolve;
+        script.onerror = () => reject(new Error(`โหลดสคริปต์ไม่สำเร็จ: ${src}`));
+        document.head.appendChild(script);
+      });
+    }
+
+    async function ensureFirebaseAuth() {
+      if (!firebaseConfigured()) {
+        throw new Error("ยังไม่ได้ตั้งค่า Firebase สำหรับ Google/X Login");
+      }
+      await loadExternalScript("https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js");
+      await loadExternalScript("https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js");
+      if (!window.firebase.apps.length) window.firebase.initializeApp(SOCIAL_AUTH_CONFIG.firebase);
+      return window.firebase.auth();
+    }
+
+    async function signInWithFirebaseProvider(provider) {
+      const auth = await ensureFirebaseAuth();
+      const authProvider = provider === "google"
+        ? new window.firebase.auth.GoogleAuthProvider()
+        : new window.firebase.auth.TwitterAuthProvider();
+      if (provider === "google") authProvider.setCustomParameters({ prompt: "select_account" });
+      const result = await auth.signInWithPopup(authProvider);
+      const user = result.user || {};
+      const fallback = `${provider}-${user.uid || Date.now()}@secure-vault.local`;
+      return {
+        provider,
+        uid: user.uid || "",
+        email: user.email || fallback,
+        displayName: user.displayName || user.email || providerLabel(provider)
+      };
+    }
+
+    function startLineLogin() {
+      if (!lineConfigured()) {
+        throw new Error("ยังไม่ได้ตั้งค่า LINE Channel ID");
+      }
+      if (location.protocol === "file:") {
+        throw new Error("LINE Login ต้องเปิดผ่านเว็บจริงแบบ https เช่น GitHub Pages ไม่รองรับ file://");
+      }
+      const line = SOCIAL_AUTH_CONFIG.line;
+      const redirectUri = line.redirectUri || `${location.origin}${location.pathname}`;
+      const state = crypto.randomUUID();
+      const nonce = crypto.randomUUID();
+      localStorage.setItem(SOCIAL_AUTH_STATE_KEY, JSON.stringify({ state, provider: "line", createdAt: new Date().toISOString() }));
+      const params = new URLSearchParams({
+        response_type: "code",
+        client_id: line.channelId,
+        redirect_uri: redirectUri,
+        state,
+        scope: "profile openid email",
+        nonce
+      });
+      location.href = `https://access.line.me/oauth2/v2.1/authorize?${params.toString()}`;
+      return new Promise(() => {});
     }
 
     function App() {
@@ -1267,6 +1430,26 @@
         setToast(message);
         window.clearTimeout(notify._timer);
         notify._timer = window.setTimeout(() => setToast(""), 2400);
+      }
+
+      async function handleSocialLogin(provider) {
+        try {
+          const profile = provider === "line" ? await startLineLogin() : await signInWithFirebaseProvider(provider);
+          if (!profile) return null;
+          const login = profile.email || `${provider}:${profile.uid}`;
+          localStorage.setItem(LOGIN_EMAIL_KEY, login);
+          const existing = findAccount(login);
+          if (existing && localStorage.getItem(existing.storageKey)) {
+            notify(`ยืนยันตัวตนด้วย ${providerLabel(provider)} แล้ว ใส่รหัสหลักเพื่อเปิดคลัง`);
+          } else {
+            setMode("setup");
+            notify(`ยืนยันตัวตนด้วย ${providerLabel(provider)} แล้ว ตั้งรหัสหลักเพื่อสร้างบัญชี`);
+          }
+          return profile;
+        } catch (error) {
+          notify(error.message || `เข้าสู่ระบบด้วย ${providerLabel(provider)} ไม่สำเร็จ`);
+          throw error;
+        }
       }
 
       const filtered = useMemo(() => {
@@ -1571,6 +1754,7 @@
           onSetup: setupVault,
           onUnlock: unlockVault,
           onBack: () => setMode("locked"),
+          onSocialLogin: handleSocialLogin,
           onCreateVault: () => {
             if (localStorage.getItem(STORAGE_KEY)) {
               const ok = confirm("เครื่องนี้มีบัญชีผู้ใช้ Secure Vault อยู่แล้ว ถ้าสร้างบัญชีใหม่ควรสำรองข้อมูลเดิมก่อน ต้องการไปหน้าสร้างบัญชีผู้ใช้หรือไม่");
@@ -1763,7 +1947,7 @@
       );
     }
 
-    function LockScreenModern({ mode, onSetup, onUnlock, onBack, onCreateVault, onForgot, accounts = [], toast }) {
+    function LockScreenModern({ mode, onSetup, onUnlock, onBack, onSocialLogin, onCreateVault, onForgot, accounts = [], toast }) {
       const rememberedPassword = localStorage.getItem(REMEMBER_KEY) || "";
       const savedEmail = localStorage.getItem(LOGIN_EMAIL_KEY) || accounts[0]?.email || "";
       const [loginEmail, setLoginEmail] = useState(savedEmail);
@@ -1771,7 +1955,17 @@
       const [confirm, setConfirm] = useState("");
       const [remember, setRemember] = useState(Boolean(rememberedPassword));
       const [showPassword, setShowPassword] = useState(false);
+      const [socialLoading, setSocialLoading] = useState("");
       const isSetup = mode === "setup";
+      async function socialSignIn(provider) {
+        setSocialLoading(provider);
+        try {
+          const profile = await onSocialLogin(provider);
+          if (profile?.email) setLoginEmail(profile.email);
+        } finally {
+          setSocialLoading("");
+        }
+      }
 
       return h("div", { className: "lock-screen" },
         h("form", {
@@ -1859,6 +2053,21 @@
           h("button", { className: "primary-button", type: "submit" }, isSetup ? "สร้างบัญชีผู้ใช้" : "เข้าสู่ระบบ"),
           !isSetup && h("button", { className: "ghost-button", type: "button", onClick: onCreateVault }, iconShield(), "สร้างบัญชีผู้ใช้"),
           h("div", { className: "login-divider" }, "หรือเข้าสู่ระบบด้วย"),
+          h("div", { className: "social-login-grid" },
+            h("button", { className: "social-login-button", type: "button", disabled: Boolean(socialLoading), onClick: () => socialSignIn("google") },
+              h("span", { className: "social-mark google" }, "G"),
+              socialLoading === "google" ? "กำลังเชื่อม..." : "Google"
+            ),
+            h("button", { className: "social-login-button", type: "button", disabled: Boolean(socialLoading), onClick: () => socialSignIn("x") },
+              h("span", { className: "social-mark x" }, "X"),
+              socialLoading === "x" ? "กำลังเชื่อม..." : "X"
+            ),
+            h("button", { className: "social-login-button", type: "button", disabled: Boolean(socialLoading), onClick: () => socialSignIn("line") },
+              h("span", { className: "social-mark line" }, "LINE"),
+              socialLoading === "line" ? "กำลังเชื่อม..." : "LINE"
+            )
+          ),
+          h("small", { className: "social-login-note" }, "โซเชียลใช้ยืนยันบัญชีเท่านั้น ยังต้องใช้ Master Password เพื่อถอดรหัสคลัง"),
           h("button", { className: "ghost-button", type: "button", onClick: () => alert("ฟังก์ชัน OTP / 2FA จะเชื่อมต่อได้เมื่อมีระบบสมาชิกจริง") }, iconLock(), "เข้าสู่ระบบด้วยรหัส OTP / 2FA"),
           h("a", { className: "ghost-button", href: "index.html" }, "กลับหน้าหลัก")
         ),
