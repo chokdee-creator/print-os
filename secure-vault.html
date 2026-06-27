@@ -797,7 +797,8 @@
       text-align: center;
     }
 
-    .lock-card input {
+    .lock-card input,
+    .lock-card select {
       width: 100%;
       min-height: 48px;
       border: 1px solid var(--line);
@@ -1017,6 +1018,8 @@
     const LEGACY_KEY = "printos.secureVault.v1";
     const SHEET_URL_KEY = "printos.secureVault.sheetUrl.v1";
     const DRIVE_BACKUP_AUTO_KEY = "printos.secureVault.driveBackupAuto.v1";
+    const ACCOUNT_REGISTRY_KEY = "printos.secureVault.accounts.v1";
+    const ACTIVE_ACCOUNT_KEY = "printos.secureVault.activeAccount.v1";
     const DEFAULT_SHEET_URL = "https://script.google.com/macros/s/AKfycbzDF5-Kvqf03RLCxpToRL7C9PAqlfhUvC_xLgnEExF7H4go7gybvzLaKDwtKVBHl6if/exec";
     const VAULT_SHEET_NAME = "SecureVault";
 
@@ -1058,6 +1061,37 @@
       };
     }
 
+    function getAccounts() {
+      try {
+        return JSON.parse(localStorage.getItem(ACCOUNT_REGISTRY_KEY) || "[]").filter(item => item && item.id);
+      } catch (error) {
+        return [];
+      }
+    }
+
+    function saveAccounts(accounts) {
+      localStorage.setItem(ACCOUNT_REGISTRY_KEY, JSON.stringify(accounts));
+    }
+
+    function accountIdFromLogin(login) {
+      const clean = String(login || "local-user").trim().toLowerCase();
+      const safe = clean.replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "user";
+      let hash = 0;
+      for (let i = 0; i < clean.length; i += 1) {
+        hash = ((hash << 5) - hash + clean.charCodeAt(i)) | 0;
+      }
+      return `${safe}-${Math.abs(hash).toString(36)}`;
+    }
+
+    function accountStorageKey(accountId) {
+      return `${STORAGE_KEY}.${accountId}`;
+    }
+
+    function displayNameFromLogin(login) {
+      const clean = String(login || "Local User").trim();
+      return clean.includes("@") ? clean.split("@")[0] : clean;
+    }
+
     function App() {
       const [mode, setMode] = useState("locked");
       const [master, setMaster] = useState("");
@@ -1071,6 +1105,8 @@
       const [showForm, setShowForm] = useState(false);
       const [autoDriveBackup, setAutoDriveBackup] = useState(localStorage.getItem(DRIVE_BACKUP_AUTO_KEY) !== "off");
       const [dataMenuOpen, setDataMenuOpen] = useState(false);
+      const [accounts, setAccounts] = useState(getAccounts());
+      const [activeAccount, setActiveAccount] = useState(null);
       const importRef = useRef(null);
       const searchRef = useRef(null);
 
@@ -1093,34 +1129,95 @@
         }
       }
 
-      async function setupVault(password, remember) {
+      function getLegacyAccount(login) {
+        if (!localStorage.getItem(STORAGE_KEY)) return null;
+        const email = String(login || localStorage.getItem(LOGIN_EMAIL_KEY) || "legacy-user").trim() || "legacy-user";
+        return {
+          id: "legacy",
+          email,
+          displayName: displayNameFromLogin(email),
+          storageKey: STORAGE_KEY,
+          itemCount: 0,
+          legacy: true
+        };
+      }
+
+      function findAccount(login) {
+        const clean = String(login || "").trim().toLowerCase();
+        const list = getAccounts();
+        return list.find(item => String(item.email || "").toLowerCase() === clean || String(item.id || "").toLowerCase() === clean) || null;
+      }
+
+      function upsertAccount(login, itemCount = 0, preferredStorageKey) {
+        const email = String(login || "local-user").trim() || "local-user";
+        const existing = findAccount(email);
+        const now = new Date().toISOString();
+        const account = existing
+          ? { ...existing, email, displayName: existing.displayName || displayNameFromLogin(email), itemCount, updatedAt: now }
+          : {
+              id: accountIdFromLogin(email),
+              email,
+              displayName: displayNameFromLogin(email),
+              storageKey: preferredStorageKey || accountStorageKey(accountIdFromLogin(email)),
+              itemCount,
+              createdAt: now,
+              updatedAt: now
+            };
+        const next = getAccounts().filter(item => item.id !== account.id);
+        next.unshift(account);
+        saveAccounts(next);
+        setAccounts(next);
+        localStorage.setItem(ACTIVE_ACCOUNT_KEY, account.id);
+        return account;
+      }
+
+      function updateAccountMeta(account, itemCount) {
+        if (!account) return null;
+        const nextAccount = upsertAccount(account.email || account.id, itemCount, account.storageKey);
+        setActiveAccount(nextAccount);
+        return nextAccount;
+      }
+
+      async function setupVault(password, remember, login) {
         if (password.length < 6) {
           notify("รหัสหลักควรมีอย่างน้อย 6 ตัวอักษร");
           return;
         }
+        const existingAccount = findAccount(login);
+        if (existingAccount && localStorage.getItem(existingAccount.storageKey)) {
+          const ok = confirm("บัญชีผู้ใช้นี้มีอยู่แล้ว หากสร้างใหม่จะเขียนทับคลังเดิมของบัญชีนี้ ต้องการดำเนินการต่อหรือไม่");
+          if (!ok) return;
+        }
+        const account = upsertAccount(login || localStorage.getItem(LOGIN_EMAIL_KEY) || "local-user", sampleEntries.filter(item => !item.deleted).length);
+        setActiveAccount(account);
         setMaster(password);
         setEntries(sampleEntries);
-        await saveEncrypted(sampleEntries, password);
-        syncVaultToSheet(sampleEntries, true);
-        if (autoDriveBackup) backupVaultToDrive(sampleEntries, true);
+        await saveEncrypted(sampleEntries, password, account.storageKey);
+        syncVaultToSheet(sampleEntries, true, account);
+        if (autoDriveBackup) backupVaultToDrive(sampleEntries, true, account);
         updateRememberedPassword(password, remember);
         localStorage.removeItem(LEGACY_KEY);
         setMode("ready");
-        notify("สร้างคลังรหัสผ่านแล้ว");
+        notify("สร้างบัญชีผู้ใช้และคลังรหัสผ่านแล้ว");
       }
 
-      async function unlockVault(password, remember) {
-        if (!localStorage.getItem(STORAGE_KEY)) {
+      async function unlockVault(password, remember, login) {
+        const selectedAccount = findAccount(login) || getLegacyAccount(login);
+        if (!selectedAccount || !localStorage.getItem(selectedAccount.storageKey)) {
           notify("ยังไม่มีบัญชีผู้ใช้ในเครื่องนี้ กดสร้างบัญชีผู้ใช้ก่อน");
           return;
         }
         try {
-          const data = await loadEncrypted(password);
+          const data = await loadEncrypted(password, selectedAccount.storageKey);
+          const account = selectedAccount.legacy
+            ? upsertAccount(selectedAccount.email, Array.isArray(data.entries) ? data.entries.filter(item => !item.deleted).length : 0, selectedAccount.storageKey)
+            : selectedAccount;
+          setActiveAccount(account);
           setMaster(password);
           setEntries(Array.isArray(data.entries) ? data.entries : []);
           updateRememberedPassword(password, remember);
           setMode("ready");
-          notify("ปลดล็อกสำเร็จ");
+          notify(`เข้าสู่ระบบ ${account.displayName || account.email} แล้ว`);
         } catch (error) {
           notify("รหัสหลักไม่ถูกต้อง หรือข้อมูลเสียหาย");
         }
@@ -1128,9 +1225,10 @@
 
       async function persist(nextEntries) {
         setEntries(nextEntries);
-        await saveEncrypted(nextEntries, master);
-        syncVaultToSheet(nextEntries, true);
-        if (autoDriveBackup) backupVaultToDrive(nextEntries, true);
+        const account = updateAccountMeta(activeAccount, nextEntries.filter(item => !item.deleted).length);
+        await saveEncrypted(nextEntries, master, account ? account.storageKey : STORAGE_KEY);
+        syncVaultToSheet(nextEntries, true, account);
+        if (autoDriveBackup) backupVaultToDrive(nextEntries, true, account);
       }
 
       function notify(message) {
@@ -1237,6 +1335,7 @@
         const payload = {
           exportedAt: new Date().toISOString(),
           app: "PRINT OS Secure Vault",
+          account: activeAccount,
           entries
         };
         const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
@@ -1253,9 +1352,10 @@
         return (localStorage.getItem(SHEET_URL_KEY) || DEFAULT_SHEET_URL).trim();
       }
 
-      async function syncVaultToSheet(nextEntries = entries, silent = false) {
+      async function syncVaultToSheet(nextEntries = entries, silent = false, targetAccount = activeAccount) {
         const url = getSheetUrl();
-        const encryptedVault = localStorage.getItem(STORAGE_KEY);
+        const account = targetAccount || activeAccount || findAccount(localStorage.getItem(LOGIN_EMAIL_KEY)) || getLegacyAccount(localStorage.getItem(LOGIN_EMAIL_KEY));
+        const encryptedVault = account ? localStorage.getItem(account.storageKey) : localStorage.getItem(STORAGE_KEY);
         if (!url || !encryptedVault) {
           if (!silent) notify("ยังไม่มีข้อมูลสำหรับซิงก์");
           return false;
@@ -1268,11 +1368,17 @@
             body: JSON.stringify({
               action: "vaultSave",
               sheetName: VAULT_SHEET_NAME,
-              id: "secure-vault",
+              id: account ? `secure-vault-${account.id}` : "secure-vault",
               itemCount: nextEntries.filter(item => !item.deleted).length,
               encryptedVault,
               updatedAt: new Date().toISOString(),
-              source: location.href
+              source: location.href,
+              account: account ? {
+                id: account.id,
+                email: account.email,
+                displayName: account.displayName,
+                storageKey: account.storageKey
+              } : null
             })
           });
           if (!silent) notify("ซิงก์ข้อมูลเข้ารหัสไป Google Sheet แล้ว");
@@ -1283,9 +1389,10 @@
         }
       }
 
-      async function backupVaultToDrive(nextEntries = entries, silent = false) {
+      async function backupVaultToDrive(nextEntries = entries, silent = false, targetAccount = activeAccount) {
         const url = getSheetUrl();
-        const encryptedVault = localStorage.getItem(STORAGE_KEY);
+        const account = targetAccount || activeAccount || findAccount(localStorage.getItem(LOGIN_EMAIL_KEY)) || getLegacyAccount(localStorage.getItem(LOGIN_EMAIL_KEY));
+        const encryptedVault = account ? localStorage.getItem(account.storageKey) : localStorage.getItem(STORAGE_KEY);
         if (!url || !encryptedVault) {
           if (!silent) notify("ยังไม่มีข้อมูลสำหรับสำรองไป Drive");
           return false;
@@ -1302,7 +1409,14 @@
               itemCount: nextEntries.filter(item => !item.deleted).length,
               encryptedVault,
               updatedAt: new Date().toISOString(),
-              source: location.href
+              source: location.href,
+              accounts: getAccounts(),
+              account: account ? {
+                id: account.id,
+                email: account.email,
+                displayName: account.displayName,
+                storageKey: account.storageKey
+              } : null
             })
           });
           if (!silent) notify("ส่งข้อมูลเข้ารหัสไปสำรองใน Google Drive แล้ว");
@@ -1340,8 +1454,10 @@
               notify("ไม่พบข้อมูล Vault ใน Google Sheet");
               return;
             }
-            if (localStorage.getItem(STORAGE_KEY) && !confirm("โหลดข้อมูลจาก Google Sheet จะเขียนทับข้อมูล Vault ในเครื่องนี้ ต้องการดำเนินการไหม")) return;
-            localStorage.setItem(STORAGE_KEY, payload.vault.encryptedVault);
+            const account = activeAccount || findAccount(localStorage.getItem(LOGIN_EMAIL_KEY)) || getLegacyAccount(localStorage.getItem(LOGIN_EMAIL_KEY));
+            const storageKey = account ? account.storageKey : STORAGE_KEY;
+            if (localStorage.getItem(storageKey) && !confirm("โหลดข้อมูลจาก Google Sheet จะเขียนทับข้อมูล Vault ของบัญชีนี้ ต้องการดำเนินการไหม")) return;
+            localStorage.setItem(storageKey, payload.vault.encryptedVault);
             setMaster("");
             setEntries([]);
             setVisibleIds(new Set());
@@ -1383,8 +1499,10 @@
       }
 
       function lock() {
+        if (activeAccount?.email) localStorage.setItem(LOGIN_EMAIL_KEY, activeAccount.email);
         setMaster("");
         setEntries([]);
+        setActiveAccount(null);
         setVisibleIds(new Set());
         setMode("locked");
       }
@@ -1394,11 +1512,21 @@
         if (!first) return;
         const second = confirm("ยืนยันอีกครั้ง: การรีเซ็ตจะลบข้อมูล Secure Vault ในเครื่องนี้ทั้งหมด ควรมีไฟล์สำรองก่อนดำเนินการ");
         if (!second) return;
-        localStorage.removeItem(STORAGE_KEY);
+        const targetAccount = activeAccount || findAccount(localStorage.getItem(LOGIN_EMAIL_KEY)) || getLegacyAccount(localStorage.getItem(LOGIN_EMAIL_KEY));
+        if (targetAccount) {
+          localStorage.removeItem(targetAccount.storageKey);
+          const next = getAccounts().filter(item => item.id !== targetAccount.id);
+          saveAccounts(next);
+          setAccounts(next);
+        } else {
+          localStorage.removeItem(STORAGE_KEY);
+        }
         localStorage.removeItem(REMEMBER_KEY);
         localStorage.removeItem(LEGACY_KEY);
+        localStorage.removeItem(ACTIVE_ACCOUNT_KEY);
         setMaster("");
         setEntries([]);
+        setActiveAccount(null);
         setVisibleIds(new Set());
         setMode("setup");
         notify("รีเซ็ตคลังรหัสผ่านแล้ว");
@@ -1417,6 +1545,7 @@
             setMode("setup");
           },
           onForgot: forgotPassword,
+          accounts,
           toast
         });
       }
@@ -1446,8 +1575,11 @@
               h("small", null, "2FA: เปิดใช้งานแยกกับบริการจริงตามต้องการ")
             ),
             h("div", { className: "user-card" },
-              h("span", { className: "avatar" }, "PI"),
-              h("span", null, h("strong", null, "PRINT OS"), h("small", null, "Local encrypted vault"))
+              h("span", { className: "avatar" }, initials(activeAccount?.displayName || activeAccount?.email || "SV")),
+              h("span", null,
+                h("strong", null, activeAccount?.displayName || "Secure Vault"),
+                h("small", null, activeAccount?.email || "Local encrypted vault")
+              )
             )
           )
         ),
@@ -1590,16 +1722,16 @@
             ),
             h("button", { className: "danger-button", type: "button", onClick: onForgot }, "ลืมรหัสผ่าน?")
           ),
-          h("button", { className: "primary-button", type: "submit" }, isSetup ? "สร้างคลังรหัสผ่าน" : "ปลดล็อก"),
+          h("button", { className: "primary-button", type: "submit" }, isSetup ? "สร้างบัญชีผู้ใช้" : "ปลดล็อก"),
           h("a", { className: "ghost-button", href: "index.html" }, "กลับหน้าหลัก")
         ),
         toast && h("div", { className: "toast" }, toast)
       );
     }
 
-    function LockScreenModern({ mode, onSetup, onUnlock, onCreateVault, onForgot, toast }) {
+    function LockScreenModern({ mode, onSetup, onUnlock, onCreateVault, onForgot, accounts = [], toast }) {
       const rememberedPassword = localStorage.getItem(REMEMBER_KEY) || "";
-      const savedEmail = localStorage.getItem(LOGIN_EMAIL_KEY) || "winnapa@email.com";
+      const savedEmail = localStorage.getItem(LOGIN_EMAIL_KEY) || accounts[0]?.email || "";
       const [loginEmail, setLoginEmail] = useState(savedEmail);
       const [password, setPassword] = useState(mode === "locked" ? rememberedPassword : "");
       const [confirm, setConfirm] = useState("");
@@ -1614,7 +1746,7 @@
             event.preventDefault();
             localStorage.setItem(LOGIN_EMAIL_KEY, loginEmail.trim());
             if (isSetup && password !== confirm) return;
-            isSetup ? onSetup(password, remember) : onUnlock(password, remember);
+            isSetup ? onSetup(password, remember, loginEmail) : onUnlock(password, remember, loginEmail);
           }
         },
           h("div", { className: "brand" },
@@ -1629,6 +1761,16 @@
             : h("h1", null, "ยินดีต้อนรับกลับ"),
           h("p", null, isSetup ? "สร้างรหัสหลักเพื่อเข้ารหัสคลังรหัสผ่านของคุณ" : "เข้าสู่ระบบเพื่อเข้าถึงรหัสผ่านของคุณ"),
           h("div", { className: "login-fields" },
+            !isSetup && accounts.length > 0 && h("div", { className: "login-field" },
+              h("label", null, "บัญชีผู้ใช้ที่มีอยู่"),
+              h("select", {
+                value: loginEmail,
+                onChange: e => setLoginEmail(e.target.value)
+              },
+                h("option", { value: "" }, "เลือกบัญชี หรือกรอกเอง"),
+                accounts.map(account => h("option", { key: account.id, value: account.email }, `${account.displayName || account.email} (${account.email})`))
+              )
+            ),
             h("div", { className: "login-field" },
               h("label", null, "อีเมล หรือ ชื่อผู้ใช้"),
               h("input", {
@@ -1674,7 +1816,7 @@
             ),
             h("button", { className: "danger-button", type: "button", onClick: onForgot }, "ลืมรหัสผ่าน?")
           ),
-          h("button", { className: "primary-button", type: "submit" }, isSetup ? "สร้างคลังรหัสผ่าน" : "เข้าสู่ระบบ"),
+          h("button", { className: "primary-button", type: "submit" }, isSetup ? "สร้างบัญชีผู้ใช้" : "เข้าสู่ระบบ"),
           !isSetup && h("button", { className: "ghost-button", type: "button", onClick: onCreateVault }, iconShield(), "สร้างบัญชีผู้ใช้"),
           h("div", { className: "login-divider" }, "หรือเข้าสู่ระบบด้วย"),
           h("button", { className: "ghost-button", type: "button", onClick: () => alert("ฟังก์ชัน OTP / 2FA จะเชื่อมต่อได้เมื่อมีระบบสมาชิกจริง") }, iconLock(), "เข้าสู่ระบบด้วยรหัส OTP / 2FA"),
@@ -1780,21 +1922,21 @@
       return h("label", { className: `field ${className || ""}` }, h("span", null, label), children);
     }
 
-    async function saveEncrypted(entries, password) {
+    async function saveEncrypted(entries, password, storageKey = STORAGE_KEY) {
       const salt = crypto.getRandomValues(new Uint8Array(16));
       const iv = crypto.getRandomValues(new Uint8Array(12));
       const key = await deriveKey(password, salt);
       const encoded = new TextEncoder().encode(JSON.stringify({ entries }));
       const cipher = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, encoded);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      localStorage.setItem(storageKey, JSON.stringify({
         salt: toBase64(salt),
         iv: toBase64(iv),
         cipher: toBase64(new Uint8Array(cipher))
       }));
     }
 
-    async function loadEncrypted(password) {
-      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    async function loadEncrypted(password, storageKey = STORAGE_KEY) {
+      const stored = JSON.parse(localStorage.getItem(storageKey) || "{}");
       const salt = fromBase64(stored.salt);
       const iv = fromBase64(stored.iv);
       const cipher = fromBase64(stored.cipher);

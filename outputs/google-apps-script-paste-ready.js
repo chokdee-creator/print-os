@@ -256,14 +256,17 @@ function getProfileSheet_() {
 
 function saveVault_(data) {
   const sheet = getVaultSheet_(data.sheetName);
+  const targetId = data.id || "secure-vault";
   const row = [
-    data.id || "secure-vault",
+    targetId,
     data.updatedAt || new Date().toISOString(),
     Number(data.itemCount) || 0,
     data.encryptedVault || "",
     data.source || ""
   ];
-  sheet.getRange(2, 1, 1, row.length).setValues([row]);
+  const rowIndex = findVaultRowById_(sheet, targetId);
+  if (rowIndex) sheet.getRange(rowIndex, 1, 1, row.length).setValues([row]);
+  else sheet.appendRow(row);
   return {
     id: row[0],
     updatedAt: row[1],
@@ -290,6 +293,15 @@ function getVault_(sheetName, id) {
   return null;
 }
 
+function findVaultRowById_(sheet, id) {
+  if (!id || sheet.getLastRow() < 2) return null;
+  const values = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues();
+  for (let i = 0; i < values.length; i += 1) {
+    if (String(values[i][0] || "") === String(id)) return i + 2;
+  }
+  return null;
+}
+
 function getVaultSheet_(sheetName) {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   const targetSheetName = sanitizeSheetName_(sheetName) || "SecureVault";
@@ -311,9 +323,20 @@ function backupVaultToDrive_(data) {
   if (!encryptedVault) throw new Error("Missing encryptedVault");
 
   const updatedAt = data.updatedAt || new Date().toISOString();
-  const folder = getOrCreateFolder_(data.folderName || "Secure Vault Backups");
+  const account = data.account || {};
+  const accountId = sanitizeFileNamePart_(account.id || data.accountId || data.id || "secure-vault");
+  const accountLabel = sanitizeFileNamePart_(account.email || account.displayName || accountId);
+  const rootFolder = getOrCreateFolder_(data.folderName || "Secure Vault Backups");
+  const folder = getOrCreateSubFolder_(rootFolder, accountLabel);
   const payload = JSON.stringify({
     id: data.id || "secure-vault",
+    account: {
+      id: account.id || accountId,
+      email: account.email || "",
+      displayName: account.displayName || "",
+      storageKey: account.storageKey || ""
+    },
+    accounts: data.accounts || [],
     updatedAt: updatedAt,
     itemCount: Number(data.itemCount) || 0,
     encryptedVault: encryptedVault,
@@ -321,8 +344,8 @@ function backupVaultToDrive_(data) {
     note: "Encrypted Secure Vault backup. Restore with the original master password."
   }, null, 2);
 
-  const latestName = "secure-vault-latest.json";
-  const dailyName = "secure-vault-" + Utilities.formatDate(new Date(updatedAt), Session.getScriptTimeZone(), "yyyy-MM-dd") + ".json";
+  const latestName = accountId + "-latest.json";
+  const dailyName = accountId + "-" + Utilities.formatDate(new Date(updatedAt), Session.getScriptTimeZone(), "yyyy-MM-dd") + ".json";
   const latest = upsertTextFile_(folder, latestName, payload);
   const daily = upsertTextFile_(folder, dailyName, payload);
 
@@ -343,6 +366,18 @@ function upsertTextFile_(folder, fileName, content) {
     return file;
   }
   return folder.createFile(fileName, content, MimeType.JSON);
+}
+
+function getOrCreateSubFolder_(parentFolder, name) {
+  const folders = parentFolder.getFoldersByName(name);
+  return folders.hasNext() ? folders.next() : parentFolder.createFolder(name);
+}
+
+function sanitizeFileNamePart_(value) {
+  return String(value || "secure-vault")
+    .replace(/[\\/:*?"<>|]/g, "-")
+    .replace(/\s+/g, "-")
+    .slice(0, 80) || "secure-vault";
 }
 
 function savePaymentSlip_(data) {
