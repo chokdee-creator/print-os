@@ -1111,7 +1111,7 @@
 
       async function unlockVault(password, remember) {
         if (!localStorage.getItem(STORAGE_KEY)) {
-          notify("ยังไม่มีคลังรหัสผ่านในเครื่องนี้ กดสร้างคลังใหม่ก่อน");
+          notify("ยังไม่มีบัญชีผู้ใช้ในเครื่องนี้ กดสร้างบัญชีผู้ใช้ก่อน");
           return;
         }
         try {
@@ -1670,7 +1670,7 @@
             h("button", { className: "danger-button", type: "button", onClick: onForgot }, "ลืมรหัสผ่าน?")
           ),
           h("button", { className: "primary-button", type: "submit" }, isSetup ? "สร้างคลังรหัสผ่าน" : "เข้าสู่ระบบ"),
-          !isSetup && !hasVault && h("button", { className: "ghost-button", type: "button", onClick: onCreateVault }, iconShield(), "สร้างคลังใหม่"),
+          !isSetup && !hasVault && h("button", { className: "ghost-button", type: "button", onClick: onCreateVault }, iconShield(), "สร้างบัญชีผู้ใช้"),
           h("div", { className: "login-divider" }, "หรือเข้าสู่ระบบด้วย"),
           h("button", { className: "ghost-button", type: "button", onClick: () => alert("ฟังก์ชัน OTP / 2FA จะเชื่อมต่อได้เมื่อมีระบบสมาชิกจริง") }, iconLock(), "เข้าสู่ระบบด้วยรหัส OTP / 2FA"),
           h("a", { className: "ghost-button", href: "index.html" }, "กลับหน้าหลัก")
