@@ -1409,9 +1409,14 @@
           mode,
           onSetup: setupVault,
           onUnlock: unlockVault,
-          onCreateVault: () => setMode("setup"),
+          onCreateVault: () => {
+            if (localStorage.getItem(STORAGE_KEY)) {
+              const ok = confirm("เครื่องนี้มีบัญชีผู้ใช้ Secure Vault อยู่แล้ว ถ้าสร้างบัญชีใหม่ควรสำรองข้อมูลเดิมก่อน ต้องการไปหน้าสร้างบัญชีผู้ใช้หรือไม่");
+              if (!ok) return;
+            }
+            setMode("setup");
+          },
           onForgot: forgotPassword,
-          hasVault: Boolean(localStorage.getItem(STORAGE_KEY)),
           toast
         });
       }
@@ -1592,7 +1597,7 @@
       );
     }
 
-    function LockScreenModern({ mode, onSetup, onUnlock, onCreateVault, onForgot, hasVault, toast }) {
+    function LockScreenModern({ mode, onSetup, onUnlock, onCreateVault, onForgot, toast }) {
       const rememberedPassword = localStorage.getItem(REMEMBER_KEY) || "";
       const savedEmail = localStorage.getItem(LOGIN_EMAIL_KEY) || "winnapa@email.com";
       const [loginEmail, setLoginEmail] = useState(savedEmail);
@@ -1670,7 +1675,7 @@
             h("button", { className: "danger-button", type: "button", onClick: onForgot }, "ลืมรหัสผ่าน?")
           ),
           h("button", { className: "primary-button", type: "submit" }, isSetup ? "สร้างคลังรหัสผ่าน" : "เข้าสู่ระบบ"),
-          !isSetup && !hasVault && h("button", { className: "ghost-button", type: "button", onClick: onCreateVault }, iconShield(), "สร้างบัญชีผู้ใช้"),
+          !isSetup && h("button", { className: "ghost-button", type: "button", onClick: onCreateVault }, iconShield(), "สร้างบัญชีผู้ใช้"),
           h("div", { className: "login-divider" }, "หรือเข้าสู่ระบบด้วย"),
           h("button", { className: "ghost-button", type: "button", onClick: () => alert("ฟังก์ชัน OTP / 2FA จะเชื่อมต่อได้เมื่อมีระบบสมาชิกจริง") }, iconLock(), "เข้าสู่ระบบด้วยรหัส OTP / 2FA"),
           h("a", { className: "ghost-button", href: "index.html" }, "กลับหน้าหลัก")
