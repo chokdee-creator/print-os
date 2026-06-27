@@ -258,6 +258,72 @@
       flex-wrap: wrap;
     }
 
+    .menu-wrap {
+      position: relative;
+      display: inline-flex;
+    }
+
+    .data-menu {
+      position: absolute;
+      top: calc(100% + 10px);
+      right: 0;
+      z-index: 30;
+      width: min(270px, calc(100vw - 32px));
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 8px;
+      background: rgba(11, 18, 32, .96);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+      transform-origin: top right;
+      animation: menuIn .16s ease both;
+    }
+
+    .data-menu button {
+      width: 100%;
+      min-height: 44px;
+      border: 0;
+      border-radius: 10px;
+      padding: 0 10px;
+      display: grid;
+      grid-template-columns: 22px 1fr;
+      align-items: center;
+      gap: 10px;
+      color: var(--ink);
+      background: transparent;
+      text-align: left;
+      font-weight: 800;
+    }
+
+    .data-menu button:hover {
+      background: rgba(79, 101, 255, .14);
+    }
+
+    .data-menu small {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .data-menu .menu-separator {
+      height: 1px;
+      margin: 7px 4px;
+      background: var(--line);
+    }
+
+    @keyframes menuIn {
+      from {
+        opacity: 0;
+        transform: translateY(-6px) scale(.98);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
     .icon-button,
     .primary-button,
     .ghost-button {
@@ -1004,6 +1070,7 @@
       const [editing, setEditing] = useState(null);
       const [showForm, setShowForm] = useState(false);
       const [autoDriveBackup, setAutoDriveBackup] = useState(localStorage.getItem(DRIVE_BACKUP_AUTO_KEY) !== "off");
+      const [dataMenuOpen, setDataMenuOpen] = useState(false);
       const importRef = useRef(null);
       const searchRef = useRef(null);
 
@@ -1388,12 +1455,18 @@
             h("div", { className: "top-actions" },
               h("a", { className: "ghost-button", href: "index.html" }, "หน้าหลัก"),
               h("button", { className: "icon-button", type: "button", title: "รายการที่ควรเปลี่ยนรหัส", onClick: () => setActiveCategory("ทั้งหมด") }, iconBell(), stats.needsRotation > 0 && h("span", { className: "alert-dot" })),
-              h("button", { className: "ghost-button", type: "button", onClick: () => syncVaultToSheet(entries, false) }, iconGlobe(), "ซิงก์ Sheets"),
-              h("button", { className: "ghost-button", type: "button", onClick: () => backupVaultToDrive(entries, false) }, iconFolder(), "สำรอง Drive"),
-              h("button", { className: "ghost-button", type: "button", onClick: toggleDriveBackup }, iconShield(), autoDriveBackup ? "Auto Drive: เปิด" : "Auto Drive: ปิด"),
+              h("div", { className: "menu-wrap" },
+                h("button", { className: "ghost-button", type: "button", onClick: () => setDataMenuOpen(open => !open), "aria-expanded": dataMenuOpen }, iconFolder(), "จัดการข้อมูล"),
+                dataMenuOpen && h("div", { className: "data-menu" },
+                  h("button", { type: "button", onClick: () => { setDataMenuOpen(false); syncVaultToSheet(entries, false); } }, iconGlobe(), h("span", null, "ซิงก์ Sheets", h("small", null, "บันทึกข้อมูลเข้ารหัสไป Google Sheet"))),
+                  h("button", { type: "button", onClick: () => { setDataMenuOpen(false); backupVaultToDrive(entries, false); } }, iconFolder(), h("span", null, "สำรอง Drive", h("small", null, "สร้างไฟล์สำรองใน Google Drive"))),
+                  h("button", { type: "button", onClick: () => { setDataMenuOpen(false); toggleDriveBackup(); } }, iconShield(), h("span", null, autoDriveBackup ? "Auto Drive: เปิด" : "Auto Drive: ปิด", h("small", null, "สำรองอัตโนมัติหลังแก้ไขข้อมูล"))),
+                  h("div", { className: "menu-separator" }),
+                  h("button", { type: "button", onClick: () => { setDataMenuOpen(false); exportBackup(); } }, iconDownload(), h("span", null, "สำรองไฟล์", h("small", null, "ดาวน์โหลด JSON ลงเครื่อง"))),
+                  h("button", { type: "button", onClick: () => { setDataMenuOpen(false); importRef.current?.click(); } }, iconUpload(), h("span", null, "นำเข้าไฟล์", h("small", null, "รวมข้อมูลจากไฟล์สำรอง")))
+                )
+              ),
               h("a", { className: "ghost-button", href: "secure-vault-team.html" }, iconUsers(), "ระบบสมาชิก"),
-              h("button", { className: "ghost-button", type: "button", onClick: exportBackup }, iconDownload(), "สำรอง"),
-              h("button", { className: "ghost-button", type: "button", onClick: () => importRef.current?.click() }, iconUpload(), "นำเข้า"),
               h("input", { ref: importRef, className: "file-input", type: "file", accept: "application/json", onChange: e => importBackup(e.target.files[0]) }),
               h("button", { className: "primary-button", type: "button", onClick: () => { setEditing(null); setShowForm(true); } }, iconPlus(), "เพิ่มรายการใหม่"),
               h("button", { className: "icon-button", type: "button", title: "ล็อกคลัง", onClick: lock }, iconLock())
