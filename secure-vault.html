@@ -1671,7 +1671,6 @@
           ),
           h("button", { className: "primary-button", type: "submit" }, isSetup ? "สร้างคลังรหัสผ่าน" : "เข้าสู่ระบบ"),
           !isSetup && !hasVault && h("button", { className: "ghost-button", type: "button", onClick: onCreateVault }, iconShield(), "สร้างคลังใหม่"),
-          h("a", { className: "ghost-button", href: "secure-vault-team.html" }, iconUsers(), "มี User อยู่แล้ว? Login สมาชิก"),
           h("div", { className: "login-divider" }, "หรือเข้าสู่ระบบด้วย"),
           h("button", { className: "ghost-button", type: "button", onClick: () => alert("ฟังก์ชัน OTP / 2FA จะเชื่อมต่อได้เมื่อมีระบบสมาชิกจริง") }, iconLock(), "เข้าสู่ระบบด้วยรหัส OTP / 2FA"),
           h("a", { className: "ghost-button", href: "index.html" }, "กลับหน้าหลัก")
