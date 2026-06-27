@@ -746,6 +746,38 @@
       display: grid;
       gap: 18px;
       backdrop-filter: blur(18px);
+      position: relative;
+    }
+
+    .lock-back-button {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      min-height: 36px;
+      border: 1px solid rgba(148, 163, 184, .24);
+      border-radius: 999px;
+      background: rgba(7, 12, 22, .72);
+      color: #dbeafe;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 0 12px;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform .18s ease, border-color .18s ease, background .18s ease, color .18s ease;
+    }
+
+    .lock-back-button:hover {
+      transform: translateX(-2px);
+      border-color: rgba(99, 102, 241, .8);
+      background: rgba(79, 70, 229, .18);
+      color: #fff;
+    }
+
+    .lock-back-button svg {
+      width: 16px;
+      height: 16px;
     }
 
     .lock-card .brand {
@@ -1534,9 +1566,11 @@
 
       if (mode !== "ready") {
         return h(LockScreenModern, {
+          key: mode,
           mode,
           onSetup: setupVault,
           onUnlock: unlockVault,
+          onBack: () => setMode("locked"),
           onCreateVault: () => {
             if (localStorage.getItem(STORAGE_KEY)) {
               const ok = confirm("เครื่องนี้มีบัญชีผู้ใช้ Secure Vault อยู่แล้ว ถ้าสร้างบัญชีใหม่ควรสำรองข้อมูลเดิมก่อน ต้องการไปหน้าสร้างบัญชีผู้ใช้หรือไม่");
@@ -1729,7 +1763,7 @@
       );
     }
 
-    function LockScreenModern({ mode, onSetup, onUnlock, onCreateVault, onForgot, accounts = [], toast }) {
+    function LockScreenModern({ mode, onSetup, onUnlock, onBack, onCreateVault, onForgot, accounts = [], toast }) {
       const rememberedPassword = localStorage.getItem(REMEMBER_KEY) || "";
       const savedEmail = localStorage.getItem(LOGIN_EMAIL_KEY) || accounts[0]?.email || "";
       const [loginEmail, setLoginEmail] = useState(savedEmail);
@@ -1749,6 +1783,12 @@
             isSetup ? onSetup(password, remember, loginEmail) : onUnlock(password, remember, loginEmail);
           }
         },
+          isSetup && h("button", {
+            className: "lock-back-button",
+            type: "button",
+            onClick: onBack,
+            "aria-label": "ย้อนกลับไปหน้าเข้าสู่ระบบ"
+          }, iconArrowLeft(), "ย้อนกลับ"),
           h("div", { className: "brand" },
             h("span", { className: "brand-mark" }, iconShield()),
             h("span", null, h("strong", null, "Secure Vault"), h("small", null, "PRINT OS Password Manager"))
@@ -2024,6 +2064,7 @@
     function iconBell() { return iconSvg(["M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9", "M10 21h4"]); }
     function iconPlus() { return iconSvg(["M12 5v14", "M5 12h14"]); }
     function iconLock() { return iconSvg(["M6 10V8a6 6 0 0 1 12 0v2", "M5 10h14v11H5z"]); }
+    function iconArrowLeft() { return iconSvg(["M19 12H5", "m12 19-7-7 7-7"]); }
     function iconDownload() { return iconSvg(["M12 3v12", "m7 10 5 5 5-5", "M5 21h14"]); }
     function iconUpload() { return iconSvg(["M12 21V9", "m7 14 5-5 5 5", "M5 3h14"]); }
     function iconEye() { return iconSvg(["M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z", "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"]); }
