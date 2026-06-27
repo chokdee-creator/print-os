@@ -16,6 +16,12 @@ function doPost(e) {
       .createTextOutput(JSON.stringify({ ok: true, vault: vault }))
       .setMimeType(ContentService.MimeType.JSON);
   }
+  if (data.action === "vaultBackupDrive") {
+    const backup = backupVaultToDrive_(data);
+    return ContentService
+      .createTextOutput(JSON.stringify({ ok: true, backup: backup }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
   const sheet = getSheet_(data.sheetName);
   const rowIndex = findRowById_(sheet, data.id);
   if (data.action === "delete") {
@@ -333,6 +339,45 @@ function getVaultSheet_(sheetName) {
   sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold");
   sheet.setFrozenRows(1);
   return sheet;
+}
+
+function backupVaultToDrive_(data) {
+  const encryptedVault = String(data.encryptedVault || "");
+  if (!encryptedVault) throw new Error("Missing encryptedVault");
+
+  const updatedAt = data.updatedAt || new Date().toISOString();
+  const folder = getOrCreateFolder_(data.folderName || "Secure Vault Backups");
+  const payload = JSON.stringify({
+    id: data.id || "secure-vault",
+    updatedAt: updatedAt,
+    itemCount: Number(data.itemCount) || 0,
+    encryptedVault: encryptedVault,
+    source: data.source || "",
+    note: "Encrypted Secure Vault backup. Restore with the original master password."
+  }, null, 2);
+
+  const latestName = "secure-vault-latest.json";
+  const dailyName = "secure-vault-" + Utilities.formatDate(new Date(updatedAt), Session.getScriptTimeZone(), "yyyy-MM-dd") + ".json";
+  const latest = upsertTextFile_(folder, latestName, payload);
+  const daily = upsertTextFile_(folder, dailyName, payload);
+
+  return {
+    folderName: folder.getName(),
+    latestName: latest.getName(),
+    latestUrl: latest.getUrl(),
+    dailyName: daily.getName(),
+    dailyUrl: daily.getUrl()
+  };
+}
+
+function upsertTextFile_(folder, fileName, content) {
+  const files = folder.getFilesByName(fileName);
+  if (files.hasNext()) {
+    const file = files.next();
+    file.setContent(content);
+    return file;
+  }
+  return folder.createFile(fileName, content, MimeType.JSON);
 }
 
 function normalizeCustomerType_(value) {

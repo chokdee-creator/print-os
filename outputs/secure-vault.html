@@ -950,6 +950,7 @@
     const LOGIN_EMAIL_KEY = "printos.secureVault.loginEmail.v1";
     const LEGACY_KEY = "printos.secureVault.v1";
     const SHEET_URL_KEY = "printos.secureVault.sheetUrl.v1";
+    const DRIVE_BACKUP_AUTO_KEY = "printos.secureVault.driveBackupAuto.v1";
     const DEFAULT_SHEET_URL = "https://script.google.com/macros/s/AKfycbzDF5-Kvqf03RLCxpToRL7C9PAqlfhUvC_xLgnEExF7H4go7gybvzLaKDwtKVBHl6if/exec";
     const VAULT_SHEET_NAME = "SecureVault";
 
@@ -1002,6 +1003,7 @@
       const [visibleIds, setVisibleIds] = useState(new Set());
       const [editing, setEditing] = useState(null);
       const [showForm, setShowForm] = useState(false);
+      const [autoDriveBackup, setAutoDriveBackup] = useState(localStorage.getItem(DRIVE_BACKUP_AUTO_KEY) !== "off");
       const importRef = useRef(null);
       const searchRef = useRef(null);
 
@@ -1033,6 +1035,7 @@
         setEntries(sampleEntries);
         await saveEncrypted(sampleEntries, password);
         syncVaultToSheet(sampleEntries, true);
+        if (autoDriveBackup) backupVaultToDrive(sampleEntries, true);
         updateRememberedPassword(password, remember);
         localStorage.removeItem(LEGACY_KEY);
         setMode("ready");
@@ -1056,6 +1059,7 @@
         setEntries(nextEntries);
         await saveEncrypted(nextEntries, master);
         syncVaultToSheet(nextEntries, true);
+        if (autoDriveBackup) backupVaultToDrive(nextEntries, true);
       }
 
       function notify(message) {
@@ -1208,6 +1212,45 @@
         }
       }
 
+      async function backupVaultToDrive(nextEntries = entries, silent = false) {
+        const url = getSheetUrl();
+        const encryptedVault = localStorage.getItem(STORAGE_KEY);
+        if (!url || !encryptedVault) {
+          if (!silent) notify("ยังไม่มีข้อมูลสำหรับสำรองไป Drive");
+          return false;
+        }
+        try {
+          await fetch(url, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({
+              action: "vaultBackupDrive",
+              folderName: "Secure Vault Backups",
+              id: "secure-vault",
+              itemCount: nextEntries.filter(item => !item.deleted).length,
+              encryptedVault,
+              updatedAt: new Date().toISOString(),
+              source: location.href
+            })
+          });
+          if (!silent) notify("ส่งข้อมูลเข้ารหัสไปสำรองใน Google Drive แล้ว");
+          return true;
+        } catch (error) {
+          if (!silent) notify("สำรองไป Google Drive ไม่สำเร็จ");
+          return false;
+        }
+      }
+
+      function toggleDriveBackup() {
+        setAutoDriveBackup(value => {
+          const next = !value;
+          localStorage.setItem(DRIVE_BACKUP_AUTO_KEY, next ? "on" : "off");
+          notify(next ? "เปิดสำรอง Drive อัตโนมัติแล้ว" : "ปิดสำรอง Drive อัตโนมัติแล้ว");
+          return next;
+        });
+      }
+
       function loadVaultFromSheet() {
         const url = getSheetUrl();
         if (!url) {
@@ -1346,6 +1389,8 @@
               h("a", { className: "ghost-button", href: "index.html" }, "หน้าหลัก"),
               h("button", { className: "icon-button", type: "button", title: "รายการที่ควรเปลี่ยนรหัส", onClick: () => setActiveCategory("ทั้งหมด") }, iconBell(), stats.needsRotation > 0 && h("span", { className: "alert-dot" })),
               h("button", { className: "ghost-button", type: "button", onClick: () => syncVaultToSheet(entries, false) }, iconGlobe(), "ซิงก์ Sheets"),
+              h("button", { className: "ghost-button", type: "button", onClick: () => backupVaultToDrive(entries, false) }, iconFolder(), "สำรอง Drive"),
+              h("button", { className: "ghost-button", type: "button", onClick: toggleDriveBackup }, iconShield(), autoDriveBackup ? "Auto Drive: เปิด" : "Auto Drive: ปิด"),
               h("a", { className: "ghost-button", href: "secure-vault-team.html" }, iconUsers(), "ระบบสมาชิก"),
               h("button", { className: "ghost-button", type: "button", onClick: exportBackup }, iconDownload(), "สำรอง"),
               h("button", { className: "ghost-button", type: "button", onClick: () => importRef.current?.click() }, iconUpload(), "นำเข้า"),
