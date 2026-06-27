@@ -1059,7 +1059,7 @@
     }
 
     function App() {
-      const [mode, setMode] = useState(localStorage.getItem(STORAGE_KEY) ? "locked" : "setup");
+      const [mode, setMode] = useState("locked");
       const [master, setMaster] = useState("");
       const [entries, setEntries] = useState([]);
       const [query, setQuery] = useState("");
@@ -1110,6 +1110,10 @@
       }
 
       async function unlockVault(password, remember) {
+        if (!localStorage.getItem(STORAGE_KEY)) {
+          notify("ยังไม่มีคลังรหัสผ่านในเครื่องนี้ กดสร้างคลังใหม่ก่อน");
+          return;
+        }
         try {
           const data = await loadEncrypted(password);
           setMaster(password);
@@ -1405,7 +1409,9 @@
           mode,
           onSetup: setupVault,
           onUnlock: unlockVault,
+          onCreateVault: () => setMode("setup"),
           onForgot: forgotPassword,
+          hasVault: Boolean(localStorage.getItem(STORAGE_KEY)),
           toast
         });
       }
@@ -1586,7 +1592,7 @@
       );
     }
 
-    function LockScreenModern({ mode, onSetup, onUnlock, onForgot, toast }) {
+    function LockScreenModern({ mode, onSetup, onUnlock, onCreateVault, onForgot, hasVault, toast }) {
       const rememberedPassword = localStorage.getItem(REMEMBER_KEY) || "";
       const savedEmail = localStorage.getItem(LOGIN_EMAIL_KEY) || "winnapa@email.com";
       const [loginEmail, setLoginEmail] = useState(savedEmail);
@@ -1664,6 +1670,7 @@
             h("button", { className: "danger-button", type: "button", onClick: onForgot }, "ลืมรหัสผ่าน?")
           ),
           h("button", { className: "primary-button", type: "submit" }, isSetup ? "สร้างคลังรหัสผ่าน" : "เข้าสู่ระบบ"),
+          !isSetup && !hasVault && h("button", { className: "ghost-button", type: "button", onClick: onCreateVault }, iconShield(), "สร้างคลังใหม่"),
           h("a", { className: "ghost-button", href: "secure-vault-team.html" }, iconUsers(), "มี User อยู่แล้ว? Login สมาชิก"),
           h("div", { className: "login-divider" }, "หรือเข้าสู่ระบบด้วย"),
           h("button", { className: "ghost-button", type: "button", onClick: () => alert("ฟังก์ชัน OTP / 2FA จะเชื่อมต่อได้เมื่อมีระบบสมาชิกจริง") }, iconLock(), "เข้าสู่ระบบด้วยรหัส OTP / 2FA"),
