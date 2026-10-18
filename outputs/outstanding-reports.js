@@ -1,6 +1,13 @@
 /* Shared browser / Apps Script report engine. Amounts are summed in satang. */
 var PrintOutstanding = (function () {
   'use strict';
+  function instantDay(value) {
+    var date=new Date(value);
+    if(isNaN(date.getTime())) throw new Error('วันที่ไม่ถูกต้อง');
+    var parts=new Intl.DateTimeFormat('en',{timeZone:'Asia/Bangkok',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(date);
+    var values={};parts.forEach(function(p){values[p.type]=p.value;});
+    return values.year+'-'+values.month+'-'+values.day;
+  }
   function day(value) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) throw new Error('ระบุวันที่แบบ YYYY-MM-DD');
     var d = new Date(value + 'T12:00:00Z');
@@ -126,6 +133,6 @@ var PrintOutstanding = (function () {
     if (config.range !== 'currentMonth' && config.start > today) return false;
     return config.cadence === 'day' || Number(today.slice(8)) === new Date(Date.UTC(Number(today.slice(0,4)), Number(today.slice(5,7)), 0)).getUTCDate();
   }
-  return {day:day, type:type, identity:identity, balance:balance, validate:validate, dates:dates, build:build, text:text, command:command, parse:parse, due:due};
+  return {day:day, instantDay:instantDay, type:type, identity:identity, balance:balance, validate:validate, dates:dates, build:build, text:text, command:command, parse:parse, due:due};
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = PrintOutstanding;

@@ -2629,7 +2629,7 @@
     }
 
     function today() {
-      return new Date().toISOString().slice(0, 10);
+      return PrintOutstanding.instantDay(new Date());
     }
 
     function thisMonth() {
@@ -3341,6 +3341,7 @@
     function dateInputValue(value) {
       const text = String(value || "").trim();
       if (!text) return today();
+      if (/^\d{4}-\d{2}-\d{2}T/.test(text)) return PrintOutstanding.instantDay(text);
       const iso = text.match(/\d{4}-\d{2}-\d{2}/);
       return iso ? iso[0] : text.slice(0, 10);
     }

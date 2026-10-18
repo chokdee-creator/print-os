@@ -26,6 +26,9 @@ assert.equal(P.due({...c,start:'2026-01-01',cadence:'month'},'2026-04-30'),true)
 assert.equal(P.due({...c,cadence:'day'},'2026-10-15'),true);
 assert.equal(P.due(c,'2026-10-15'),false);
 assert.match(P.text(report),/ยอดค้างปัจจุบัน/);
+assert.equal(P.instantDay('2026-08-31T17:00:00Z'),'2026-09-01');
+assert.equal(P.instantDay('2026-10-18T18:00:00Z'),'2026-10-19');
+assert.equal(P.instantDay('2026-10-18T16:59:59Z'),'2026-10-18');
 assert.equal(P.build([record({id:'a'}),record({id:'b'})],{...c,recordIds:['b']},'2026-10-18').count,1);
 assert.deepEqual(P.parse(P.command({...c,recordIds:['a']})).recordIds,['a']);
 assert.throws(()=>P.validate({...c,recordIds:['a','a']}));
