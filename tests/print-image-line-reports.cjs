@@ -8,6 +8,7 @@ const props = {
 let now = '2026-10-15T14:00:00Z';
 let values = [['วันที่', 'ราคาขาย', 'รายชื่องาน'], ['2026-10-01', 100, 'Job A'], ['2026-10-15', 200, 'Job B'], ['2026-10-16', 999, 'Job C'], ['', 0, '']];
 let calls = [], status = 200, accepted = false;
+let profile = {userId: props.PRINT_REPORT_LINE_USER_ID, displayName: 'Test recipient'};
 class ClockDate extends Date {
   constructor(...args) { super(...(args.length ? args : [now])); }
 }
@@ -29,7 +30,7 @@ const context = vm.createContext({
     ? { getDataRange: () => ({ getValues: () => values }) } : null }) },
   UrlFetchApp: { fetch: (url, opts) => {
     calls.push(opts);
-    return { getResponseCode: () => status, getAllHeaders: () => accepted ? {'X-Line-Accepted-Request-Id': 'request'} : {} };
+    return { getResponseCode: () => status, getAllHeaders: () => accepted ? {'X-Line-Accepted-Request-Id': 'request'} : {}, getContentText: () => JSON.stringify(profile) };
   } }
 });
 vm.runInContext(fs.readFileSync('outputs/print-image-line-reports.gs', 'utf8'), context);
@@ -72,4 +73,11 @@ assert.throws(() => context.prRows_([['วันที่','ราคาขา�
 assert.equal(context.prRows_([['วันที่','ราคาขาย','รายชื่องาน'],['',0,'']]).length, 0);
 assert.throws(() => context.prRows_([['วันที่','ราคาขาย','ราคาขาย']]), /duplicate column/);
 assert.throws(() => context.prRows_([['วันที่','ต้นทุน']]), /Missing/);
+status = 404;
+assert.throws(() => context.verifyPrintImageRecipient(), /HTTP 404/);
+status = 200;
+profile.userId = 'U' + 'b'.repeat(32);
+assert.throws(() => context.verifyPrintImageRecipient(), /ID mismatch/);
+profile.userId = props.PRINT_REPORT_LINE_USER_ID;
+assert.equal(context.verifyPrintImageRecipient(), 'Test recipient');
 console.log('PASS: calendar boundaries, period totals, preview, time gate, retry, deduplication, next day, malformed data.');

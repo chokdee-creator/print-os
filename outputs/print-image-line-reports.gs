@@ -105,6 +105,7 @@ function prValidateLine_(config) {
 function enablePrintImageReports() {
   const config = prSettings_();
   prValidateLine_(config);
+  verifyPrintImageRecipient();
   if (PropertiesService.getScriptProperties().getProperty('PRINT_REPORT_STORE_CONFIRMED') !== 'true') {
     throw new Error('Preview and confirm this sheet contains only Print Image; set PRINT_REPORT_STORE_CONFIRMED=true');
   }
@@ -119,6 +120,21 @@ function enablePrintImageReports() {
       ScriptApp.newTrigger('sendScheduledPrintImageReports').timeBased().everyMinutes(5).create();
     }
   } finally { lock.releaseLock(); }
+}
+
+/** Check the recipient against LINE's API before enabling scheduled delivery. */
+function verifyPrintImageRecipient() {
+  const config = prSettings_();
+  prValidateLine_(config);
+  const response = UrlFetchApp.fetch('https://api.line.me/v2/bot/profile/' + encodeURIComponent(config.target), {
+    method: 'get', headers: { Authorization: 'Bearer ' + config.token }, muteHttpExceptions: true
+  });
+  const code = response.getResponseCode();
+  if (code !== 200) throw new Error('LINE recipient check failed (HTTP ' + code + '). No report sent.');
+  const profile = JSON.parse(response.getContentText());
+  if (profile.userId !== config.target) throw new Error('LINE recipient ID mismatch. No report sent.');
+  console.log('Verified LINE recipient: ' + profile.displayName);
+  return profile.displayName;
 }
 
 function disablePrintImageReports() {
