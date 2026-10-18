@@ -1917,6 +1917,7 @@
         <details class="menu">
           <summary class="btn secondary"><span class="ui-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M4 19V5"/><path d="M8 17v-6m4 6V8m4 9v-4m4 6H4"/></svg></span>รายงาน</summary>
           <div class="menu-panel">
+            <a class="btn secondary" href="#outstandingReports">ยอดค้างเฉพาะลูกค้า</a>
             <button class="btn secondary" id="exportPdf" type="button">รายงาน PDF</button>
             <button class="btn secondary" id="exportPng" type="button">รายงาน PNG</button>
           </div>
@@ -2320,6 +2321,40 @@
         </div>
       </section>
     </section>
+  <section class="panel" id="outstandingReports" style="margin-top:24px;padding:24px">
+    <h2>สรุปยอดค้างเฉพาะลูกค้า</h2>
+    <p>เลือกวันที่งานและลูกค้าที่ต้องการ รายงานแสดงยอดที่ยังค้างอยู่ปัจจุบัน ไม่ใช่ยอดค้างย้อนหลัง ณ วันสิ้นสุด</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px">
+      <label>เริ่มวันที่ <input type="date" id="outstandingStart"></label>
+      <label>ถึงวันที่ <input type="date" id="outstandingEnd"></label>
+      <label>แยกยอดตาม <select id="outstandingGroup"><option value="day">รายวัน</option><option value="month">รายเดือน</option></select></label>
+      <label>ช่วงวันที่ <select id="outstandingRange"><option value="fixed">ช่วงที่กำหนด</option><option value="throughToday">ตั้งแต่วันเริ่ม ถึงวันส่ง</option><option value="currentMonth">เดือนของวันส่ง ถึงวันส่ง</option></select></label>
+      <label>รอบส่ง LINE <select id="outstandingCadence"><option value="off">ไม่ส่งอัตโนมัติ</option><option value="day">ทุกวัน ประมาณ 21:00</option><option value="month">วันสุดท้ายของเดือน ประมาณ 21:00</option></select></label>
+      <label>ค้นหาลูกค้า <input id="outstandingSearch" type="search" placeholder="ชื่อหรือประเภทลูกค้า"></label>
+    </div>
+    <fieldset style="margin:16px 0"><legend>เลือกลูกค้า (เลือกได้หลายราย)</legend><div id="outstandingCustomers" style="max-height:220px;overflow:auto"></div></fieldset>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+      <button type="button" id="outstandingPreview">แสดงสรุปยอดค้าง</button>
+      <button type="button" id="outstandingCopy">คัดลอกข้อความสรุป</button>
+      <button type="button" id="outstandingCommand">คัดลอกคำสั่ง LINE</button>
+      <button type="button" id="outstandingCsv">ดาวน์โหลด CSV</button>
+    </div>
+    <p id="outstandingStatus" role="status" aria-live="polite"></p>
+    <pre id="outstandingResult" style="white-space:pre-wrap;font:inherit;overflow-wrap:anywhere"></pre>
+    <details><summary>ส่งรายงานและตั้งเวลาอัตโนมัติ</summary>
+      <p id="outstandingServiceState">ยังไม่ได้เชื่อมตัวรับคำสั่งถาวร ปุ่มคัดลอกคำสั่งใช้เตรียมเงื่อนไขได้ แต่ LINE ยังไม่รับคำสั่งยอดค้าง</p>
+      <label>URL บริการรายงาน <input id="outstandingService" type="url" placeholder="https://…workers.dev"></label>
+      <label>กุญแจจัดการรายงาน <input id="outstandingAccess" type="password" autocomplete="off" placeholder="เก็บในหน้านี้ชั่วคราว"></label>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin:14px 0">
+        <button type="button" id="outstandingSend">ส่งสรุปเข้า LINE ของฉัน</button>
+        <button type="button" id="outstandingSave">บันทึกเงื่อนไขและรอบส่ง</button>
+        <button type="button" id="outstandingList">ดูรอบส่งที่บันทึกไว้</button>
+      </div>
+      <div id="outstandingSchedules"></div>
+      <p>การเลือกบนหน้านี้ยังไม่เปิดส่งอัตโนมัติ ต้องกดบันทึกให้สำเร็จก่อน รายวันและรายเดือนเป็นคนละตัวเลือกกับการแยกยอดในรายงาน</p>
+    </details>
+  </section>
+
   </main>
 
   <dialog id="settingsDialog">
@@ -2345,6 +2380,8 @@
 
   <div class="toast" id="toast"></div>
 
+  <script src="outstanding-reports.js"></script>
+  <script src="outstanding-panel.js"></script>
   <script>
     const STORAGE_KEY = "print_job_tracker_records_v1";
     const URL_KEY = "print_job_tracker_sheet_url_v1";
@@ -2445,6 +2482,7 @@
       sheetUrl: document.querySelector("#sheetUrl")
     };
 
+    let outstandingPanel = null;
     let records = loadRecords();
     let viewMode = "day";
     let editingId = null;
@@ -2868,6 +2906,7 @@
     }
 
     function render() {
+      if (outstandingPanel) outstandingPanel.refresh();
       const rows = filteredRecords().sort((a, b) => `${b.date}${b.createdAt}`.localeCompare(`${a.date}${a.createdAt}`));
       const totals = rows.reduce((acc, record) => {
         acc.area += record.area;
@@ -3892,6 +3931,7 @@
     refreshUxSelects();
     updatePreview();
     render();
+    outstandingPanel = initOutstandingPanel();
     autoLoadFromSheet();
   </script>
 </body>

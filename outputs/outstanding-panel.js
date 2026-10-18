@@ -1,0 +1,92 @@
+/* Uses the existing site's records, balance semantics, and toast UI. */
+function initOutstandingPanel() {
+  const $ = id => document.getElementById('outstanding' + id);
+  const chosen = new Set();
+  let catalog = [];
+  let latest = null;
+  let signature = '';
+  $('Start').value = today().slice(0,8) + '01';
+  $('End').value = today();
+  $('Service').value = localStorage.getItem('printImageReportService') || '';
+  const status = message => { $('Status').textContent = message; };
+  function config() {
+    return PrintOutstanding.validate({customers: catalog.filter(c => chosen.has(PrintOutstanding.identity(c))),
+      start:$('Start').value, end:$('End').value, group:$('Group').value, cadence:$('Cadence').value, range:$('Range').value});
+  }
+  function invalidate() { latest = null; $('Result').textContent = ''; status('เงื่อนไขเปลี่ยนแล้ว กดแสดงสรุปอีกครั้ง'); }
+  function refresh() {
+    const next = Array.from(new Map(records.filter(r => r.name).map(r => {
+      const c = {type:customerType(r), name:String(customerName(r)).trim() || '-'};
+      return [PrintOutstanding.identity(c), c];
+    })).values()).sort((a,b) => a.name.localeCompare(b.name,'th') || a.type.localeCompare(b.type,'th'));
+    const nextSignature = JSON.stringify(next);
+    if (signature === nextSignature) { if(latest) invalidate(); return; }
+    signature = nextSignature; catalog = next;
+    const valid = new Set(catalog.map(PrintOutstanding.identity));
+    [...chosen].forEach(key => {if (!valid.has(key)) chosen.delete(key);});
+    showCustomers(); invalidate();
+  }
+  function showCustomers() {
+    const search = $('Search').value.trim().toLocaleLowerCase('th');
+    $('Customers').replaceChildren();
+    catalog.forEach(c => {
+      if (!(c.name + ' ' + c.type).toLocaleLowerCase('th').includes(search)) return;
+      const label = document.createElement('label'); label.style.cssText='display:block;padding:6px;cursor:pointer';
+      const input = document.createElement('input'); input.type='checkbox'; input.value=PrintOutstanding.identity(c);
+      input.checked=chosen.has(input.value);
+      input.addEventListener('change', () => { input.checked ? chosen.add(input.value) : chosen.delete(input.value); invalidate(); });
+      label.append(input, document.createTextNode(' ' + c.name + ' (' + c.type + ')')); $('Customers').append(label);
+    });
+    if (!$('Customers').childElementCount) $('Customers').textContent = 'ไม่พบลูกค้า รอโหลดข้อมูลจากชีตหรือเปลี่ยนคำค้น';
+  }
+  function preview() {
+    latest = PrintOutstanding.build(records, config(), today());
+    $('Result').textContent = PrintOutstanding.text(latest);
+    status('สรุปจากข้อมูลบนเว็บ ณ เวลานี้ ตรวจการซิงก์ชีตก่อนส่งหรือตั้งเวลา');
+    return latest;
+  }
+  function click(id, action) { $(id).addEventListener('click', async () => { try {await action();} catch(e) {status(e.message);} }); }
+  click('Preview', preview);
+  click('Copy', async () => {await navigator.clipboard.writeText(PrintOutstanding.text(preview())); status('คัดลอกข้อความสรุปแล้ว');});
+  click('Command', async () => {await navigator.clipboard.writeText(PrintOutstanding.command(config())); status('คัดลอกคำสั่งแล้ว ใช้ได้เมื่อเชื่อมตัวรับคำสั่ง LINE ถาวรสำเร็จ');});
+  click('Csv', () => {
+    const r = preview();
+    const cell = v => '"' + String(v).replace(/^\s*[=+@\-\t\r]/, "'$&").replace(/"/g,'""') + '"';
+    const rows = [['ลูกค้า','ประเภทลูกค้า','วันที่งาน/เดือน','จำนวนงาน','ยอดค้างปัจจุบัน (บาท)'],
+      ...r.rows.map(x=>[x.name,x.type,x.period,x.count,(x.satang/100).toFixed(2)])];
+    const url=URL.createObjectURL(new Blob(['\uFEFF'+rows.map(row=>row.map(cell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}));
+    const a=document.createElement('a');a.href=url;a.download='ยอดค้าง-'+r.start+'-'+r.end+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  });
+  async function request(action, extra={}) {
+    const endpoint = new URL($('Service').value.trim());
+    if (endpoint.protocol !== 'https:' || endpoint.username || endpoint.password) throw new Error('ใช้ URL บริการรายงาน https เท่านั้น');
+    if (!$('Access').value) throw new Error('ระบุกุญแจจัดการรายงาน');
+    const response = await fetch(endpoint.origin + '/admin', {method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+$('Access').value}, body:JSON.stringify({action,...extra})});
+    const data = await response.json();
+    if (!response.ok || !data.ok) throw new Error(data.error || 'บริการรายงานไม่สำเร็จ');
+    localStorage.setItem('printImageReportService', endpoint.origin);
+    $('ServiceState').textContent = 'เชื่อมบริการรายงานสำเร็จ ส่งเฉพาะ LINE เจ้าของที่ยืนยันไว้';
+    return data;
+  }
+  click('Send', async () => {await request('previewSend',{config:config()});status('ส่งรายงานจากข้อมูลในชีตเข้า LINE แล้ว');});
+  click('Save', async () => {
+    const c=config();
+    if(c.cadence==='off') throw new Error('เลือกรอบส่งรายวันหรือรายเดือน หากต้องการหยุดรอบเดิม ให้กดดูรอบส่งและหยุดรายการนั้น');
+    const data=await request('save',{config:c});status('บันทึกรอบส่งแล้ว รหัส '+data.id+' เวลาไทยประมาณ 21:00');
+  });
+  click('List', async () => {
+    const data=await request('list');$('Schedules').replaceChildren();
+    data.schedules.forEach(s=>{
+      const row=document.createElement('p');
+      row.append(document.createTextNode(s.config.customers.map(c=>c.name+' ('+c.type+')').join(', ')+' — ส่ง'+(s.config.cadence==='day'?'ทุกวัน':'สิ้นเดือน')+' — '+s.id+' '));
+      const stop=document.createElement('button');stop.type='button';stop.textContent='หยุดรอบส่งนี้';
+      stop.addEventListener('click',async()=>{try{await request('remove',{id:s.id});row.remove();status('หยุดรอบส่งแล้ว');}catch(e){status(e.message);}});
+      row.append(stop);$('Schedules').append(row);
+    });
+    status(data.schedules.length?'โหลดรอบส่งแล้ว':'ยังไม่มีรอบส่งยอดค้าง');
+  });
+  ['Start','End','Group','Cadence','Range'].forEach(id=>$(id).addEventListener('change',invalidate));
+  $('Search').addEventListener('input',showCustomers);
+  refresh();
+  return {refresh};
+}

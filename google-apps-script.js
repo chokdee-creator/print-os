@@ -4,6 +4,7 @@ const LINE_TARGET_ID = "";
 
 function doPost(e) {
   const data = parsePayload_(e);
+  if (data.action === "outstandingBridge") return outstandingBridge_(data);
   if (data.action === "saveProfile") {
     const profile = saveProfile_(data.profile || data);
     return ContentService
