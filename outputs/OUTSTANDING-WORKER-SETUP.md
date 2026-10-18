@@ -1,3 +1,5 @@
+> คู่มือนี้ใช้เฉพาะตัวรับคำสั่งที่พิมพ์เข้า LINE เพิ่มเติม การกดส่งและตั้งเวลาจากเว็บใช้ได้ผ่าน Google เจ้าของร้าน โดยไม่ต้องมี Cloudflare ดู OUTSTANDING-REPORTS.md
+
 # รายงานยอดค้าง ปริ้นอิมเมจ
 
 ## ใช้งานบนเว็บ
@@ -41,7 +43,7 @@
 3. สุ่ม shared secret อย่างน้อย 32 ไบต์ เก็บใน Script Properties ชื่อ `PRINT_OUTSTANDING_BRIDGE_SECRET` และ Cloudflare Worker Secret ชื่อ `BRIDGE_SECRET` ให้ตรงกัน ห้าม commit หรือใส่ใน URL
 4. ตั้ง Worker Secrets: `LINE_CHANNEL_SECRET` (channel secret ของ OA เดิม), `BRIDGE_SECRET`, `ADMIN_KEY` (สุ่มอีกค่าหนึ่งสำหรับเจ้าของใช้หน้าเว็บ), `OWNER_LINE_USER_ID` (ผู้รับเดิมที่ยืนยันผ่าน API แล้ว), `APPS_SCRIPT_URL` (URL `/exec` เดิม), `ALLOWED_ORIGIN` (origin ของเว็บจริง เช่น `https://chokdee-creator.github.io`)
 5. Deploy Worker จากไฟล์ `.mjs` และอัปเดต deployment Apps Script เดิมเป็นเวอร์ชันใหม่ เพื่อให้ URL เดิมรับ action ใหม่ได้ ตรวจ `/health` และการเรียก admin ก่อนเปิด Webhook
-6. รัน `enableOutstandingReports` หนึ่งครั้งใน Apps Script จะสร้างชีตซ่อน `_OutstandingDelivery` สำหรับเก็บ payload/retry key และสถานะส่ง เพื่อไม่ให้ retry ส่งข้อมูลใหม่ด้วย key เก่า และสร้าง trigger `sendOutstandingSchedules` เพิ่มอีกหนึ่งตัว **ยังไม่ส่งอะไรจนกว่าจะบันทึกเงื่อนไขจริง**
+6. รัน `enableOutstandingReports` หนึ่งครั้งใน Apps Script จะสร้างโฟลเดอร์ส่วนตัวใน Drive สำหรับเก็บ payload/retry key และสถานะส่ง เพื่อไม่ให้ retry ส่งข้อมูลใหม่ด้วย key เก่า และสร้าง trigger `sendOutstandingSchedules` เพิ่มอีกหนึ่งตัว **ยังไม่ส่งอะไรจนกว่าจะบันทึกเงื่อนไขจริง**
 7. กำหนด LINE Webhook เป็น `https://WORKER/line/webhook` ตรวจ Verify แล้วจึงเปิด Use webhook ตัว Worker รับเฉพาะคำสั่งจากบัญชี LINE เจ้าของที่ยืนยันไว้ ไม่ตอบลูกค้ารายอื่น
 8. ใส่ URL Worker และกุญแจจัดการที่หน้าเว็บ กุญแจอยู่ในช่อง password ของหน้านั้นเท่านั้น ไม่บันทึกลง localStorage URL บริการบันทึกใน localStorage ได้
 9. ทดสอบส่งยอดค้างครั้งเดียว ตรวจว่าถึงแชทเจ้าของ แล้วทดสอบสร้าง/ดู/หยุดรอบส่งจากเว็บและ LINE ก่อนรายงานว่าติดตั้งสำเร็จ
