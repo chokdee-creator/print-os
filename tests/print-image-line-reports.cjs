@@ -6,7 +6,7 @@ const props = {
   PRINT_REPORT_LINE_TOKEN: 'test-token', PRINT_REPORT_LINE_USER_ID: 'U' + 'a'.repeat(32)
 };
 let now = '2026-10-15T14:00:00Z';
-let values = [['วันที่', 'ราคาขาย'], ['2026-10-01', 100], ['2026-10-15', 200], ['2026-10-16', 999]];
+let values = [['วันที่', 'ราคาขาย', 'รายชื่องาน'], ['2026-10-01', 100, 'Job A'], ['2026-10-15', 200, 'Job B'], ['2026-10-16', 999, 'Job C'], ['', 0, '']];
 let calls = [], status = 200, accepted = false;
 class ClockDate extends Date {
   constructor(...args) { super(...(args.length ? args : [now])); }
@@ -54,7 +54,7 @@ now = '2026-10-15T14:00:00Z';
 status = 500;
 assert.throws(() => context.sendScheduledPrintImageReports(), /HTTP 500/);
 assert.equal(JSON.parse(props.PRINT_REPORT_LAST_DELIVERY).sent, false);
-values.push(['2026-10-15', 888]);
+values.push(['2026-10-15', 888, 'Job D']);
 status = 409; accepted = true;
 context.sendScheduledPrintImageReports();
 assert.equal(calls[0].payload, calls[1].payload);
@@ -67,7 +67,9 @@ assert.equal(calls.length, 3);
 assert.match(calls[2].payload, /999.00 บาท/);
 assert.doesNotMatch(calls[2].payload, /ยอดครึ่งเดือน/);
 assert.throws(() => context.prDay_('2026-02-30'), /Invalid date/);
-assert.throws(() => context.prRows_([['วันที่','ราคาขาย'],['2026-10-15','oops']]), /Invalid sales/);
+assert.throws(() => context.prRows_([['วันที่','ราคาขาย','รายชื่องาน'],['2026-10-15','oops','Job']]), /Invalid sales/);
+assert.throws(() => context.prRows_([['วันที่','ราคาขาย','รายชื่องาน'],['',100,'Job']]), /Unsupported date/);
+assert.equal(context.prRows_([['วันที่','ราคาขาย','รายชื่องาน'],['',0,'']]).length, 0);
 assert.throws(() => context.prRows_([['วันที่','ราคาขาย','ราคาขาย']]), /duplicate column/);
 assert.throws(() => context.prRows_([['วันที่','ต้นทุน']]), /Missing/);
 console.log('PASS: calendar boundaries, period totals, preview, time gate, retry, deduplication, next day, malformed data.');

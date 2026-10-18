@@ -51,8 +51,10 @@ function prRows_(values) {
   }
   const dateIndex = column('วันที่');
   const saleIndex = column('ราคาขาย');
+  const jobIndex = column('รายชื่องาน');
   return values.slice(1).filter(function (row) {
-    return row.some(function (v) { return v !== '' && v !== null; });
+    // The website also excludes rows without a job name.
+    return String(row[jobIndex] || '').trim().length > 0;
   }).map(function (row, i) {
     const raw = row[saleIndex];
     if (raw === '' || raw === null || typeof raw === 'boolean' || !Number.isFinite(Number(raw))) {
