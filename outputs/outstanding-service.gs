@@ -8,7 +8,7 @@ function orToday_() {return Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yy
 function orRecords_() {
   const values = prRead_(prSettings_());
   const headers = values[0].map(String);
-  const fields = {date:'วันที่', customerType:'ประเภทลูกค้า', customerName:'รายชื่อลูกค้า',
+  const fields = {id:'ID',date:'วันที่', customerType:'ประเภทลูกค้า', customerName:'รายชื่อลูกค้า',
     paymentStatus:'สถานะชำระเงิน', name:'รายชื่องาน', saleTotal:'ราคาขาย', paidAmount:'ลูกค้าชำระ', paymentSlipUrl:'ลิงก์สลิป'};
   const indices = {};
   Object.keys(fields).forEach(k => {
@@ -24,25 +24,33 @@ function orRecords_() {
 function orKnown_(config, records) {
   const keys=new Set(records.map(r=>PrintOutstanding.identity({type:r.customerType,name:r.customerName})));
   config.customers.forEach(c=>{if(!keys.has(PrintOutstanding.identity(c))) throw new Error('ไม่พบลูกค้า '+c.name+' ('+c.type+') ในชีต');});
+  if(config.recordIds) {
+    const ids=new Set(records.map(r=>String(r.id)));
+    config.recordIds.forEach(id=>{if(!ids.has(id)) throw new Error('ไม่พบรายการที่เลือกในชีต กรุณาซิงก์ข้อมูลก่อนส่ง');});
+  }
 }
 function orReport_(config) {
   const records=orRecords_();orKnown_(config,records);
   return PrintOutstanding.text(PrintOutstanding.build(records,config,orToday_()));
 }
-function orLogSheet_() {
-  const book=SpreadsheetApp.openById(prSettings_().spreadsheetId);
-  let sheet=book.getSheetByName('_OutstandingDelivery');
-  if(!sheet) {
-    sheet=book.insertSheet('_OutstandingDelivery');
-    sheet.appendRow(['key','payload','retryKey','sent','updatedAt']);sheet.hideSheet();
-  }
-  return sheet;
+function orDeliveryFolder_() {
+  const p=orProperties_(), id=p.getProperty('PRINT_OUTSTANDING_LOG_FOLDER');
+  if(id) return DriveApp.getFolderById(id);
+  const folder=DriveApp.createFolder('PrintImage Outstanding Delivery');
+  p.setProperty('PRINT_OUTSTANDING_LOG_FOLDER',folder.getId());return folder;
+}
+function orReadDelivery_(key) {
+  const files=orDeliveryFolder_().getFilesByName(encodeURIComponent(key)+'.json');
+  return files.hasNext()?JSON.parse(files.next().getBlob().getDataAsString('UTF-8')):null;
+}
+function orWriteDelivery_(key,row) {
+  const folder=orDeliveryFolder_(), name=encodeURIComponent(key)+'.json',files=folder.getFilesByName(name),json=JSON.stringify(row);
+  if(files.hasNext()) files.next().setContent(json);
+  else folder.createFile(name,json,MimeType.PLAIN_TEXT);
 }
 function orSend_(key, text) {
   const config=prSettings_();prValidateLine_(config);
-  const sheet=orLogSheet_(), rows=sheet.getDataRange().getValues();
-  let index=rows.findIndex((r,i)=>i>0 && r[0]===key);
-  let row=index>=0 ? rows[index] : null;
+  let row=orReadDelivery_(key);
   if(row && row[3]===true) return;
   if(!row) {
     if(typeof text==='function') text=text();
@@ -55,8 +63,7 @@ function orSend_(key, text) {
     if(chunk) messages.push({type:'text',text:chunk});
     if(!messages.length || messages.length>5) throw new Error('รายงานยาวเกินไป กรุณาลดช่วงวันที่หรือจำนวนลูกค้า');
     row=[key,JSON.stringify({to:config.target,messages:messages}),Utilities.getUuid(),false,new Date()];
-    sheet.appendRow(row);index=sheet.getLastRow()-1;
-    SpreadsheetApp.flush();
+    orWriteDelivery_(key,row);
   }
   const response=UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push',{
     method:'post',contentType:'application/json',headers:{Authorization:'Bearer '+config.token,'X-Line-Retry-Key':row[2]},
@@ -65,7 +72,7 @@ function orSend_(key, text) {
   const code=response.getResponseCode(), headers=response.getAllHeaders();
   const accepted=code===409 && Object.keys(headers).some(k=>k.toLowerCase()==='x-line-accepted-request-id' && headers[k]);
   if(!(code>=200 && code<300) && !accepted) throw new Error('ส่ง LINE ไม่สำเร็จ (HTTP '+code+')');
-  sheet.getRange(index+1,4,1,2).setValues([[true,new Date()]]);
+  row[3]=true;row[4]=new Date();orWriteDelivery_(key,row);
 }
 function orSave_(input) {
   const config=PrintOutstanding.validate(input);
@@ -94,7 +101,7 @@ function orAction_(data, requestId) {
     orSend_('request:'+requestId,()=>orReport_(config));return {ok:true};
   }
   if(data.action==='line') {
-    const previous=orLogSheet_().getDataRange().getValues().find(r=>r[0]==='line:'+requestId);
+    const previous=orReadDelivery_('line:'+requestId);
     if(previous) {orSend_('line:'+requestId,'');return {ok:true};}
     const text=String(data.text||'').trim();let message;
     if(text==='รายการยอดค้าง') {
@@ -144,7 +151,7 @@ function outstandingBridge_(envelope) {
 }
 function enableOutstandingReports() {
   if(orProperties_().getProperty('PRINT_REPORT_STORE_CONFIRMED')!=='true') throw new Error('Store not confirmed');
-  orRecords_();orLogSheet_();
+  orRecords_();orDeliveryFolder_();
   if(!ScriptApp.getProjectTriggers().some(t=>t.getHandlerFunction()==='sendOutstandingSchedules')) {
     ScriptApp.newTrigger('sendOutstandingSchedules').timeBased().everyMinutes(5).create();
   }

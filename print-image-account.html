@@ -2266,6 +2266,7 @@
             <strong class="selection-sale-total" id="selectionSaleTotal">ยอดขายรวม ฿0.00</strong>
           </div>
           <div class="selection-actions">
+            <button class="btn small" id="sendSelectedOutstanding" type="button">ส่งยอดค้างเข้า LINE ของฉัน</button>
             <button class="btn small secondary" id="editSelected" type="button">แก้ไข</button>
             <button class="btn small danger" id="deleteSelected" type="button">ลบ</button>
           </div>
@@ -2336,18 +2337,15 @@
     <fieldset style="margin:16px 0"><legend>เลือกลูกค้า (เลือกได้หลายราย)</legend><div id="outstandingCustomers" style="max-height:220px;overflow:auto"></div></fieldset>
     <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px">
       <button class="btn secondary" type="button" id="outstandingPreview">แสดงสรุปยอดค้าง</button>
+      <button class="btn" type="button" id="outstandingSend">ส่งยอดค้างเข้า LINE ของฉัน</button>
       <button class="btn secondary" type="button" id="outstandingCopy">คัดลอกข้อความสรุป</button>
       <button class="btn secondary" type="button" id="outstandingCommand">คัดลอกคำสั่ง LINE</button>
       <button class="btn secondary" type="button" id="outstandingCsv">ดาวน์โหลด CSV</button>
     </div>
     <p id="outstandingStatus" role="status" aria-live="polite"></p>
     <pre id="outstandingResult" style="white-space:pre-wrap;font:inherit;overflow-wrap:anywhere"></pre>
-    <details><summary>ส่งรายงานและตั้งเวลาอัตโนมัติ</summary>
-      <p id="outstandingServiceState">ยังไม่ได้เชื่อมตัวรับคำสั่งถาวร ปุ่มคัดลอกคำสั่งใช้เตรียมเงื่อนไขได้ แต่ LINE ยังไม่รับคำสั่งยอดค้าง</p>
-      <label>URL บริการรายงาน <input id="outstandingService" type="url" placeholder="https://…workers.dev"></label>
-      <label>กุญแจจัดการรายงาน <input id="outstandingAccess" type="password" autocomplete="off" placeholder="เก็บในหน้านี้ชั่วคราว"></label>
+    <details><summary>ตั้งเวลาส่งอัตโนมัติ</summary>
       <div style="display:flex;flex-wrap:wrap;gap:10px;margin:14px 0">
-        <button class="btn secondary" type="button" id="outstandingSend">ส่งสรุปเข้า LINE ของฉัน</button>
         <button class="btn secondary" type="button" id="outstandingSave">บันทึกเงื่อนไขและรอบส่ง</button>
         <button class="btn secondary" type="button" id="outstandingList">ดูรอบส่งที่บันทึกไว้</button>
       </div>
@@ -2382,6 +2380,7 @@
   <div class="toast" id="toast"></div>
 
   <script src="outstanding-reports.js"></script>
+  <script src="outstanding-owner-client.js"></script>
   <script src="outstanding-panel.js"></script>
   <script>
     const STORAGE_KEY = "print_job_tracker_records_v1";
@@ -3933,6 +3932,7 @@
     updatePreview();
     render();
     outstandingPanel = initOutstandingPanel();
+    document.getElementById("sendSelectedOutstanding").addEventListener("click", sendSelectedOutstanding);
     autoLoadFromSheet();
   </script>
 </body>

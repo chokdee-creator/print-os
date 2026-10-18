@@ -26,6 +26,9 @@ assert.equal(P.due({...c,start:'2026-01-01',cadence:'month'},'2026-04-30'),true)
 assert.equal(P.due({...c,cadence:'day'},'2026-10-15'),true);
 assert.equal(P.due(c,'2026-10-15'),false);
 assert.match(P.text(report),/ยอดค้างปัจจุบัน/);
+assert.equal(P.build([record({id:'a'}),record({id:'b'})],{...c,recordIds:['b']},'2026-10-18').count,1);
+assert.deepEqual(P.parse(P.command({...c,recordIds:['a']})).recordIds,['a']);
+assert.throws(()=>P.validate({...c,recordIds:['a','a']}));
 
 let now='2026-10-18T14:00:00Z',http=200,calls=[],uuid=0;
 const props={PRINT_REPORT_STORE_CONFIRMED:'true',PRINT_OUTSTANDING_BRIDGE_SECRET:'test-bridge'};
@@ -38,13 +41,16 @@ const ctx=vm.createContext({console,Date:FakeDate,PrintOutstanding:P,prSettings_
   PropertiesService:{getScriptProperties:()=>({getProperty:k=>props[k]??null,setProperty:(k,v)=>{props[k]=v;}})},
   Utilities:{formatDate:(_d,_tz,format)=>format==='HH'?now.slice(11,13)==='14'?'21':'20':now.slice(0,10),getUuid:()=>`00000000-0000-4000-8000-${String(++uuid).padStart(12,'0')}`,
     newBlob:v=>({getBytes:()=>Buffer.from(v)}),base64Encode:b=>Buffer.from(b).toString('base64'),computeHmacSha256Signature:(v,k)=>crypto.createHmac('sha256',k).update(v).digest(),Charset:{UTF_8:'utf8'}},
-  SpreadsheetApp:{openById:()=>({getSheetByName:()=>sheet}),flush(){}},
+  SpreadsheetApp:{getActiveSpreadsheet:()=>({getId:()=> 'test',getSheetByName:()=>sheet}),flush(){}},
   UrlFetchApp:{fetch:(_url,opts)=>{calls.push(opts);return{getResponseCode:()=>http,getAllHeaders:()=>({}),getContentText:()=>''};}},
   LockService:{getScriptLock:()=>({tryLock:()=>true,waitLock(){},releaseLock(){}})},
   ContentService:{createTextOutput:json=>({setMimeType:()=>JSON.parse(json)}),MimeType:{JSON:'json'}}
 });
 vm.runInContext(fs.readFileSync(path.join(__dirname,'../outstanding-service.gs'),'utf8'),ctx);
 ctx.orRecords_=()=>dataRows;
+const deliveries=new Map();
+ctx.orReadDelivery_=key=>deliveries.has(key)?JSON.parse(JSON.stringify(deliveries.get(key))):null;
+ctx.orWriteDelivery_=(key,row)=>deliveries.set(key,JSON.parse(JSON.stringify(row)));
 const daily={...c,cadence:'day'};
 const id=ctx.orSave_(daily);assert.equal(ctx.orSave_(daily),id);
 now='2026-10-18T13:00:00Z';ctx.sendOutstandingSchedules();assert.equal(calls.length,0);
@@ -62,6 +68,13 @@ assert.equal(ctx.orSchedules_().length,0);
 ctx.orAction_({action:'line',text:P.command(daily)},'line1');assert.equal(ctx.orSchedules_().length,1);
 const callsAfterLine=calls.length;props.PRINT_OUTSTANDING_SCHEDULES='[]';ctx.orAction_({action:'line',text:P.command(daily)},'line1');
 assert.equal(ctx.orSchedules_().length,0);assert.equal(calls.length,callsAfterLine);
+vm.runInContext(fs.readFileSync(path.join(__dirname,'../outstanding-owner.gs'),'utf8'),ctx);
+let activeEmail='';ctx.Session={getActiveUser:()=>({getEmail:()=>activeEmail}),getEffectiveUser:()=>({getEmail:()=> 'chokdeeprintings@gmail.com'})};
+const ownerRequest={action:'list',id:'0123456789abcdef0123456789abcdef'};
+assert.throws(()=>ctx.outstandingOwnerRequest(ownerRequest),/Google/);
+activeEmail='other@example.com';assert.throws(()=>ctx.outstandingOwnerRequest(ownerRequest),/Google/);
+activeEmail='chokdeeprintings@gmail.com';assert.equal(ctx.outstandingOwnerRequest(ownerRequest).ok,true);
+assert.throws(()=>ctx.outstandingOwnerRequest({...ownerRequest,action:'line'}),/ไม่ถูกต้อง/);
 
 (async()=>{
   const {default:worker,verify}=await import(pathToFileURL(path.join(__dirname,'../outstanding-worker.mjs')));

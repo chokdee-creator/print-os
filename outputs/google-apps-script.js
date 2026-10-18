@@ -193,6 +193,7 @@ function parsePayload_(e) {
 
 function doGet(e) {
   const params = e && e.parameter ? e.parameter : {};
+  if (params.action === "outstandingOwner") return outstandingOwnerPage_();
   if (params.action === "vaultLoad") {
     const payload = {
       ok: true,

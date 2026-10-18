@@ -40,7 +40,12 @@ var PrintOutstanding = (function () {
     if (['fixed', 'throughToday', 'currentMonth'].indexOf(input.range) < 0) throw new Error('เลือกรูปแบบช่วงวันที่');
     var start = day(input.start), end = day(input.end);
     if (start > end) throw new Error('วันเริ่มต้องไม่เกินวันสิ้นสุด');
-    return {customers: customers, start: start, end: end, group: input.group, cadence: input.cadence, range: input.range};
+    var result={customers: customers, start: start, end: end, group: input.group, cadence: input.cadence, range: input.range};
+    if(input.recordIds !== undefined) {
+      if(!Array.isArray(input.recordIds) || !input.recordIds.length || input.recordIds.length>100 || input.recordIds.some(function(id){return typeof id!=='string' || !id || id.length>150;}) || new Set(input.recordIds).size!==input.recordIds.length) throw new Error('เลือกรายการงาน 1–100 รายการ');
+      result.recordIds=input.recordIds.slice();
+    }
+    return result;
   }
   function dates(config, today) {
     day(today);
@@ -53,6 +58,7 @@ var PrintOutstanding = (function () {
     var wanted = new Set(config.customers.map(identity)), groups = new Map(), total = 0, count = 0;
     records.forEach(function (r) {
       if (!String(r.name || '').trim()) return;
+      if (config.recordIds && config.recordIds.indexOf(String(r.id))<0) return;
       var customer = {type: type(r.customerType), name: String(r.customerName || '-').trim() || '-'};
       if (!wanted.has(identity(customer))) return;
       var date = day(r.date);
@@ -81,7 +87,7 @@ var PrintOutstanding = (function () {
   }
   function command(config) {
     config=validate(config);
-    var result = config.customers.some(function(c){return /[\r\n]/.test(c.name);})
+    var result = config.recordIds || config.customers.some(function(c){return /[\r\n]/.test(c.name);})
       ? 'สรุปยอดค้าง ' + JSON.stringify(config)
       : ['สรุปยอดค้าง'].concat(config.customers.map(function(c){return 'ลูกค้า: '+c.type+' | '+c.name;}),
         ['เริ่ม: '+config.start,'ถึง: '+config.end,'แยก: '+(config.group==='day'?'รายวัน':'รายเดือน'),

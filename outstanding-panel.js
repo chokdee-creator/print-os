@@ -7,7 +7,6 @@ function initOutstandingPanel() {
   let signature = '';
   $('Start').value = today().slice(0,8) + '01';
   $('End').value = today();
-  $('Service').value = localStorage.getItem('printImageReportService') || '';
   const status = message => { $('Status').textContent = message; };
   function config() {
     return PrintOutstanding.validate({customers: catalog.filter(c => chosen.has(PrintOutstanding.identity(c))),
@@ -58,17 +57,16 @@ function initOutstandingPanel() {
     const a=document.createElement('a');a.href=url;a.download='ยอดค้าง-'+r.start+'-'+r.end+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   });
   async function request(action, extra={}) {
-    const endpoint = new URL($('Service').value.trim());
-    if (endpoint.protocol !== 'https:' || endpoint.username || endpoint.password) throw new Error('ใช้ URL บริการรายงาน https เท่านั้น');
-    if (!$('Access').value) throw new Error('ระบุกุญแจจัดการรายงาน');
-    const response = await fetch(endpoint.origin + '/admin', {method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+$('Access').value}, body:JSON.stringify({action,...extra})});
-    const data = await response.json();
-    if (!response.ok || !data.ok) throw new Error(data.error || 'บริการรายงานไม่สำเร็จ');
-    localStorage.setItem('printImageReportService', endpoint.origin);
-    $('ServiceState').textContent = 'เชื่อมบริการรายงานสำเร็จ ส่งเฉพาะ LINE เจ้าของที่ยืนยันไว้';
-    return data;
+    status('กำลังดำเนินการผ่านบัญชี Google เจ้าของร้าน…');
+    return sendOutstandingOwnerAction(action,extra,getSheetUrl());
   }
-  click('Send', async () => {await request('previewSend',{config:config()});status('ส่งรายงานจากข้อมูลในชีตเข้า LINE แล้ว');});
+  let sending=false;
+  click('Send', async () => {
+    if(sending)return;
+    const c=config();sending=true;$('Send').disabled=true;
+    try{await request('previewSend',{config:c});status('ส่งยอดค้างเข้า LINE ของฉันแล้ว');}
+    finally{sending=false;$('Send').disabled=false;}
+  });
   click('Save', async () => {
     const c=config();
     if(c.cadence==='off') throw new Error('เลือกรอบส่งรายวันหรือรายเดือน หากต้องการหยุดรอบเดิม ให้กดดูรอบส่งและหยุดรายการนั้น');
@@ -89,4 +87,23 @@ function initOutstandingPanel() {
   $('Search').addEventListener('input',showCustomers);
   refresh();
   return {refresh};
+}
+
+async function sendSelectedOutstanding() {
+  const button=document.getElementById('sendSelectedOutstanding');
+  if(button.disabled)return;
+  try {
+    const chosen=records.filter(r=>selectedIds.has(r.id) && balanceAmount(r)>0);
+    if(!chosen.length) throw new Error('รายการที่เลือกไม่มียอดค้างชำระ');
+    const customers=Array.from(new Map(chosen.map(r=>{
+      const c={type:customerType(r),name:String(customerName(r)).trim() || '-'};
+      return [PrintOutstanding.identity(c),c];
+    })).values());
+    const dates=chosen.map(r=>r.date).sort();
+    const config=PrintOutstanding.validate({customers,start:dates[0],end:dates.at(-1),group:'day',cadence:'off',range:'fixed',recordIds:chosen.map(r=>String(r.id))});
+    button.disabled=true;button.textContent='กำลังส่งเข้า LINE…';
+    await sendOutstandingOwnerAction('previewSend',{config},getSheetUrl());
+    toast('ส่งยอดค้างของรายการที่เลือกเข้า LINE แล้ว');
+  } catch(e) {toast(e.message);}
+  finally {button.disabled=false;button.textContent='ส่งยอดค้างเข้า LINE ของฉัน';}
 }
