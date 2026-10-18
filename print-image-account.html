@@ -1888,6 +1888,7 @@
 
     }
   </style>
+  <link rel="stylesheet" href="outstanding-panel.css">
 </head>
 <body class="prince-image">
   <main class="app">
@@ -2334,10 +2335,10 @@
     </div>
     <fieldset style="margin:16px 0"><legend>เลือกลูกค้า (เลือกได้หลายราย)</legend><div id="outstandingCustomers" style="max-height:220px;overflow:auto"></div></fieldset>
     <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px">
-      <button type="button" id="outstandingPreview">แสดงสรุปยอดค้าง</button>
-      <button type="button" id="outstandingCopy">คัดลอกข้อความสรุป</button>
-      <button type="button" id="outstandingCommand">คัดลอกคำสั่ง LINE</button>
-      <button type="button" id="outstandingCsv">ดาวน์โหลด CSV</button>
+      <button class="btn secondary" type="button" id="outstandingPreview">แสดงสรุปยอดค้าง</button>
+      <button class="btn secondary" type="button" id="outstandingCopy">คัดลอกข้อความสรุป</button>
+      <button class="btn secondary" type="button" id="outstandingCommand">คัดลอกคำสั่ง LINE</button>
+      <button class="btn secondary" type="button" id="outstandingCsv">ดาวน์โหลด CSV</button>
     </div>
     <p id="outstandingStatus" role="status" aria-live="polite"></p>
     <pre id="outstandingResult" style="white-space:pre-wrap;font:inherit;overflow-wrap:anywhere"></pre>
@@ -2346,9 +2347,9 @@
       <label>URL บริการรายงาน <input id="outstandingService" type="url" placeholder="https://…workers.dev"></label>
       <label>กุญแจจัดการรายงาน <input id="outstandingAccess" type="password" autocomplete="off" placeholder="เก็บในหน้านี้ชั่วคราว"></label>
       <div style="display:flex;flex-wrap:wrap;gap:10px;margin:14px 0">
-        <button type="button" id="outstandingSend">ส่งสรุปเข้า LINE ของฉัน</button>
-        <button type="button" id="outstandingSave">บันทึกเงื่อนไขและรอบส่ง</button>
-        <button type="button" id="outstandingList">ดูรอบส่งที่บันทึกไว้</button>
+        <button class="btn secondary" type="button" id="outstandingSend">ส่งสรุปเข้า LINE ของฉัน</button>
+        <button class="btn secondary" type="button" id="outstandingSave">บันทึกเงื่อนไขและรอบส่ง</button>
+        <button class="btn secondary" type="button" id="outstandingList">ดูรอบส่งที่บันทึกไว้</button>
       </div>
       <div id="outstandingSchedules"></div>
       <p>การเลือกบนหน้านี้ยังไม่เปิดส่งอัตโนมัติ ต้องกดบันทึกให้สำเร็จก่อน รายวันและรายเดือนเป็นคนละตัวเลือกกับการแยกยอดในรายงาน</p>

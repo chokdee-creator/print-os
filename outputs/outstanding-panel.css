@@ -1,0 +1,21 @@
+#outstandingReports { scroll-margin-top:190px; }
+#outstandingReports h2 { margin:0 0 10px;font-size:24px; }
+#outstandingReports p { line-height:1.6; }
+#outstandingReports > div > label { display:block;font-size:14px; }
+#outstandingReports input:not([type="checkbox"]),
+#outstandingReports select { display:block;width:100%;min-height:44px;margin-top:6px; }
+#outstandingReports fieldset { border:1px solid #bca36088;border-radius:12px;padding:12px;min-width:0; }
+#outstandingReports legend { padding:0 8px;font-size:14px; }
+#outstandingCustomers { display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:4px;max-height:160px !important; }
+#outstandingCustomers label { display:flex !important;align-items:center;gap:10px;line-height:1.5;font-size:14px; }
+#outstandingCustomers input[type="checkbox"] { width:20px;height:20px;min-height:20px;flex:0 0 20px;margin:0;padding:0;accent-color:#b49b52; }
+#outstandingReports .btn { min-height:42px; }
+#outstandingResult { font-size:14px !important;line-height:1.7; }
+#outstandingStatus { font-size:13px; }
+#outstandingReports details { margin-top:18px; }
+#outstandingReports details > label { display:block;margin:12px 0; }
+@media(max-width:600px) {
+  #outstandingReports {padding:16px !important;scroll-margin-top:150px;}
+  #outstandingReports h2 {font-size:21px;}
+  #outstandingCustomers {grid-template-columns:1fr;}
+}

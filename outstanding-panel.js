@@ -79,7 +79,7 @@ function initOutstandingPanel() {
     data.schedules.forEach(s=>{
       const row=document.createElement('p');
       row.append(document.createTextNode(s.config.customers.map(c=>c.name+' ('+c.type+')').join(', ')+' — ส่ง'+(s.config.cadence==='day'?'ทุกวัน':'สิ้นเดือน')+' — '+s.id+' '));
-      const stop=document.createElement('button');stop.type='button';stop.textContent='หยุดรอบส่งนี้';
+      const stop=document.createElement('button');stop.type='button';stop.className='btn secondary';stop.textContent='หยุดรอบส่งนี้';
       stop.addEventListener('click',async()=>{try{await request('remove',{id:s.id});row.remove();status('หยุดรอบส่งแล้ว');}catch(e){status(e.message);}});
       row.append(stop);$('Schedules').append(row);
     });
