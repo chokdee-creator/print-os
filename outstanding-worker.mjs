@@ -55,7 +55,7 @@ export default {
       for(const event of payload.events) {
         if(event.type!=='message' || event.message?.type!=='text' || event.source?.type!=='user' || event.source.userId!==env.OWNER_LINE_USER_ID) continue;
         const text=event.message.text.trim();
-        if(!/^(สรุปยอดค้าง(?:\s|$)|รายการยอดค้าง$|หยุดยอดค้าง\s)/.test(text)) continue;
+        if(!/^(สรุปยอดค้าง(?:\s|$)|รายการยอดค้าง$|หยุดยอดค้าง\s)/.test(text) && !/^(ยอดวันนี้|ยอดขายวันนี้|ยอดค้างชำระ|ยอดค้าง|สรุปยอดขาย|สรุปยอด)(?:\s+(โชคดี|โชคดีการพิมพ์|ปริ้นอิมเมจ))?$/.test(text)) continue;
         if(!Number.isFinite(event.timestamp) || event.timestamp>Date.now()+60000 || Date.now()-event.timestamp>86400000) continue;
         if(!/^[A-Za-z0-9_-]{1,100}$/.test(event.webhookEventId || '')) return json({ok:false},400);
         const result=await relay(env,{action:'line',id:event.webhookEventId,text});

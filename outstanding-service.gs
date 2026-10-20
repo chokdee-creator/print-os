@@ -98,6 +98,29 @@ function orSave_(input) {
   orProperties_().setProperty('PRINT_OUTSTANDING_SCHEDULES',value);
   return id;
 }
+function orSimpleLineReport_(text) {
+  const match=/^(ยอดวันนี้|ยอดขายวันนี้|ยอดค้างชำระ|ยอดค้าง|สรุปยอดขาย|สรุปยอด)(?:\s+(โชคดี|โชคดีการพิมพ์|ปริ้นอิมเมจ))?$/.exec(text);
+  if(!match)return null;
+  if(match[1]==='สรุปยอด')return 'คำสั่งเรียกยอด\nยอดวันนี้ — ยอดขายของวันนี้\nยอดค้างชำระ — ยอดที่ยังค้างชำระทั้งหมด\nต่อท้ายชื่อร้านได้ เช่น “ยอดวันนี้ โชคดี”\nไม่ระบุร้าน ใช้ร้านปริ้นอิมเมจ';
+  const store=orStore_(match[2]&&match[2].indexOf('โชคดี')===0?'chokdee':'printImage'),today=orToday_(),records=orRecords_(store.id);
+  const money=value=>(value/100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+  let total=0,count=0;
+  const outstanding=match[1]==='ยอดค้างชำระ'||match[1]==='ยอดค้าง',groups=new Map();
+  records.forEach(record=>{
+    if(!String(record.name||'').trim()||(!outstanding&&record.date!==today))return;
+    const raw=record.saleTotal;
+    if(!outstanding&&(raw===''||raw===null||typeof raw==='boolean'||!Number.isFinite(Number(raw))||Number(raw)<0))throw new Error('ยอดขายในชีตไม่ถูกต้อง');
+    const satang=outstanding?PrintOutstanding.balance(record):Math.round(Number(raw)*100);
+    if(outstanding&&!satang)return;
+    total+=satang;count++;if(!Number.isSafeInteger(total))throw new Error('ยอดรวมเกินขอบเขต');
+    if(outstanding){const key=PrintOutstanding.identity({type:record.customerType,name:record.customerName});const group=groups.get(key)||{name:String(record.customerName||'-').trim()||'-',type:record.customerType,count:0,satang:0};group.count++;group.satang+=satang;groups.set(key,group);}
+  });
+  if(!outstanding)return ['ยอดขายวันนี้ '+store.name,'วันที่งาน: '+today,'ยอดขายรวม: '+money(total)+' บาท','จำนวนรายการงาน: '+count,'อ้างอิงข้อมูลที่บันทึกในชีต ณ เวลาขอรายงาน'].join('\n');
+  const lines=['ยอดค้างชำระ '+store.name,'ยอดค้างปัจจุบัน ณ '+today,''];
+  Array.from(groups.values()).sort((a,b)=>a.name.localeCompare(b.name,'th')||a.type.localeCompare(b.type,'th')).forEach(group=>lines.push(group.name+' ('+group.type+') | '+group.count+' งาน | '+money(group.satang)+' บาท'));
+  if(!groups.size)lines.push('ไม่พบรายการค้างชำระ');
+  lines.push('','รวมค้างชำระ: '+money(total)+' บาท ('+count+' งาน)');return lines.join('\n');
+}
 function orAction_(data, requestId) {
   if(data.action==='list') return {ok:true,schedules:orSchedules_()};
   if(data.action==='save') return {ok:true,id:orSave_(data.config)};
@@ -116,7 +139,9 @@ function orAction_(data, requestId) {
     const previous=orReadDelivery_('line:'+requestId);
     if(previous) {orSend_('line:'+requestId,'');return {ok:true};}
     const text=String(data.text||'').trim();let message;
-    if(text==='รายการยอดค้าง') {
+    const simple=orSimpleLineReport_(text);
+    if(simple!==null)message=simple;
+    else if(text==='รายการยอดค้าง') {
       const schedules=orSchedules_();
       message=schedules.length?schedules.map(s=>s.id+'\n'+s.config.customers.map(c=>c.name+' ('+c.type+')').join(', ')+'\nส่ง'+(s.config.cadence==='day'?'ทุกวัน':'สิ้นเดือน')+' 21:00').join('\n\n'):'ยังไม่มีรอบส่งยอดค้าง';
     } else if(text.indexOf('หยุดยอดค้าง ')===0) {
