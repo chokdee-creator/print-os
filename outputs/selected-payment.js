@@ -66,6 +66,7 @@ function showSelectedPaymentDocument(html, onSend, documentTitle) {
     const layout=document.createElement('div');layout.style.cssText='display:flex;flex-direction:column;height:100%';tools.style.flexShrink='0';layout.append(tools,frame);dialog.append(layout);document.body.append(dialog);
   }
   const title=documentTitle||(onSend?'ตัวอย่างบิลยอดชำระของรายการที่เลือก':'ตัวอย่างใบเสร็จของรายการที่เลือก');
+  const manualBank=dialog.querySelector('[data-blank-payment]');if(manualBank)manualBank.hidden=true;
   dialog.setAttribute('aria-label',title);const frame=dialog.querySelector('iframe');frame.title=title;frame.srcdoc=html;
   const send=dialog.querySelector('[data-send-selected-bill]'),status=dialog.querySelector('[role="status"]');
   BillImage.mount(frame,send.parentElement,status);

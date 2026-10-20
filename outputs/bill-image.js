@@ -1,6 +1,7 @@
 /* Render locally; no bill or QR data is uploaded to an image service. */
 var BillImage=(function(){
   async function render(section){
+    const invalid=section.querySelector?.(':invalid');if(invalid){invalid.reportValidity();throw new Error('กรุณากรอกข้อมูลในบิลให้ครบและตรวจยอดชำระ');}
     if(typeof html2canvas!=='function')throw new Error('โหลดระบบสร้างรูปไม่สำเร็จ กรุณารีเฟรชหน้าเว็บ');
     const doc=section.ownerDocument;
     if(doc.fonts)await doc.fonts.ready;
