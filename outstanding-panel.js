@@ -102,7 +102,7 @@ async function sendSelectedOutstanding() {
     const dates=chosen.map(r=>r.date).sort();
     const config=PrintOutstanding.validate({customers,start:dates[0],end:dates.at(-1),group:'day',cadence:'off',range:'fixed',recordIds:chosen.map(r=>String(r.id))});
     button.disabled=true;button.textContent='กำลังส่งเข้า LINE…';
-    await sendOutstandingOwnerAction('previewSend',{config},getSheetUrl());
+    await sendOutstandingOwnerAction('previewSend',{config,store:SHEET_TAB_NAME==='Chokdee'?'chokdee':'printImage'},getSheetUrl());
     toast('ส่งยอดค้างของรายการที่เลือกเข้า LINE แล้ว');
   } catch(e) {toast(e.message);}
   finally {button.disabled=false;button.textContent='ส่งยอดชำระ';}

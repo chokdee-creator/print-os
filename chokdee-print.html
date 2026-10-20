@@ -1472,6 +1472,7 @@
       }
     }
   </style>
+<link rel="stylesheet" href="outstanding-panel.css?v=20261020-two-stores">
 </head>
 <body>
   <main class="app">
@@ -1833,6 +1834,9 @@
             <strong class="selection-sale-total" id="selectionSaleTotal">ยอดขายรวม ฿0.00</strong>
           </div>
           <div class="selection-actions">
+            <button class="btn small" id="sendSelectedOutstanding" type="button" title="ส่งยอดค้างของรายการที่เลือกเข้า LINE ของฉัน">ส่งยอดชำระ</button>
+            <button class="btn small secondary" id="printSelectedReceipt" type="button">พิมพ์ใบเสร็จ</button>
+            <button class="btn small secondary" id="clearSelectedPayments" type="button">ยกเลิกการเลือก</button>
             <button class="btn small secondary" id="editSelected" type="button">แก้ไข</button>
             <button class="btn small danger" id="deleteSelected" type="button">ลบ</button>
           </div>
@@ -1909,6 +1913,10 @@
 
   <div class="toast" id="toast"></div>
 
+  <script src="outstanding-reports.js?v=20261020-two-stores"></script>
+  <script src="outstanding-owner-client.js?v=20261020-two-stores"></script>
+  <script src="outstanding-panel.js?v=20261020-two-stores"></script>
+  <script src="selected-payment.js?v=20261020-two-stores"></script>
   <script>
     const STORAGE_KEY = "chokdee_print_records_v1";
     const URL_KEY = "print_job_tracker_sheet_url_v1";
@@ -2155,7 +2163,7 @@
     }
 
     function today() {
-      return new Date().toISOString().slice(0, 10);
+      return PrintOutstanding.instantDay(new Date());
     }
 
     function thisMonth() {
@@ -2705,6 +2713,7 @@
 
     function clearSelection() {
       selectedIds.clear();
+      els.rows.querySelectorAll('.row-select').forEach(input => { input.checked = false; });
       updateSelectionBar();
     }
 
@@ -2863,6 +2872,7 @@
     function dateInputValue(value) {
       const text = String(value || "").trim();
       if (!text) return today();
+      if (/^\d{4}-\d{2}-\d{2}T/.test(text)) return PrintOutstanding.instantDay(text);
       const iso = text.match(/\d{4}-\d{2}-\d{2}/);
       return iso ? iso[0] : text.slice(0, 10);
     }
@@ -3456,6 +3466,9 @@
     refreshUxSelects();
     updatePreview();
     render();
+    document.getElementById("sendSelectedOutstanding").addEventListener("click", sendSelectedOutstanding);
+    document.getElementById("printSelectedReceipt").addEventListener("click", printSelectedReceipt);
+    document.getElementById("clearSelectedPayments").addEventListener("click", clearSelection);
     autoLoadFromSheet();
   </script>
 </body>

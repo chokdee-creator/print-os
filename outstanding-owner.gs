@@ -19,6 +19,10 @@ function verifyOutstandingOwnerSetup() {
   const rows=orRecords_();
   console.log('Owner verified. Report rows: '+rows.length+'. No LINE message sent.');
 }
+function verifyBothStoreReports() {
+  orRequireOwner_();
+  ['printImage','chokdee'].forEach(store=>console.log(orStore_(store).name+': '+orRecords_(store).length+' rows. No message sent.'));
+}
 function outstandingOwnerPage_() {
   try {orRequireOwner_();}
   catch(e) {return ContentService.createTextOutput(e.message);}

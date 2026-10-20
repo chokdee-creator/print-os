@@ -5,8 +5,14 @@
 function orProperties_() {return PropertiesService.getScriptProperties();}
 function orSchedules_() {return JSON.parse(orProperties_().getProperty('PRINT_OUTSTANDING_SCHEDULES') || '[]');}
 function orToday_() {return Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyy-MM-dd');}
-function orRecords_() {
-  const values = prRead_(prSettings_());
+function orStore_(store) {
+  if(store===undefined || store==='printImage') return {id:'printImage',name:'ร้านปริ้นอิมเมจ',sheet:prSettings_().sheetName};
+  if(store==='chokdee') return {id:'chokdee',name:'ร้านโชคดีการพิมพ์',sheet:'Chokdee'};
+  throw new Error('ร้านไม่ถูกต้อง');
+}
+function orRecords_(store) {
+  const selectedStore=orStore_(store);
+  const values = prRead_(Object.assign({},prSettings_(),{sheetName:selectedStore.sheet}));
   const headers = values[0].map(String);
   const fields = {id:'ID',date:'วันที่', customerType:'ประเภทลูกค้า', customerName:'รายชื่อลูกค้า',
     paymentStatus:'สถานะชำระเงิน', name:'รายชื่องาน', saleTotal:'ราคาขาย', paidAmount:'ลูกค้าชำระ', paymentSlipUrl:'ลิงก์สลิป'};
@@ -29,9 +35,10 @@ function orKnown_(config, records) {
     config.recordIds.forEach(id=>{if(!ids.has(id)) throw new Error('ไม่พบรายการที่เลือกในชีต กรุณาซิงก์ข้อมูลก่อนส่ง');});
   }
 }
-function orReport_(config) {
-  const records=orRecords_();orKnown_(config,records);
-  return PrintOutstanding.text(PrintOutstanding.build(records,config,orToday_()));
+function orReport_(config,store) {
+  const selectedStore=orStore_(store);
+  const records=orRecords_(store);orKnown_(config,records);
+  return PrintOutstanding.text(PrintOutstanding.build(records,config,orToday_())).replace('ร้านปริ้นอิมเมจ',selectedStore.name);
 }
 function orDeliveryFolder_() {
   const p=orProperties_(), id=p.getProperty('PRINT_OUTSTANDING_LOG_FOLDER');
@@ -97,8 +104,9 @@ function orAction_(data, requestId) {
     orProperties_().setProperty('PRINT_OUTSTANDING_SCHEDULES',JSON.stringify(remaining));return {ok:true};
   }
   if(data.action==='previewSend') {
+    const store=orStore_(data.store);
     const config=PrintOutstanding.validate(data.config);
-    orSend_('request:'+requestId,()=>orReport_(config));return {ok:true};
+    orSend_('request:'+store.id+':'+requestId,()=>orReport_(config,store.id));return {ok:true};
   }
   if(data.action==='line') {
     const previous=orReadDelivery_('line:'+requestId);
