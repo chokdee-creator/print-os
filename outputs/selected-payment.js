@@ -30,10 +30,11 @@ var SelectedPayment = (function () {
   }
   return {documents,html};
 })();
-function printSelectedReceipt() {
+async function printSelectedReceipt() {
   try {
     const rows = selectedRecords().map(r=>({id:r.id,name:r.name,date:r.date,customerType:customerType(r),customerName:customerName(r),sale:Number(r.saleTotal)||0,paid:paidAmount(r),paymentMethod:r.paymentMethod,paymentMethodNote:r.paymentMethodNote,paymentHistory:PaymentChannelData.readHistory(r.paymentHistory)}));
-    const html = SelectedPayment.html(rows, new Intl.DateTimeFormat('th-TH',{timeZone:'Asia/Bangkok',dateStyle:'long'}).format(new Date()), SHEET_TAB_NAME==='Chokdee'?'ร้านโชคดีการพิมพ์':'ร้านปริ้นอิมเมจ',StorePaymentChannels.html());
+    const paymentKeys=rows.some(r=>r.sale>r.paid)?await StorePaymentChannels.choose('เปิดเอกสารด้วยบัญชีที่เลือก'):[];if(paymentKeys===null)return;
+    const html = SelectedPayment.html(rows, new Intl.DateTimeFormat('th-TH',{timeZone:'Asia/Bangkok',dateStyle:'long'}).format(new Date()), SHEET_TAB_NAME==='Chokdee'?'ร้านโชคดีการพิมพ์':'ร้านปริ้นอิมเมจ',StorePaymentChannels.html(paymentKeys));
     let dialog = document.getElementById('selectedReceiptDialog');
     if (!dialog) {
       dialog=document.createElement('dialog');dialog.id='selectedReceiptDialog';
