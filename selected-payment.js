@@ -34,9 +34,19 @@ function printSelectedReceipt() {
   try {
     const rows = selectedRecords().map(r=>({id:r.id,name:r.name,date:r.date,customerType:customerType(r),customerName:customerName(r),sale:Number(r.saleTotal)||0,paid:paidAmount(r)}));
     const html = SelectedPayment.html(rows, new Intl.DateTimeFormat('th-TH',{timeZone:'Asia/Bangkok',dateStyle:'long'}).format(new Date()));
-    const popup = window.open('','_blank');
-    if (!popup) throw new Error('กรุณาอนุญาตป๊อปอัปเพื่อเปิดใบเสร็จ');
-    popup.document.open(); popup.document.write(html); popup.document.close();
+    let dialog = document.getElementById('selectedReceiptDialog');
+    if (!dialog) {
+      dialog=document.createElement('dialog');dialog.id='selectedReceiptDialog';
+      dialog.setAttribute('aria-label','ตัวอย่างใบเสร็จของรายการที่เลือก');
+      dialog.style.cssText='width:96vw;max-width:1060px;height:94vh;padding:12px;border:0;border-radius:12px;background:#edf1f5';
+      const close=document.createElement('button');close.type='button';close.className='btn secondary';close.textContent='ปิดตัวอย่าง';
+      close.style.cssText='margin-bottom:8px';close.addEventListener('click',()=>dialog.close());
+      const frame=document.createElement('iframe');frame.title='ใบเสร็จรายการที่เลือก';
+      frame.style.cssText='display:block;width:100%;height:calc(100% - 58px);border:0;background:white';
+      dialog.append(close,frame);document.body.append(dialog);
+    }
+    dialog.querySelector('iframe').srcdoc=html;
+    dialog.showModal();
   } catch(e) {toast(e.message);}
 }
 if (typeof module !== 'undefined' && module.exports) module.exports = SelectedPayment;
