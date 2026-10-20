@@ -2268,7 +2268,8 @@
           <div class="selection-actions">
             <label style="display:flex;align-items:center;gap:6px;font-size:13px">ผู้รับ LINE <select id="selectedLineRecipient" data-line-recipient style="width:auto;max-width:210px;min-height:40px"><option value="owner">วินDS (บัญชีเดิมของฉัน)</option></select></label>
             <button class="btn small secondary" type="button" data-manage-line-recipients>บัญชี LINE</button>
-            <button class="btn small" id="sendSelectedOutstanding" type="button" title="ส่งยอดค้างของรายการที่เลือกเข้า LINE ของฉัน">ส่งยอดชำระ</button>
+            <button class="btn small" id="copySelectedOpenOa" type="button">คัดลอกยอดและเปิด LINE OA</button>
+            <button class="btn small secondary" id="sendSelectedOutstanding" type="button" title="ส่งยอดค้างของรายการที่เลือกเข้า LINE ของฉัน">ส่งยอดชำระ</button>
             <button class="btn small secondary" id="printSelectedReceipt" type="button">พิมพ์ใบเสร็จ</button>
             <button class="btn small secondary" id="clearSelectedPayments" type="button">ยกเลิกการเลือก</button>
             <button class="btn small secondary" id="editSelected" type="button">แก้ไข</button>
@@ -2344,6 +2345,7 @@
       <label style="display:flex;align-items:center;gap:8px">ผู้รับ LINE <select id="reportLineRecipient" data-line-recipient style="width:auto;max-width:240px"><option value="owner">วินDS (บัญชีเดิมของฉัน)</option></select></label>
       <button class="btn secondary" type="button" data-manage-line-recipients>บัญชี LINE</button>
       <button class="btn" type="button" id="outstandingSend">ส่งยอดเข้า LINE ที่เลือก</button>
+      <button class="btn" type="button" id="outstandingOpenOa">คัดลอกยอดและเปิด LINE OA</button>
       <button class="btn secondary" type="button" id="outstandingCopy">คัดลอกข้อความสรุป</button>
       <button class="btn secondary" type="button" id="outstandingCommand">คัดลอกคำสั่ง LINE</button>
       <button class="btn secondary" type="button" id="outstandingCsv">ดาวน์โหลด CSV</button>
@@ -2389,7 +2391,7 @@
   <script src="outstanding-owner-client.js?v=20261018-owner-send-2"></script>
   <script src="selected-payment.js?v=20261020-two-stores"></script>
   <script src="line-recipients.js?v=20261020-contacts"></script>
-  <script src="outstanding-panel.js?v=20261020-recipients"></script>
+  <script src="outstanding-panel.js?v=20261020-oa-chat"></script>
   <script>
     const STORAGE_KEY = "print_job_tracker_records_v1";
     const URL_KEY = "print_job_tracker_sheet_url_v1";
@@ -3943,6 +3945,7 @@
     render();
     outstandingPanel = initOutstandingPanel();
     LineRecipients.init();
+    document.getElementById("copySelectedOpenOa").addEventListener("click", copySelectedAndOpenLineOa);
     document.getElementById("sendSelectedOutstanding").addEventListener("click", sendSelectedOutstanding);
     document.getElementById("printSelectedReceipt").addEventListener("click", printSelectedReceipt);
     document.getElementById("clearSelectedPayments").addEventListener("click", clearSelection);

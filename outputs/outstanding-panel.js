@@ -47,6 +47,7 @@ function initOutstandingPanel() {
   function click(id, action) { $(id).addEventListener('click', async () => { try {await action();} catch(e) {status(e.message);} }); }
   click('Preview', preview);
   click('Copy', async () => {await navigator.clipboard.writeText(PrintOutstanding.text(preview())); status('คัดลอกข้อความสรุปแล้ว');});
+  click('OpenOa', () => copyAndOpenLineOa(PrintOutstanding.text(preview())));
   click('Command', async () => {await navigator.clipboard.writeText(PrintOutstanding.command(config())); status('คัดลอกคำสั่งแล้ว ใช้ได้เมื่อเชื่อมตัวรับคำสั่ง LINE ถาวรสำเร็จ');});
   click('Csv', () => {
     const r = preview();
@@ -93,6 +94,15 @@ async function sendSelectedOutstanding() {
   const button=document.getElementById('sendSelectedOutstanding');
   if(button.disabled)return;
   try {
+    const config=selectedOutstandingConfig();
+    button.disabled=true;button.textContent='กำลังส่งเข้า LINE…';
+    const result=await sendOutstandingOwnerAction('previewSend',{config,store:SHEET_TAB_NAME==='Chokdee'?'chokdee':'printImage',recipientId:LineRecipients.selected('selectedLineRecipient')},getSheetUrl());
+    toast('ส่งยอดชำระเข้า LINE ของ '+result.recipientName+' แล้ว');
+  } catch(e) {toast(e.message);}
+  finally {button.disabled=false;button.textContent='ส่งยอดชำระ';}
+}
+
+function selectedOutstandingConfig() {
     const chosen=records.filter(r=>selectedIds.has(r.id) && balanceAmount(r)>0);
     if(!chosen.length) throw new Error('รายการที่เลือกไม่มียอดค้างชำระ');
     const customers=Array.from(new Map(chosen.map(r=>{
@@ -100,10 +110,34 @@ async function sendSelectedOutstanding() {
       return [PrintOutstanding.identity(c),c];
     })).values());
     const dates=chosen.map(r=>r.date).sort();
-    const config=PrintOutstanding.validate({customers,start:dates[0],end:dates.at(-1),group:'day',cadence:'off',range:'fixed',recordIds:chosen.map(r=>String(r.id))});
-    button.disabled=true;button.textContent='กำลังส่งเข้า LINE…';
-    const result=await sendOutstandingOwnerAction('previewSend',{config,store:SHEET_TAB_NAME==='Chokdee'?'chokdee':'printImage',recipientId:LineRecipients.selected('selectedLineRecipient')},getSheetUrl());
-    toast('ส่งยอดชำระเข้า LINE ของ '+result.recipientName+' แล้ว');
-  } catch(e) {toast(e.message);}
-  finally {button.disabled=false;button.textContent='ส่งยอดชำระ';}
+    return PrintOutstanding.validate({customers,start:dates[0],end:dates.at(-1),group:'day',cadence:'off',range:'fixed',recordIds:chosen.map(r=>String(r.id))});
+}
+
+/** Prepare a manual OA chat message. This never calls the send API. */
+async function copyAndOpenLineOa(text) {
+  const storeName=SHEET_TAB_NAME==='Chokdee'?'ร้านโชคดีการพิมพ์':'ร้านปริ้นอิมเมจ';
+  text=text.replace('สรุปยอดค้าง ร้านปริ้นอิมเมจ','สรุปยอดค้าง '+storeName);
+  let dialog=document.getElementById('lineOaChatDialog');
+  if(!dialog){
+    dialog=document.createElement('dialog');dialog.id='lineOaChatDialog';dialog.setAttribute('aria-label','คัดลอกยอดและเปิด LINE OA');
+    dialog.style.cssText='width:calc(100% - 28px);max-width:700px;padding:24px;border-radius:14px';
+    dialog.innerHTML='<h2>ส่งยอดผ่านแชท LINE OA</h2><p role="status" data-oa-copy-status></p><p>เลือกแชทลูกค้าใน OA ปริ้นอิมเมจ แล้ววางข้อความด้วย Ctrl+V และกดส่ง ข้อความยังไม่ถูกส่งจนกว่าคุณจะกดส่งในแชท</p><textarea readonly aria-label="ข้อความยอดสำหรับส่งใน LINE OA" style="width:100%;height:240px;padding:12px;box-sizing:border-box"></textarea><p><a class="btn" href="https://chat.line.biz/" target="_blank" rel="noopener">เปิดแชท LINE OA</a> <button type="button" class="btn secondary" data-copy-oa-again>คัดลอกข้อความอีกครั้ง</button> <button type="button" class="btn secondary" data-close-oa>ปิด</button></p>';
+    dialog.querySelector('[data-close-oa]').addEventListener('click',()=>dialog.close());
+    dialog.querySelector('[data-copy-oa-again]').addEventListener('click',async()=>{
+      try{await navigator.clipboard.writeText(dialog.querySelector('textarea').value);dialog.querySelector('[data-oa-copy-status]').textContent='คัดลอกยอดแล้ว เปิดแชท OA แล้ววางข้อความได้เลย';}
+      catch(e){dialog.querySelector('textarea').select();dialog.querySelector('[data-oa-copy-status]').textContent='เลือกข้อความให้แล้ว กด Ctrl+C เพื่อคัดลอก แล้วเปิดแชท OA';}
+    });
+    document.body.append(dialog);
+  }
+  dialog.querySelector('textarea').value=text;
+  if(!dialog.open)dialog.showModal();
+  // Start clipboard access while the page still has the user's click and focus.
+  const copying=navigator.clipboard?navigator.clipboard.writeText(text):Promise.reject(new Error('Clipboard unavailable'));
+  window.open('https://chat.line.biz/','_blank','noopener');
+  try{await copying;dialog.querySelector('[data-oa-copy-status]').textContent='คัดลอกยอดแล้ว เลือกแชทลูกค้าแล้ววางข้อความได้เลย หากแชทไม่เปิด ให้กดเปิดแชท LINE OA ด้านล่าง';}
+  catch(e){dialog.querySelector('[data-oa-copy-status]').textContent='เบราว์เซอร์ยังไม่อนุญาตให้คัดลอก กดคัดลอกข้อความอีกครั้ง หรือเลือกข้อความแล้วกด Ctrl+C';}
+}
+function copySelectedAndOpenLineOa(){
+  try{const config=selectedOutstandingConfig();return copyAndOpenLineOa(PrintOutstanding.text(PrintOutstanding.build(records,config,today())));}
+  catch(e){toast(e.message);}
 }
