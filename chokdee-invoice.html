@@ -733,7 +733,7 @@
               <div class="quick-actions">
                 <button class="btn small" data-add-preset="sticker" type="button">+ เพิ่มสติ๊กเกอร์</button>
                 <button class="btn small" data-add-preset="vinyl" type="button">+ เพิ่มไวนิล</button>
-                <button class="btn small" data-add-preset="blank" type="button">+ เพิ่มรายการ</button>
+                <button class="btn small" data-add-preset="blank" type="button">+ เพิ่มรายการสินค้า</button>
               </div>
             </div>
             <div class="table-wrap">
@@ -759,10 +759,6 @@
           <section class="panel">
             <div class="bottom-grid">
               <div>
-                <div class="field">
-                  <label for="note">หมายเหตุ</label>
-                  <textarea id="note">ขอบคุณที่ไว้วางใจในบริการของเรา</textarea>
-                </div>
                 <h2>วิธีการชำระเงิน</h2>
                 <div class="payment-tabs" id="paymentTabs">
                   <button class="active" data-payment="เงินสด" type="button">เงินสด</button>
@@ -892,7 +888,6 @@
       paymentTerm: document.querySelector("#paymentTerm"),
       seller: document.querySelector("#seller"),
       reference: document.querySelector("#reference"),
-      note: document.querySelector("#note"),
       rows: document.querySelector("#itemRows"),
       discountEnabled: document.querySelector("#discountEnabled"),
       billDiscount: document.querySelector("#billDiscount"),
@@ -1257,7 +1252,7 @@
           discountEnabled: els.discountEnabled.checked,
           vatEnabled: els.vatEnabled.checked
         },
-        fields: Object.fromEntries(["docNo","docDate","dueDate","customerName","customerAddress","taxId","branch","contactName","phone","paymentTerm","seller","reference","note","billDiscount","received"].map(id => [id, document.querySelector(`#${id}`).value]))
+        fields: Object.fromEntries(["docNo","docDate","dueDate","customerName","customerAddress","taxId","branch","contactName","phone","paymentTerm","seller","reference","billDiscount","received"].map(id => [id, document.querySelector(`#${id}`).value]))
       };
     }
 

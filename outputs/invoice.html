@@ -449,7 +449,7 @@
               <div class="quick-actions">
                 <button class="btn small" data-add-preset="sticker" type="button">+ เพิ่มสติ๊กเกอร์</button>
                 <button class="btn small" data-add-preset="vinyl" type="button">+ เพิ่มไวนิล</button>
-                <button class="btn small" data-add-preset="blank" type="button">+ เพิ่มรายการ</button>
+                <button class="btn small" data-add-preset="blank" type="button">+ เพิ่มรายการสินค้า</button>
               </div>
             </div>
             <div class="table-wrap">
@@ -475,10 +475,6 @@
           <section class="panel">
             <div class="bottom-grid">
               <div>
-                <div class="field">
-                  <label for="note">หมายเหตุ</label>
-                  <textarea id="note">ขอบคุณที่ไว้วางใจในบริการของเรา</textarea>
-                </div>
                 <h2>วิธีการชำระเงิน</h2>
                 <div class="payment-tabs" id="paymentTabs">
                   <button class="active" data-payment="เงินสด" type="button">เงินสด</button>
@@ -560,7 +556,6 @@
       paymentTerm: document.querySelector("#paymentTerm"),
       seller: document.querySelector("#seller"),
       reference: document.querySelector("#reference"),
-      note: document.querySelector("#note"),
       rows: document.querySelector("#itemRows"),
       billDiscount: document.querySelector("#billDiscount"),
       received: document.querySelector("#received"),
@@ -667,7 +662,7 @@
           <div class="total-line"><span>ภาษีมูลค่าเพิ่ม 7%</span><b>${baht(total.vat)}</b></div>
           <div class="grand"><span>ยอดรวมทั้งสิ้น</span><b>${baht(total.grand)}</b></div>
         </div>
-        <div class="doc-section"><b>หมายเหตุ:</b> ${escapeHtml(els.note.value)}<br><b>ชำระโดย:</b> ${escapeHtml(paymentMethod)}</div>
+        <div class="doc-section"><b>ชำระโดย:</b> ${escapeHtml(paymentMethod)}</div>
         <div class="signature">
           <div>ผู้รับเงิน ____________________<br>วันที่ ____ / ____ / ____</div>
           <div>ผู้ชำระเงิน ____________________<br>วันที่ ____ / ____ / ____</div>
@@ -704,7 +699,7 @@
         docType,
         paymentMethod,
         items,
-        fields: Object.fromEntries(["docNo","docDate","dueDate","customerName","customerAddress","taxId","branch","contactName","phone","paymentTerm","seller","reference","note","billDiscount","received"].map(id => [id, document.querySelector(`#${id}`).value]))
+        fields: Object.fromEntries(["docNo","docDate","dueDate","customerName","customerAddress","taxId","branch","contactName","phone","paymentTerm","seller","reference","billDiscount","received"].map(id => [id, document.querySelector(`#${id}`).value]))
       };
     }
 

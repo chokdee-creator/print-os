@@ -10,7 +10,6 @@ function openBlankInvoiceForm(){
 function prepareBlankInvoice(frame){
   const doc=frame.contentDocument,root=doc.querySelector('.document'),body=root.querySelector('tbody');
   root.querySelector('.customer-caption').remove();root.querySelector('[data-bill-customer]').required=true;
-  root.querySelector('.bottom-grid textarea').value='';
   root.querySelector('.note').textContent='เอกสารแจ้งยอดนี้ยังไม่ใช่หลักฐานการรับเงิน กรุณาตรวจสอบรายละเอียดและยอดชำระก่อนส่งให้ลูกค้า';
   const totals=root.querySelector('.totals').children,sale=totals[0].querySelector('output'),balance=totals[2].querySelector('output');
   const paid=doc.createElement('input');paid.type='number';paid.min='0';paid.step='0.01';paid.value='0';paid.required=true;paid.setAttribute('aria-label','ยอดรับชำระแล้ว');paid.style.cssText='width:110px;text-align:right';
@@ -36,7 +35,9 @@ function prepareBlankInvoice(frame){
     body.append(row);calculate();
   }
   body.replaceChildren();addRow();root.addEventListener('input',calculate);
-  const add=doc.createElement('button');add.type='button';add.textContent='+ เพิ่มรายการ';add.setAttribute('data-html2canvas-ignore','true');add.onclick=()=>{addRow();changed();};doc.querySelector('.tools').append(add);
+  const add=doc.createElement('button');add.type='button';add.textContent='+ เพิ่มรายการสินค้า';add.setAttribute('data-html2canvas-ignore','true');add.onclick=()=>{addRow();changed();};doc.querySelector('.tools').append(add);
+  const addBelow=add.cloneNode(true);addBelow.onclick=add.onclick;addBelow.style.cssText='background:#f3d78c;color:#142342;border:1px solid #ddb350;border-radius:6px;padding:8px 14px;cursor:pointer';
+  const productActions=doc.createElement('div');productActions.className='screen-only';productActions.setAttribute('data-html2canvas-ignore','true');productActions.style.margin='8px 0';productActions.append(addBelow);root.querySelector('.items').after(productActions);
   doc.querySelector('.tools button').onclick=()=>{const invalid=root.querySelector(':invalid');if(invalid){invalid.reportValidity();return;}frame.contentWindow.print();};
   const dialog=frame.closest('dialog'),tools=dialog.querySelector('[data-send-selected-bill]').parentElement;
   let bank=tools.querySelector('[data-blank-payment]');
