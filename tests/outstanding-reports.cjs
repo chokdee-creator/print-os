@@ -51,6 +51,15 @@ const ctx=vm.createContext({console,Date:FakeDate,PrintOutstanding:P,prSettings_
 });
 vm.runInContext(fs.readFileSync(path.join(__dirname,'../outstanding-service.gs'),'utf8'),ctx);
 ctx.orRecords_=()=>dataRows;
+assert.equal(ctx.orStore_('chokdee').sheet,'Chokdee');
+assert.equal(ctx.orStore_('printImage').name,'ร้านปริ้นอิมเมจ');
+assert.throws(()=>ctx.orStore_('unknown'));
+let lastStoreRead;
+ctx.orRecords_=store=>{lastStoreRead=store;return dataRows;};
+assert.match(ctx.orReport_(c,'chokdee'),/ร้านโชคดีการพิมพ์/);
+assert.equal(lastStoreRead,'chokdee');
+assert.match(ctx.orReport_(c,'printImage'),/ร้านปริ้นอิมเมจ/);
+assert.equal(lastStoreRead,'printImage');
 const deliveries=new Map();
 ctx.orReadDelivery_=key=>deliveries.has(key)?JSON.parse(JSON.stringify(deliveries.get(key))):null;
 ctx.orWriteDelivery_=(key,row)=>deliveries.set(key,JSON.parse(JSON.stringify(row)));
