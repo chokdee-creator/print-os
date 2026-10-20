@@ -131,10 +131,8 @@ async function copyAndOpenLineOa(text) {
   }
   dialog.querySelector('textarea').value=text;
   if(!dialog.open)dialog.showModal();
-  // Start clipboard access while the page still has the user's click and focus.
-  const copying=navigator.clipboard?navigator.clipboard.writeText(text):Promise.reject(new Error('Clipboard unavailable'));
-  window.open('https://chat.line.biz/','_blank','noopener');
-  try{await copying;dialog.querySelector('[data-oa-copy-status]').textContent='คัดลอกยอดแล้ว เลือกแชทลูกค้าแล้ววางข้อความได้เลย หากแชทไม่เปิด ให้กดเปิดแชท LINE OA ด้านล่าง';}
+  // Finish copying before another tab can take focus.
+  try{await navigator.clipboard.writeText(text);window.open('https://chat.line.biz/','_blank','noopener');dialog.querySelector('[data-oa-copy-status]').textContent='คัดลอกยอดแล้ว เลือกแชทลูกค้าแล้ววางข้อความได้เลย หากแชทไม่เปิด ให้กดเปิดแชท LINE OA ด้านล่าง';}
   catch(e){dialog.querySelector('[data-oa-copy-status]').textContent='เบราว์เซอร์ยังไม่อนุญาตให้คัดลอก กดคัดลอกข้อความอีกครั้ง หรือเลือกข้อความแล้วกด Ctrl+C';}
 }
 function copySelectedAndOpenLineOa(){
