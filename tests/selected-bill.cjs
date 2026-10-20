@@ -8,7 +8,7 @@ const P=require('../selected-payment.js'),D=require('../payment-channel-data.js'
       {id:'paid',name:'Already fully paid',date:'2026-10-20',type:'regular',customer:'Same customer',saleTotal:200,paid:200}
     ];
     const button={disabled:false,textContent:'ส่งยอดชำระ'},errors=[],sent=[];let preview;
-    const ctx=vm.createContext({records,selectedIds:new Set(['picked','paid']),SHEET_TAB_NAME:store,PaymentChannelData:D,PrintOutstanding:R,
+    const ctx=vm.createContext({InvoiceTheme:require('../bill-theme.js'),records,selectedIds:new Set(['picked','paid']),SHEET_TAB_NAME:store,PaymentChannelData:D,PrintOutstanding:R,
       customerType:r=>'ลูกค้าประจำ',customerName:r=>r.customer,paidAmount:r=>r.paid,balanceAmount:r=>r.saleTotal-r.paid,
       document:{getElementById:()=>button},toast:s=>errors.push(s),getSheetUrl:()=> 'https://script.google.com/test',
       StorePaymentChannels:{choose:async()=>['chosen-bank'],html:keys=>{assert.deepEqual(Array.from(keys),['chosen-bank']);return '<section>Chosen bank</section>';}},

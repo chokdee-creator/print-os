@@ -27,7 +27,7 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
   }
   for(const store of ['Account','Chokdee']){
     let preview;const errors=[];
-    const ctx=vm.createContext({SHEET_TAB_NAME:store,PaymentChannelData:require('../payment-channel-data.js'),customerType:r=>r.customerType,customerName:r=>r.customerName,paidAmount:r=>r.paidAmount,toast:s=>errors.push(s),StorePaymentChannels:{choose:async()=>[],html:()=>''}});
+    const ctx=vm.createContext({InvoiceTheme:require('../bill-theme.js'),SHEET_TAB_NAME:store,PaymentChannelData:require('../payment-channel-data.js'),customerType:r=>r.customerType,customerName:r=>r.customerName,paidAmount:r=>r.paidAmount,toast:s=>errors.push(s),StorePaymentChannels:{choose:async()=>[],html:()=>''}});
     vm.runInContext(fs.readFileSync('selected-payment.js','utf8'),ctx);ctx.showSelectedPaymentDocument=html=>{preview=html;};
     const record={id:'saved-job',name:'Saved job only',date:'2026-10-21',customerType:'ลูกค้าประจำ',customerName:'A',saleTotal:100,paidAmount:20};
     await ctx.openSavedJobBill(record);assert.ok(preview.includes('Saved job only'));assert.ok(preview.includes('<h2>ใบแจ้งยอดชำระ</h2>'));assert.ok(preview.includes('80.00'));assert.ok(preview.includes(store==='Chokdee'?'ร้านโชคดีการพิมพ์':'ร้านปริ้นอิมเมจ'));

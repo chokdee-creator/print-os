@@ -18,6 +18,8 @@ var BillImage=(function(){
       controls=document.createElement('span');controls.dataset.billImageControls='';controls.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap';
       controls.innerHTML='<label>บิลที่จะคัดลอก <select aria-label="เลือกบิลลูกค้าที่จะคัดลอก"></select></label><button type="button" class="btn secondary" data-copy-bill-image>คัดลอกบิลเป็นรูปภาพ</button><button type="button" class="btn secondary" data-download-bill-image>ดาวน์โหลดรูปบิล</button><a data-preview-bill-image target="_blank" rel="noopener" hidden>ดูรูปบิล</a>';
       tools.insertBefore(controls,status);
+      controls.querySelectorAll('button').forEach(button=>{button.style.cssText='background:#f3d78c;color:#142342;border:1px solid #ddb350;font-weight:bold';});
+      controls.style.color='#fff';
     }
     const select=controls.querySelector('select'),label=controls.querySelector('label'),copy=controls.querySelector('[data-copy-bill-image]'),download=controls.querySelector('[data-download-bill-image]');
     const preview=controls.querySelector('[data-preview-bill-image]');
@@ -26,7 +28,12 @@ var BillImage=(function(){
     clearPreview();let sections=[],cached=new Map();select.replaceChildren();copy.disabled=true;download.disabled=true;
     frame.onload=()=>{
       sections=Array.from(frame.contentDocument.querySelectorAll('.document'));
-      sections.forEach((section,index)=>{const option=document.createElement('option');option.value=String(index);option.textContent=(index+1)+'. '+(section.querySelector('.head p')?.textContent.split('ประเภทลูกค้า:')[0]||'บิล');select.append(option);});
+      const caption=section=>section.querySelector('[data-bill-customer]')?.value||section.dataset.customerName||section.querySelector('.head p')?.textContent.split('ประเภทลูกค้า:')[0]||'บิล';
+      sections.forEach((section,index)=>{const option=document.createElement('option');option.value=String(index);option.textContent=(index+1)+'. ลูกค้า: '+caption(section);select.append(option);});
+      frame.contentDocument.addEventListener('input',()=>{
+        cached.clear();clearPreview();sections.forEach((section,index)=>{select.options[index].textContent=(index+1)+'. ลูกค้า: '+caption(section);});
+        status.textContent='รายละเอียดบิลเปลี่ยนแล้ว กดคัดลอกรูปอีกครั้งเพื่อใช้ข้อมูลล่าสุด';
+      });
       label.hidden=sections.length<2;copy.disabled=download.disabled=!sections.length;
     };
     function image(){
