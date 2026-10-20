@@ -1,0 +1,2 @@
+
+LINE OA contact names (20 October 2026): the current OA returned HTTP 403 for the official follower-ID endpoint. Contact display names can be imported through the owner-only `orImportContactNames_` installer and are kept in the private delivery folder, never in this repository. Imported names remain pending and cannot receive reports until a Messaging API address is verified. Duplicate names are not treated as account identities. Both shop pages load this private directory through the authenticated owner RPC.

@@ -109,6 +109,19 @@ assert.equal(added.recipient.name,'Verified receiver');assert.equal('target' in 
 assert.equal(ctx.outstandingOwnerRequest({...ownerRequest,action:'addRecipient',userId:'U'+'c'.repeat(32)}).recipient.id,added.recipient.id);
 assert.equal(ctx.orRecipients_().length,2);ctx.UrlFetchApp.fetch=profileFetch;
 
+// Imported display names must never become sendable addresses by name alone.
+const callsBeforeImport=calls.length;
+ctx.orImportContactNames_(['Customer A','Customer A','Customer B']);
+let imported=ctx.orImportedContacts_();assert.equal(imported.length,3);assert.notEqual(imported[0].id,imported[1].id);
+const originalIds=imported.map(r=>r.id).join(',');ctx.orImportContactNames_(['Customer A','Customer A','Customer B']);
+assert.equal(ctx.orImportedContacts_().map(r=>r.id).join(','),originalIds);
+const importedChoice=ctx.outstandingOwnerRequest({...ownerRequest,action:'recipients'}).recipients.find(r=>r.pending);
+assert.ok(importedChoice);assert.equal('target' in importedChoice,false);
+assert.throws(()=>ctx.orAction_({action:'previewSend',recipientId:importedChoice.id,config:c},'pending-contact-request'));
+assert.equal(calls.length,callsBeforeImport);
+ctx.outstandingOwnerRequest({...ownerRequest,action:'removeRecipient',recipientId:importedChoice.id});assert.equal(ctx.orImportedContacts_().length,2);
+activeEmail='other@example.com';assert.throws(()=>ctx.orImportContactNames_(['Untrusted']));activeEmail='chokdeeprintings@gmail.com';
+
 (async()=>{
   const {default:worker,verify}=await import(pathToFileURL(path.join(__dirname,'../outstanding-worker.mjs')));
   const env={LINE_CHANNEL_SECRET:'test-channel',BRIDGE_SECRET:'test-bridge',ADMIN_KEY:'test-admin',OWNER_LINE_USER_ID:'U'+'a'.repeat(32),APPS_SCRIPT_URL:'https://example.com/exec',ALLOWED_ORIGIN:'https://shop.example'};
