@@ -44,12 +44,13 @@ function showSelectedPaymentDocument(html, onSend) {
     const send=document.createElement('button');send.type='button';send.className='btn';send.dataset.sendSelectedBill='';
     const status=document.createElement('span');status.setAttribute('role','status');
     tools.append(close,send,status);
-    const frame=document.createElement('iframe');frame.style.cssText='display:block;width:100%;height:calc(100% - 58px);border:0;background:white';
-    dialog.append(tools,frame);document.body.append(dialog);
+    const frame=document.createElement('iframe');frame.style.cssText='display:block;width:100%;min-height:0;flex:1;border:0;background:white';
+    const layout=document.createElement('div');layout.style.cssText='display:flex;flex-direction:column;height:100%';tools.style.flexShrink='0';layout.append(tools,frame);dialog.append(layout);document.body.append(dialog);
   }
   const title=onSend?'ตัวอย่างบิลยอดชำระของรายการที่เลือก':'ตัวอย่างใบเสร็จของรายการที่เลือก';
   dialog.setAttribute('aria-label',title);const frame=dialog.querySelector('iframe');frame.title=title;frame.srcdoc=html;
   const send=dialog.querySelector('[data-send-selected-bill]'),status=dialog.querySelector('[role="status"]');
+  BillImage.mount(frame,send.parentElement,status);
   send.hidden=!onSend;send.disabled=false;send.textContent='ส่งยอดเข้า LINE';status.textContent='';
   send.onclick=onSend?async()=>{
     if(send.disabled)return;send.disabled=true;status.textContent='กำลังส่งยอดของรายการในบิลเข้า LINE…';

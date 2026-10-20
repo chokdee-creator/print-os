@@ -1,0 +1,56 @@
+/* Render locally; no bill or QR data is uploaded to an image service. */
+var BillImage=(function(){
+  async function render(section){
+    if(typeof html2canvas!=='function')throw new Error('โหลดระบบสร้างรูปไม่สำเร็จ กรุณารีเฟรชหน้าเว็บ');
+    const doc=section.ownerDocument;
+    if(doc.fonts)await doc.fonts.ready;
+    await Promise.all(Array.from(section.querySelectorAll('img')).map(img=>img.decode()));
+    const bounds=section.getBoundingClientRect(),width=Math.ceil(bounds.width),height=Math.ceil(Math.max(bounds.height,section.scrollHeight));
+    const scale=Math.min(2,16000/height,Math.sqrt(16000000/(width*height)));
+    if(!width||!height||scale<0.75)throw new Error('บิลยาวเกินขนาดรูป กรุณาแบ่งเลือกรายการให้น้อยลง หรือบันทึกเป็น PDF');
+    const canvas=await html2canvas(section,{backgroundColor:'#ffffff',scale,logging:false,allowTaint:false,useCORS:false,
+      width,height,windowWidth:doc.documentElement.clientWidth,windowHeight:Math.max(doc.documentElement.clientHeight,height+100)});
+    return new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('สร้างรูปบิลไม่สำเร็จ')),'image/png'));
+  }
+  function mount(frame,tools,status){
+    let controls=tools.querySelector('[data-bill-image-controls]');
+    if(!controls){
+      controls=document.createElement('span');controls.dataset.billImageControls='';controls.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap';
+      controls.innerHTML='<label>บิลที่จะคัดลอก <select aria-label="เลือกบิลลูกค้าที่จะคัดลอก"></select></label><button type="button" class="btn secondary" data-copy-bill-image>คัดลอกบิลเป็นรูปภาพ</button><button type="button" class="btn secondary" data-download-bill-image>ดาวน์โหลดรูปบิล</button>';
+      tools.insertBefore(controls,status);
+    }
+    const select=controls.querySelector('select'),label=controls.querySelector('label'),copy=controls.querySelector('[data-copy-bill-image]'),download=controls.querySelector('[data-download-bill-image]');
+    let sections=[],cached=new Map();select.replaceChildren();copy.disabled=true;download.disabled=true;
+    frame.onload=()=>{
+      sections=Array.from(frame.contentDocument.querySelectorAll('.document'));
+      sections.forEach((section,index)=>{const option=document.createElement('option');option.value=String(index);option.textContent=(index+1)+'. '+(section.querySelector('.head p')?.textContent.split('ประเภทลูกค้า:')[0]||'บิล');select.append(option);});
+      label.hidden=sections.length<2;copy.disabled=download.disabled=!sections.length;
+    };
+    function image(){
+      const index=Number(select.value),section=sections[index];
+      if(!section)return Promise.reject(new Error('กรุณารอให้บิลโหลดเสร็จก่อน'));
+      if(!cached.has(index))cached.set(index,render(section).catch(error=>{cached.delete(index);throw error;}));
+      return cached.get(index);
+    }
+    select.onchange=()=>{status.textContent='เลือกบิลแล้ว กดคัดลอกหรือดาวน์โหลดรูป';};
+    copy.onclick=async()=>{
+      if(copy.disabled)return;
+      if(!navigator.clipboard?.write||typeof ClipboardItem==='undefined'){status.textContent='เบราว์เซอร์นี้คัดลอกรูปไม่ได้ กดดาวน์โหลดรูปบิลแล้วแนบในแชทได้';return;}
+      copy.disabled=true;select.disabled=true;download.disabled=true;status.textContent='กำลังสร้างรูปบิล…';
+      try{
+        // Start the clipboard write during the click, before rendering finishes.
+        await navigator.clipboard.write([new ClipboardItem({'image/png':image()})]);
+        status.textContent='คัดลอกรูปบิลแล้ว เปิดแชท LINE แล้วกด Ctrl+V เพื่อวางรูป';
+      }catch(e){status.textContent='คัดลอกรูปไม่สำเร็จ: '+e.message+' — ลองอีกครั้ง หรือกดดาวน์โหลดรูปบิล';}
+      finally{copy.disabled=false;select.disabled=false;download.disabled=false;}
+    };
+    download.onclick=async()=>{
+      download.disabled=true;copy.disabled=true;select.disabled=true;status.textContent='กำลังเตรียมรูปบิล…';
+      try{const blob=await image(),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='บิลชำระเงิน-'+(Number(select.value)+1)+'.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);status.textContent='ดาวน์โหลดรูปบิลแล้ว สามารถแนบรูปในแชท LINE ได้';}
+      catch(e){status.textContent=e.message;}
+      finally{download.disabled=false;copy.disabled=false;select.disabled=false;}
+    };
+  }
+  return {render,mount};
+})();
+if(typeof module!=='undefined'&&module.exports)module.exports=BillImage;
