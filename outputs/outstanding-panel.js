@@ -64,7 +64,7 @@ function initOutstandingPanel() {
   click('Send', async () => {
     if(sending)return;
     const c=config();sending=true;$('Send').disabled=true;
-    try{await request('previewSend',{config:c});status('ส่งยอดค้างเข้า LINE ของฉันแล้ว');}
+    try{const result=await request('previewSend',{config:c,recipientId:LineRecipients.selected('reportLineRecipient')});status('ส่งยอดค้างเข้า LINE ของ '+result.recipientName+' แล้ว');}
     finally{sending=false;$('Send').disabled=false;}
   });
   click('Save', async () => {
@@ -102,8 +102,8 @@ async function sendSelectedOutstanding() {
     const dates=chosen.map(r=>r.date).sort();
     const config=PrintOutstanding.validate({customers,start:dates[0],end:dates.at(-1),group:'day',cadence:'off',range:'fixed',recordIds:chosen.map(r=>String(r.id))});
     button.disabled=true;button.textContent='กำลังส่งเข้า LINE…';
-    await sendOutstandingOwnerAction('previewSend',{config,store:SHEET_TAB_NAME==='Chokdee'?'chokdee':'printImage'},getSheetUrl());
-    toast('ส่งยอดค้างของรายการที่เลือกเข้า LINE แล้ว');
+    const result=await sendOutstandingOwnerAction('previewSend',{config,store:SHEET_TAB_NAME==='Chokdee'?'chokdee':'printImage',recipientId:LineRecipients.selected('selectedLineRecipient')},getSheetUrl());
+    toast('ส่งยอดชำระเข้า LINE ของ '+result.recipientName+' แล้ว');
   } catch(e) {toast(e.message);}
   finally {button.disabled=false;button.textContent='ส่งยอดชำระ';}
 }

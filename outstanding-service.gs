@@ -55,8 +55,9 @@ function orWriteDelivery_(key,row) {
   if(files.hasNext()) files.next().setContent(json);
   else folder.createFile(name,json,MimeType.PLAIN_TEXT);
 }
-function orSend_(key, text) {
+function orSend_(key, text, recipientId) {
   const config=prSettings_();prValidateLine_(config);
+  const recipient=orRecipient_(recipientId);
   let row=orReadDelivery_(key);
   if(row && row[3]===true) return;
   if(!row) {
@@ -69,7 +70,7 @@ function orSend_(key, text) {
     });
     if(chunk) messages.push({type:'text',text:chunk});
     if(!messages.length || messages.length>5) throw new Error('รายงานยาวเกินไป กรุณาลดช่วงวันที่หรือจำนวนลูกค้า');
-    row=[key,JSON.stringify({to:config.target,messages:messages}),Utilities.getUuid(),false,new Date()];
+    row=[key,JSON.stringify({to:recipient.target,messages:messages}),Utilities.getUuid(),false,new Date()];
     orWriteDelivery_(key,row);
   }
   const response=UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push',{
@@ -105,8 +106,9 @@ function orAction_(data, requestId) {
   }
   if(data.action==='previewSend') {
     const store=orStore_(data.store);
+    const recipient=orRecipient_(data.recipientId);
     const config=PrintOutstanding.validate(data.config);
-    orSend_('request:'+store.id+':'+requestId,()=>orReport_(config,store.id));return {ok:true};
+    orSend_('request:'+store.id+':'+recipient.id+':'+requestId,()=>orReport_(config,store.id),recipient.id);return {ok:true,recipientName:recipient.name};
   }
   if(data.action==='line') {
     const previous=orReadDelivery_('line:'+requestId);

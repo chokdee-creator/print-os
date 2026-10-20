@@ -50,6 +50,7 @@ const ctx=vm.createContext({console,Date:FakeDate,PrintOutstanding:P,prSettings_
   ContentService:{createTextOutput:json=>({setMimeType:()=>JSON.parse(json)}),MimeType:{JSON:'json'}}
 });
 vm.runInContext(fs.readFileSync(path.join(__dirname,'../outstanding-service.gs'),'utf8'),ctx);
+vm.runInContext(fs.readFileSync(path.join(__dirname,'../line-recipients.gs'),'utf8'),ctx);
 ctx.orRecords_=()=>dataRows;
 assert.equal(ctx.orStore_('chokdee').sheet,'Chokdee');
 assert.equal(ctx.orStore_('printImage').name,'ร้านปริ้นอิมเมจ');
@@ -87,6 +88,26 @@ assert.throws(()=>ctx.outstandingOwnerRequest(ownerRequest),/Google/);
 activeEmail='other@example.com';assert.throws(()=>ctx.outstandingOwnerRequest(ownerRequest),/Google/);
 activeEmail='chokdeeprintings@gmail.com';assert.equal(ctx.outstandingOwnerRequest(ownerRequest).ok,true);
 assert.throws(()=>ctx.outstandingOwnerRequest({...ownerRequest,action:'line'}),/ไม่ถูกต้อง/);
+assert.equal(ctx.outstandingOwnerRequest({...ownerRequest,action:'recipients'}).recipients[0].id,'owner');
+props.PRINT_REPORT_RECIPIENTS=JSON.stringify([{id:'other-recipient',name:'Second receiver',target:'U'+'b'.repeat(32)}]);
+const recipientList=ctx.outstandingOwnerRequest({...ownerRequest,action:'recipients'});
+assert.equal(recipientList.recipients.length,2);assert.equal(JSON.stringify(recipientList).includes('U'+'b'.repeat(32)),false);
+ctx.orAction_({action:'previewSend',recipientId:'other-recipient',config:c},'chosen-receiver-request');
+assert.equal(JSON.parse(calls.at(-1).payload).to,'U'+'b'.repeat(32));
+assert.throws(()=>ctx.orAction_({action:'previewSend',recipientId:'missing',config:c},'bad-receiver-request'));
+assert.throws(()=>ctx.outstandingOwnerRequest({...ownerRequest,action:'addRecipient',userId:'wrong-line-id'}));
+assert.throws(()=>ctx.outstandingOwnerRequest({...ownerRequest,action:'removeRecipient',recipientId:'owner'}));
+assert.equal(ctx.outstandingOwnerRequest({...ownerRequest,action:'removeRecipient',recipientId:'other-recipient'}).ok,true);
+assert.equal(ctx.orRecipients_().length,1);
+const profileFetch=ctx.UrlFetchApp.fetch;
+ctx.UrlFetchApp.fetch=()=>({getResponseCode:()=>404});
+assert.throws(()=>ctx.outstandingOwnerRequest({...ownerRequest,action:'addRecipient',userId:'U'+'c'.repeat(32)}));
+assert.equal(ctx.orRecipients_().length,1);
+ctx.UrlFetchApp.fetch=()=>({getResponseCode:()=>200,getContentText:()=>JSON.stringify({userId:'U'+'c'.repeat(32),displayName:'Verified receiver'})});
+const added=ctx.outstandingOwnerRequest({...ownerRequest,action:'addRecipient',userId:'U'+'c'.repeat(32)});
+assert.equal(added.recipient.name,'Verified receiver');assert.equal('target' in added.recipient,false);
+assert.equal(ctx.outstandingOwnerRequest({...ownerRequest,action:'addRecipient',userId:'U'+'c'.repeat(32)}).recipient.id,added.recipient.id);
+assert.equal(ctx.orRecipients_().length,2);ctx.UrlFetchApp.fetch=profileFetch;
 
 (async()=>{
   const {default:worker,verify}=await import(pathToFileURL(path.join(__dirname,'../outstanding-worker.mjs')));

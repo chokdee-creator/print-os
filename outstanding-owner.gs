@@ -8,10 +8,13 @@ function orRequireOwner_() {
 }
 function outstandingOwnerRequest(data) {
   orRequireOwner_();
-  if(!data || !/^[a-zA-Z0-9_-]{20,100}$/.test(data.id || '') || !['previewSend','save','list','remove'].includes(data.action)) throw new Error('คำขอไม่ถูกต้อง');
+  if(!data || !/^[a-zA-Z0-9_-]{20,100}$/.test(data.id || '') || !['previewSend','save','list','remove','recipients','addRecipient','removeRecipient'].includes(data.action)) throw new Error('คำขอไม่ถูกต้อง');
   if(orProperties_().getProperty('PRINT_REPORT_STORE_CONFIRMED')!=='true') throw new Error('Store not confirmed');
   const lock=LockService.getScriptLock();lock.waitLock(30000);
-  try {return orAction_(data,data.id);} finally {lock.releaseLock();}
+  try {
+    if(['recipients','addRecipient','removeRecipient'].includes(data.action)) return orRecipientAction_(data);
+    return orAction_(data,data.id);
+  } finally {lock.releaseLock();}
 }
 function verifyOutstandingOwnerSetup() {
   const active=Session.getActiveUser().getEmail();
@@ -29,7 +32,7 @@ function outstandingOwnerPage_() {
   return HtmlService.createHtmlOutput(`<!doctype html><html lang="th"><head><base target="_top"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
   <body style="font-family:system-ui;padding:24px;background:#071a28;color:#eee"><h2>ส่งยอดค้างเข้า LINE ของฉัน</h2>
   <p id="status">กำลังเชื่อมกับหน้ารายงานปริ้นอิมเมจ… ไม่ต้องกรอกข้อมูลเพิ่ม</p>
-  <p>ใช้บัญชี Google เจ้าของร้านที่ลงชื่อเข้าไว้แล้ว หน้านี้จะส่งเฉพาะเข้า LINE ของเจ้าของที่ยืนยันไว้</p>
+  <p>ใช้บัญชี Google เจ้าของร้านที่ลงชื่อเข้าไว้แล้ว หน้านี้จะส่งเข้า LINE ผู้รับที่เลือกและยืนยันไว้</p>
   <script>
   let running=false;
   window.addEventListener('message',event=>{
