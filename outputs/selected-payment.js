@@ -34,7 +34,7 @@ var SelectedPayment = (function () {
 function selectedPaymentRows(rows) {
   return rows.map(r=>({id:r.id,name:r.name,date:r.date,customerType:customerType(r),customerName:customerName(r),sale:Number(r.saleTotal)||0,paid:paidAmount(r),paymentMethod:r.paymentMethod,paymentMethodNote:r.paymentMethodNote,paymentHistory:PaymentChannelData.readHistory(r.paymentHistory)}));
 }
-function showSelectedPaymentDocument(html, onSend) {
+function showSelectedPaymentDocument(html, onSend, documentTitle) {
   let dialog=document.getElementById('selectedReceiptDialog');
   if(!dialog){
     dialog=document.createElement('dialog');dialog.id='selectedReceiptDialog';
@@ -51,7 +51,7 @@ function showSelectedPaymentDocument(html, onSend) {
     const frame=document.createElement('iframe');frame.style.cssText='display:block;width:100%;min-height:0;flex:1;border:0;background:white';
     const layout=document.createElement('div');layout.style.cssText='display:flex;flex-direction:column;height:100%';tools.style.flexShrink='0';layout.append(tools,frame);dialog.append(layout);document.body.append(dialog);
   }
-  const title=onSend?'ตัวอย่างบิลยอดชำระของรายการที่เลือก':'ตัวอย่างใบเสร็จของรายการที่เลือก';
+  const title=documentTitle||(onSend?'ตัวอย่างบิลยอดชำระของรายการที่เลือก':'ตัวอย่างใบเสร็จของรายการที่เลือก');
   dialog.setAttribute('aria-label',title);const frame=dialog.querySelector('iframe');frame.title=title;frame.srcdoc=html;
   const send=dialog.querySelector('[data-send-selected-bill]'),status=dialog.querySelector('[role="status"]');
   BillImage.mount(frame,send.parentElement,status);
@@ -71,5 +71,16 @@ async function printSelectedReceipt() {
     const html=SelectedPayment.html(rows,new Intl.DateTimeFormat('th-TH',{timeZone:'Asia/Bangkok',dateStyle:'long'}).format(new Date()),SHEET_TAB_NAME==='Chokdee'?'ร้านโชคดีการพิมพ์':'ร้านปริ้นอิมเมจ',StorePaymentChannels.html(paymentKeys));
     showSelectedPaymentDocument(html);
   }catch(e){toast(e.message);}
+}
+async function openSavedJobBill(record) {
+  try {
+    const rows=selectedPaymentRows([record]);
+    SelectedPayment.documents(rows);
+    const unpaid=rows[0].sale>rows[0].paid;
+    const keys=unpaid?await StorePaymentChannels.choose('ใช้บัญชีที่เลือกในบิล'):[];
+    if(keys===null)return;
+    const html=SelectedPayment.html(rows,new Intl.DateTimeFormat('th-TH',{timeZone:'Asia/Bangkok',dateStyle:'long'}).format(new Date()),SHEET_TAB_NAME==='Chokdee'?'ร้านโชคดีการพิมพ์':'ร้านปริ้นอิมเมจ',StorePaymentChannels.html(keys),{kind:unpaid?'invoice':'receipt'});
+    showSelectedPaymentDocument(html,undefined,'ตัวอย่างบิลของรายการที่บันทึก');
+  }catch(e){toast('บันทึกแล้ว แต่เปิดบิลไม่สำเร็จ: '+e.message);}
 }
 if (typeof module !== 'undefined' && module.exports) module.exports = SelectedPayment;

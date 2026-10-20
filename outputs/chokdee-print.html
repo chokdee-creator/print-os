@@ -1692,6 +1692,7 @@
 
         <div class="form-actions">
           <button class="btn save" id="saveJob" type="submit">บันทึกรายการ</button>
+          <button class="btn secondary" id="saveJobAndBill" type="submit">บันทึกรายการและออกบิล</button>
           <button class="btn ghost" id="resetForm" type="button">ล้างฟอร์ม</button>
         </div>
       </form>
@@ -1928,7 +1929,7 @@
   <script src="outstanding-panel.js?v=20261020-selected-bill"></script>
   <script src="vendor/html2canvas-1.4.1.min.js"></script>
   <script src="bill-image.js?v=20261020-copy-image2"></script>
-  <script src="selected-payment.js?v=20261021-backdrop-close"></script>
+  <script src="selected-payment.js?v=20261021-save-bill"></script>
   <script>
     const STORAGE_KEY = "chokdee_print_records_v1";
     const URL_KEY = "print_job_tracker_sheet_url_v1";
@@ -3105,6 +3106,7 @@
       els.discount.value = "0";
       editingId = null;
       els.saveJob.textContent = "บันทึกรายการ";
+      document.getElementById("saveJobAndBill").textContent = "บันทึกรายการและออกบิล";
       document.querySelector("#resetForm").textContent = "ล้างฟอร์ม";
       setPrintMode("ส่งพิมพ์");
       applyCategoryDefaults();
@@ -3150,6 +3152,7 @@
         applyPrintSizeChoice(selectedPrintSize[0]);
       }
       els.saveJob.textContent = "บันทึกการแก้ไข";
+      document.getElementById("saveJobAndBill").textContent = "บันทึกการแก้ไขและออกบิล";
       document.querySelector("#resetForm").textContent = "ยกเลิกแก้ไข";
       refreshUxSelects();
       updatePreview();
@@ -3206,8 +3209,14 @@
       });
     }
 
+    let jobSaveInProgress = false;
     els.form.addEventListener("submit", async event => {
       event.preventDefault();
+      if(jobSaveInProgress)return;
+      const issueBill=event.submitter?.id === "saveJobAndBill";
+      const billButton=document.getElementById("saveJobAndBill");
+      jobSaveInProgress=true;els.saveJob.disabled=true;billButton.disabled=true;
+      try {
       const calc = calcFromInputs();
       const wasEditing = Boolean(editingId);
       const existingRecord = records.find(item => item.id === editingId);
@@ -3262,6 +3271,7 @@
       resetForm();
       toast(wasEditing ? "บันทึกการแก้ไขแล้ว" : "บันทึกรายการแล้ว");
 
+      const bill=issueBill?openSavedJobBill(record):Promise.resolve();
       try {
         const synced = await sendToSheet(record);
         if (synced) toast(wasEditing ? "แก้ไขและส่งเข้า Google Sheet แล้ว" : "บันทึกและส่งเข้า Google Sheet แล้ว");
@@ -3269,6 +3279,9 @@
         updateSyncStatus("ซิงก์ไม่สำเร็จ");
         toast("บันทึกในเครื่องแล้ว แต่ส่งเข้า Sheet ไม่สำเร็จ");
       }
+      await bill;
+      }catch(error){toast("บันทึกไม่สำเร็จ: "+error.message);}
+      finally{jobSaveInProgress=false;els.saveJob.disabled=false;billButton.disabled=false;}
     });
 
     async function saveCustomerPayment(customerTypeValue, customerNameValue) {
