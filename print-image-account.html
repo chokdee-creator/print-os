@@ -3186,6 +3186,7 @@
 
     function clearSelection() {
       selectedIds.clear();
+      els.rows.querySelectorAll('.row-select').forEach(input => { input.checked = false; });
       updateSelectionBar();
     }
 
