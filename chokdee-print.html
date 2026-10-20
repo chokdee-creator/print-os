@@ -1471,6 +1471,12 @@
         grid-template-columns: 1fr;
       }
     }
+
+    .settings-menu > .menu-panel { min-width: 260px; max-width: calc(100vw - 32px); max-height: 75vh; overflow: auto; }
+    .settings-menu .settings-section { min-width: 0; border-top: 1px solid var(--line); padding-top: 6px; }
+    .settings-menu .settings-section > summary { width: 100%; }
+    .settings-menu .settings-section > .menu-panel { position: static; min-width: 0; width: 100%; margin: 6px 0 0; padding: 0 0 0 10px; border: 0; box-shadow: none; background: transparent; }
+    .settings-menu .settings-section > .menu-panel .btn { white-space: normal; }
   </style>
 <link rel="stylesheet" href="outstanding-panel.css?v=20261020-two-stores">
 <script src="dialog-backdrop.js?v=20261021-all-dialogs" defer></script>
@@ -1488,22 +1494,27 @@
         <a class="btn secondary" id="paymentChannelsNav" href="https://chokdee-creator.github.io/print-os/payment-accounts.html?store=chokdee">ช่องทางการชำระเงิน</a>
         <button class="btn secondary" id="openInvoiceForm" type="button">ออกบิล</button>
         <a class="btn secondary" href="print-image-account.html">ปริ้นอิมเมจ</a>
-        <button class="btn secondary" id="themeToggle" type="button">ธีมมืด</button>
-        <details class="menu">
-          <summary class="btn secondary">รายงาน</summary>
+        <details class="menu settings-menu" id="settingsMenu">
+          <summary class="btn secondary"><span aria-hidden="true">⚙</span> setting</summary>
           <div class="menu-panel">
-            <button class="btn secondary" id="exportPdf" type="button">รายงาน PDF</button>
-            <button class="btn secondary" id="exportPng" type="button">รายงาน PNG</button>
-          </div>
-        </details>
-        <details class="menu">
-          <summary class="btn">จัดการข้อมูล</summary>
-          <div class="menu-panel">
-            <button class="btn secondary" id="syncNow" type="button">ซิงก์ Sheets</button>
-            <button class="btn secondary" id="loadFromSheet" type="button">โหลดจาก Sheets</button>
-            <button class="btn secondary" id="exportCsv" type="button">ส่งออก CSV</button>
-            <a class="btn secondary" href="https://chokdee-creator.github.io/print-os/payment-accounts.html?store=chokdee">ข้อมูลบัญชีรับเงิน</a>
-            <button class="btn secondary" id="openSettings" type="button">ตั้งค่า Google Sheet</button>
+            <button class="btn secondary" id="themeToggle" type="button">ธีมมืด</button>
+            <details class="settings-section">
+              <summary class="btn secondary">รายงาน</summary>
+              <div class="menu-panel">
+                <button class="btn secondary" id="exportPdf" type="button">รายงาน PDF</button>
+                <button class="btn secondary" id="exportPng" type="button">รายงาน PNG</button>
+              </div>
+            </details>
+            <details class="settings-section">
+              <summary class="btn">จัดการข้อมูล</summary>
+              <div class="menu-panel">
+                <button class="btn secondary" id="syncNow" type="button">ซิงก์ Sheets</button>
+                <button class="btn secondary" id="loadFromSheet" type="button">โหลดจาก Sheets</button>
+                <button class="btn secondary" id="exportCsv" type="button">ส่งออก CSV</button>
+                <a class="btn secondary" href="https://chokdee-creator.github.io/print-os/payment-accounts.html?store=chokdee">ข้อมูลบัญชีรับเงิน</a>
+                <button class="btn secondary" id="openSettings" type="button">ตั้งค่า Google Sheet</button>
+              </div>
+            </details>
           </div>
         </details>
       </div>
