@@ -19,3 +19,11 @@
   #outstandingReports h2 {font-size:21px;}
   #outstandingCustomers {grid-template-columns:1fr;}
 }
+
+/* Selected payment actions */
+#selectionBar:not([hidden]) {position:fixed;bottom:18px;left:50%;transform:translateX(-50%);width:min(1050px,calc(100% - 24px));z-index:80;border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 32px #0005;padding:14px 18px;animation:selectionReveal .18s ease-out;flex-wrap:wrap;}
+body:has(#selectionBar:not([hidden])) {padding-bottom:160px;}
+@keyframes selectionReveal {from{opacity:0;translate:0 12px}to{opacity:1;translate:0 0}}
+@media(prefers-reduced-motion:reduce){#selectionBar:not([hidden]){animation:none}}
+@media(max-width:600px){#selectionBar:not([hidden]){bottom:8px;padding:10px;gap:8px}#selectionBar .selection-actions{justify-content:flex-start}#selectionBar .btn{min-height:40px}#selectionBar .selection-summary{gap:8px;font-size:13px}}
+@media print{#selectionBar{display:none !important}}

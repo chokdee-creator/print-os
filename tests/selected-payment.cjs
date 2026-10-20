@@ -1,0 +1,11 @@
+const assert=require('node:assert/strict');
+const P=require('../selected-payment.js');
+const row={id:'job1',name:'<img src=x onerror=alert(1)>',date:'2026-10-20',customerType:'ลูกค้าประจำ',customerName:'เอ',sale:100,paid:40};
+const docs=P.documents([row,{...row,id:'job2',sale:0.3,paid:0.1},{...row,id:'job3',customerType:'ลูกค้าทั่วไป',paid:0}]);
+assert.equal(docs.length,2);assert.equal(docs[0].sale,10030);assert.equal(docs[0].paid,4010);assert.equal(docs[0].balance,6020);
+const html=P.html([row],'20 ตุลาคม 2569');
+assert.ok(html.includes('&lt;img'));assert.ok(!html.includes('<img src=x'));assert.ok(html.includes('ใบเสร็จรับเงิน'));assert.ok(html.includes('40.00'));assert.ok(html.includes('60.00'));
+assert.ok(P.html([{...row,paid:0}],'today').includes('ใบแจ้งยอดชำระ'));
+assert.throws(()=>P.documents([]));assert.throws(()=>P.documents([{...row,paid:101}]));
+assert.throws(()=>P.documents([{...row,sale:NaN}]));
+console.log('PASS: separate customers, partial payments, exact totals, unpaid document, HTML escaping and invalid amounts');

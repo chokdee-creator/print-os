@@ -105,5 +105,5 @@ async function sendSelectedOutstanding() {
     await sendOutstandingOwnerAction('previewSend',{config},getSheetUrl());
     toast('ส่งยอดค้างของรายการที่เลือกเข้า LINE แล้ว');
   } catch(e) {toast(e.message);}
-  finally {button.disabled=false;button.textContent='ส่งยอดค้างเข้า LINE ของฉัน';}
+  finally {button.disabled=false;button.textContent='ส่งยอดชำระ';}
 }
