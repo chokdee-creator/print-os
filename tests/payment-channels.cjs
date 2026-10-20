@@ -28,6 +28,11 @@ for(const page of ['print-image-account.html','chokdee-print.html']){
 const files=new Map();c.orReadDelivery_=key=>files.get(key);c.orWriteDelivery_=(key,v)=>files.set(key,v);c.orStore_=store=>{if(!['printImage','chokdee'].includes(store))throw Error('store');return{id:store};};
 vm.runInContext(fs.readFileSync(path.join(repo,'payment-channels.gs'),'utf8'),c);
 c.orPaymentChannelAction_({action:'savePaymentChannels',store:'printImage',channels:settings});assert.equal(c.orPaymentChannels_('printImage').length,1);assert.equal(c.orPaymentChannels_('chokdee').length,0);assert.throws(()=>c.orPaymentChannels_('wrong'));
+c.orPaymentChannelAction_({action:'savePaymentChannels',store:'printImage',selectionOnly:true,selectedKeys:[D.selectionKey(settings[0],0)]});
+const selectedSettings=c.orPaymentChannelAction_({action:'getPaymentChannels',store:'printImage'});assert.equal(selectedSettings.channels.length,1);assert.equal(selectedSettings.selectedKeys.length,1);assert.equal(c.orPaymentChannels_('chokdee').length,0);
+assert.throws(()=>c.orPaymentChannelAction_({action:'savePaymentChannels',store:'printImage',selectionOnly:true,selectedKeys:['stale']}));assert.equal(c.orPaymentChannels_('printImage')[0].number,'000-test');
+c.orPaymentChannelAction_({action:'savePaymentChannels',store:'printImage',channels:[{...settings[0],number:'changed'}]});assert.equal(c.orPaymentChannelAction_({action:'getPaymentChannels',store:'printImage'}).selectedKeys.length,0);
 const ui=vm.createContext({PaymentChannelData:D,SHEET_TAB_NAME:'Data Account',localStorage:{getItem:()=>JSON.stringify(settings)},document:{querySelectorAll:()=>[]}});vm.runInContext(fs.readFileSync(path.join(repo,'store-payment-channels.js'),'utf8'),ui);ui.StorePaymentChannels.init();assert.match(ui.StorePaymentChannels.html(),/Test &lt;Owner&gt;/);assert.match(ui.StorePaymentChannels.html(),/data:image\/png/);assert.equal(ui.StorePaymentChannels.append('Report').split('ช่องทางชำระเงินของร้าน').length,2);
+const accountPage=fs.readFileSync(path.join(repo,'payment-accounts.html'),'utf8');for(const script of accountPage.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g))new vm.Script(script[1]);
 console.log('PASS: payment/QR validation, store isolation, legacy preservation, cash partial-payment round trip in both shops, receipt escaping, and page syntax.');
 

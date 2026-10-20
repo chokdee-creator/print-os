@@ -4,13 +4,20 @@ function orPaymentChannels_(store){
   return PaymentChannelData.normalize(entry && entry.channels || []);
 }
 function orPaymentChannelAction_(data){
-  const store=orStore_(data.store);
+  const store=orStore_(data.store),key='payment-channels:'+store.id,entry=orReadDelivery_(key)||{};
+  let channels=orPaymentChannels_(store.id),selectedKeys=Array.isArray(entry.selectedKeys)?entry.selectedKeys:null;
   if(data.action==='savePaymentChannels'){
-    const channels=PaymentChannelData.normalize(data.channels);
-    orWriteDelivery_('payment-channels:'+store.id,{channels:channels,updatedAt:new Date().toISOString()});
-    return {ok:true,channels:channels,store:store.id};
+    if(data.selectionOnly){
+      PaymentChannelData.select(channels,data.selectedKeys);
+      if(!Array.isArray(data.selectedKeys))throw new Error('กรุณาติ๊กเลือกบัญชีรับเงิน');
+      selectedKeys=data.selectedKeys;
+    }else{
+      channels=PaymentChannelData.normalize(data.channels);
+      if(selectedKeys){const valid=new Set(channels.map((r,i)=>r.enabled?PaymentChannelData.selectionKey(r,i):null));selectedKeys=selectedKeys.filter(key=>valid.has(key));}
+    }
+    orWriteDelivery_(key,{channels:channels,selectedKeys:selectedKeys,updatedAt:new Date().toISOString()});
   }
-  return {ok:true,channels:orPaymentChannels_(store.id),store:store.id};
+  return {ok:true,channels:channels,selectedKeys:selectedKeys,store:store.id};
 }
 function preparePaymentChannelsSetup(){
   orRequireOwner_();

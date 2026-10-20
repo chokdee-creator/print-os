@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ข้อมูลบัญชีรับเงิน</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#071b29;color:#f4edda;font:16px/1.6 system-ui,Tahoma,sans-serif}main{max-width:1120px;margin:auto;padding:32px 20px 70px}header{display:flex;justify-content:space-between;gap:20px;align-items:center;flex-wrap:wrap;border-bottom:1px solid #42505a;padding-bottom:24px}h1{margin:0;color:#e7c36a;font-size:30px}h2{margin-top:0}p{color:#cbd4dc}a{color:#ecd18e}.btn{display:inline-block;border:1px solid #bd9b51;background:#d8b662;color:#10202c;border-radius:9px;padding:11px 17px;font:inherit;font-weight:650;cursor:pointer;text-decoration:none}.btn.secondary{background:#132b3b;color:#ecd18e;border-color:#53616a}.btn:disabled{opacity:.55;cursor:wait}.store-tabs,.account-page-tools{display:flex;gap:12px;flex-wrap:wrap;margin:24px 0}.store-tabs a[aria-current=page]{background:#e0bf74;color:#14222c}.account-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,310px),1fr));gap:20px}.account-card{padding:24px;border:1px solid #5a6262;border-radius:15px;background:#102b3b}.account-check{display:flex;gap:14px;align-items:center;cursor:pointer;font-size:20px;color:#f1d390}.account-check input{width:24px;height:24px;accent-color:#e5bd62;flex:0 0 24px}.account-details{white-space:pre-line;overflow-wrap:anywhere}.account-qr{display:block;width:190px;height:190px;object-fit:contain;background:white;padding:8px;border-radius:8px;margin:16px 0}.account-state{font-size:13px;color:#b4c4d0}.account-empty{grid-column:1/-1;padding:40px 24px;border:1px dashed #73808a;border-radius:14px;color:#cbd4dc}dialog{background:#102b3b;color:#f4edda;border:1px solid #7f765e}dialog::backdrop{background:#0009}dialog input:not([type=checkbox]),dialog select{display:block;width:100%;padding:11px;border:1px solid #657780;border-radius:7px;background:#071b29;color:#f4edda;font:inherit}dialog label{color:#ecd18e}dialog button{margin:4px 0}#pageRoot [role=status]{min-height:26px;color:#e4c885}#liveNotice{padding:15px;border:1px solid #d8b662;border-radius:10px}.small{font-size:13px}@media(max-width:550px){main{padding:22px 14px}h1{font-size:25px}.account-page-tools .btn{width:100%}}
+</style></head><body><main>
+<header><div><h1>ข้อมูลบัญชีรับเงิน</h1><p id="storeTitle"></p></div><a class="btn secondary" id="backToStore" href="print-image-account.html">กลับหน้าร้าน</a></header>
+<nav class="store-tabs" aria-label="เลือกร้าน"><a class="btn secondary" data-shop="printImage" href="payment-accounts.html?store=printImage">ปริ้นอิมเมจ</a><a class="btn secondary" data-shop="chokdee" href="payment-accounts.html?store=chokdee">โชคดีการพิมพ์</a></nav>
+<h2>ติ๊กเลือกบัญชีที่จะใช้แจ้งยอดลูกค้า</h2><p>บันทึกบัญชีได้หลายบัญชี พร้อมรูป QR ของแต่ละบัญชี ติ๊กบัญชีที่ต้องการใช้แล้วกด “บันทึกบัญชีที่เลือก” ก่อนกลับไปส่งยอด ข้อความและใบแจ้งยอดจะใช้เฉพาะบัญชีที่เลือกไว้</p>
+<p id="liveNotice" hidden>หากต้องการบันทึกกับ Google กรุณา <a id="liveLink" href="https://chokdee-creator.github.io/print-os/payment-accounts.html">เปิดหน้าข้อมูลบัญชีออนไลน์</a></p>
+<section id="pageRoot" aria-label="ข้อมูลบัญชีของร้าน"></section>
+</main>
+<script>
+const paymentPageStore=new URLSearchParams(location.search).get('store')==='chokdee'?'chokdee':'printImage';
+const SHEET_TAB_NAME=paymentPageStore==='chokdee'?'Chokdee':'';
+function getSheetUrl(){return (localStorage.getItem('print_job_tracker_sheet_url_v1')||'https://script.google.com/macros/s/AKfycbzDF5-Kvqf03RLCxpToRL7C9PAqlfhUvC_xLgnEExF7H4go7gybvzLaKDwtKVBHl6if/exec').trim();}
+document.getElementById('storeTitle').textContent=paymentPageStore==='chokdee'?'ร้านโชคดีการพิมพ์':'ร้านปริ้นอิมเมจ';
+document.getElementById('backToStore').href=paymentPageStore==='chokdee'?'chokdee-print.html':'print-image-account.html';
+document.querySelector('[data-shop="'+paymentPageStore+'"]').setAttribute('aria-current','page');
+if(location.protocol==='file:'){document.getElementById('liveNotice').hidden=false;document.getElementById('liveLink').href='https://chokdee-creator.github.io/print-os/payment-accounts.html?store='+paymentPageStore;}
+</script>
+<script src="payment-channel-data.js?v=20261020-choose-account"></script><script src="outstanding-owner-client.js?v=20261020-payment-page"></script><script src="store-payment-channels.js?v=20261020-account-page"></script>
+<script>StorePaymentChannels.init();StorePaymentChannels.mountPage(document.getElementById('pageRoot'));</script>
+</body></html>

@@ -2,9 +2,9 @@
 var StorePaymentChannels=(function(){
   const store=()=>SHEET_TAB_NAME==='Chokdee'?'chokdee':'printImage';
   const key=()=> 'printPaymentChannels:'+store();
-  let channels=[];let refreshPicker=()=>{};
+  let channels=[];let refreshPicker=()=>{},refreshAccountPage=()=>{};
   function cached(){try{return PaymentChannelData.normalize(JSON.parse(localStorage.getItem(key())||'[]'));}catch(e){return [];}}
-  function remember(items){const valid=PaymentChannelData.normalize(items);localStorage.setItem(key(),JSON.stringify(valid));channels=valid;refreshPicker();}
+  function remember(items,selectedKeys){const valid=PaymentChannelData.normalize(items);localStorage.setItem(key(),JSON.stringify(valid));channels=valid;if(Array.isArray(selectedKeys))localStorage.setItem(key()+':useAccounts',JSON.stringify(selectedKeys));else if(selectedKeys===null)localStorage.removeItem(key()+':useAccounts');refreshPicker();refreshAccountPage();}
   const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   function text(keys){return PaymentChannelData.text(PaymentChannelData.select(channels,keys));}
   function append(message,keys){const details=text(keys);return message+(details?'\n\n'+details:'');}
@@ -48,14 +48,14 @@ var StorePaymentChannels=(function(){
       function render(){list.replaceChildren();channels.forEach(add);if(!channels.length)add();}
       dialog.querySelector('[data-add-payment]').addEventListener('click',()=>add());
       dialog.querySelector('[data-load-payment]').addEventListener('click',async()=>{
-        try{dialog.querySelector('[data-save-payment]').disabled=true;list.inert=true;dialog.querySelector('[data-add-payment]').disabled=true;status('กำลังโหลดข้อมูลของร้าน…');const result=await sendOutstandingOwnerAction('getPaymentChannels',{store:store()},getSheetUrl());remember(result.channels);render();status('โหลดข้อมูลของร้านแล้ว '+channels.length+' ช่องทาง');}catch(e){status(e.message);}finally{dialog.querySelector('[data-save-payment]').disabled=false;list.inert=false;dialog.querySelector('[data-add-payment]').disabled=false;}
+        try{dialog.querySelector('[data-save-payment]').disabled=true;list.inert=true;dialog.querySelector('[data-add-payment]').disabled=true;status('กำลังโหลดข้อมูลของร้าน…');const result=await sendOutstandingOwnerAction('getPaymentChannels',{store:store()},getSheetUrl());remember(result.channels,result.selectedKeys);render();status('โหลดข้อมูลของร้านแล้ว '+channels.length+' ช่องทาง');}catch(e){status(e.message);}finally{dialog.querySelector('[data-save-payment]').disabled=false;list.inert=false;dialog.querySelector('[data-add-payment]').disabled=false;}
       });
       dialog.querySelector('[data-save-payment]').addEventListener('click',async()=>{
         const button=dialog.querySelector('[data-save-payment]');
         try{
           const items=Array.from(list.children).map(card=>{const item={qrDataUrl:card.qrDataUrl};card.querySelectorAll('[data-field]').forEach(el=>item[el.dataset.field]=el.type==='checkbox'?el.checked:el.value);return item;});
           const valid=PaymentChannelData.normalize(items);button.disabled=true;status('กำลังบันทึกข้อมูลและรูป QR ของร้าน…');
-          const result=await sendOutstandingOwnerAction('savePaymentChannels',{store:store(),channels:valid},getSheetUrl());remember(result.channels);status('บันทึกบน Google แล้ว '+channels.length+' ช่องทาง พร้อมใช้ในข้อความแจ้งยอดและเอกสาร');
+          const result=await sendOutstandingOwnerAction('savePaymentChannels',{store:store(),channels:valid},getSheetUrl());remember(result.channels,result.selectedKeys);status('บันทึกบน Google แล้ว '+channels.length+' ช่องทาง พร้อมใช้ในข้อความแจ้งยอดและเอกสาร');
         }catch(e){status(e.message);}finally{button.disabled=false;}
       });
       dialog.querySelector('[data-close-payment]').addEventListener('click',()=>dialog.close());
@@ -67,6 +67,8 @@ var StorePaymentChannels=(function(){
 
   let choosing=false;
   function choose(actionLabel='ใช้บัญชีที่เลือก'){
+    channels=cached();
+    try{const saved=JSON.parse(localStorage.getItem(key()+':useAccounts')||'null');if(Array.isArray(saved)){PaymentChannelData.select(channels,saved);return Promise.resolve(saved);}}catch(e){/* Re-open selection if accounts changed. */}
     if(choosing)return Promise.reject(new Error('กรุณาเลือกบัญชีในหน้าต่างที่เปิดไว้ก่อน'));
     choosing=true;
     return new Promise(resolve=>{
@@ -101,13 +103,46 @@ var StorePaymentChannels=(function(){
       dialog.addEventListener('cancel',event=>{event.preventDefault();finish(null);});
       dialog.querySelector('[data-pick-load]').addEventListener('click',async()=>{
         const button=dialog.querySelector('[data-pick-load]'),proceed=dialog.querySelector('[data-pick-continue]');
-        try{button.disabled=true;proceed.disabled=true;status('กำลังโหลดบัญชีของร้าน…');const result=await sendOutstandingOwnerAction('getPaymentChannels',{store:store()},getSheetUrl());remember(result.channels);status('โหลดแล้ว '+channels.filter(r=>r.enabled).length+' บัญชี เลือกบัญชีที่จะส่งได้เลย');}catch(e){status(e.message);}finally{button.disabled=false;proceed.disabled=false;}
+        try{button.disabled=true;proceed.disabled=true;status('กำลังโหลดบัญชีของร้าน…');const result=await sendOutstandingOwnerAction('getPaymentChannels',{store:store()},getSheetUrl());remember(result.channels,result.selectedKeys);status('โหลดแล้ว '+channels.filter(r=>r.enabled).length+' บัญชี เลือกบัญชีที่จะส่งได้เลย');}catch(e){status(e.message);}finally{button.disabled=false;proceed.disabled=false;}
       });
       dialog.querySelector('[data-pick-manage]').addEventListener('click',manage);
       refreshPicker=render;document.body.append(dialog);render();dialog.showModal();
     });
   }
 
+
+  function mountPage(root){
+    let chosen=new Set(),dirty=false;
+    function resetChoice(){try{chosen=new Set(JSON.parse(localStorage.getItem(key()+':useAccounts')||localStorage.getItem(key()+':lastChoice')||'[]'));}catch(e){chosen=new Set();}}
+    resetChoice();
+    root.innerHTML='<div class="account-page-tools"><button class="btn" type="button" data-page-edit>เพิ่ม / แก้ไขข้อมูลบัญชี</button><button class="btn secondary" type="button" data-page-load>โหลดข้อมูลที่บันทึก</button><button class="btn" type="button" data-page-save>บันทึกบัญชีที่เลือก</button></div><p role="status" data-page-status></p><div class="account-cards" data-account-cards></div>';
+    const status=message=>root.querySelector('[data-page-status]').textContent=message;
+    function render(){
+      const list=root.querySelector('[data-account-cards]');list.replaceChildren();
+      const valid=new Set(channels.map((r,i)=>r.enabled?PaymentChannelData.selectionKey(r,i):null));chosen=new Set([...chosen].filter(k=>valid.has(k)));
+      channels.forEach((r,i)=>{
+        const selectionKey=PaymentChannelData.selectionKey(r,i),card=document.createElement('article');card.className='account-card';
+        const label=document.createElement('label');label.className='account-check';const check=document.createElement('input');check.type='checkbox';check.checked=chosen.has(selectionKey);check.disabled=!r.enabled;check.setAttribute('aria-label','ใช้บัญชี '+r.provider+' '+r.number);
+        const heading=document.createElement('strong');heading.textContent=r.provider;label.append(check,heading);
+        check.addEventListener('change',()=>{check.checked?chosen.add(selectionKey):chosen.delete(selectionKey);dirty=true;update();});
+        const info=document.createElement('p');info.className='account-details';info.textContent=(r.kind==='promptpay'?'พร้อมเพย์':'บัญชีรับเงิน')+'\nชื่อบัญชี: '+r.accountName+'\nเลขบัญชี / หมายเลข: '+r.number+(r.note?'\n'+r.note:'');card.append(label,info);
+        if(r.qrDataUrl){const img=document.createElement('img');img.src=r.qrDataUrl;img.alt='QR รับเงิน '+r.provider;img.className='account-qr';card.append(img);}
+        const state=document.createElement('span');state.className='account-state';state.textContent=r.enabled?'ติ๊กเพื่อใช้บัญชีนี้แจ้งยอดลูกค้า':'บัญชีนี้ปิดใช้งาน';card.append(state);list.append(card);
+      });
+      if(!channels.length){const empty=document.createElement('div');empty.className='account-empty';empty.textContent='ยังไม่มีข้อมูลบัญชีรับเงิน กดเพิ่ม / แก้ไขข้อมูลบัญชีเพื่อเพิ่มธนาคาร พร้อมเพย์ และรูป QR ของร้าน หรือกดโหลดข้อมูลที่บันทึก';list.append(empty);}
+      update();
+    }
+    function update(){root.querySelector('[data-page-save]').textContent='บันทึกบัญชีที่เลือก ('+chosen.size+')';status(dirty?'มีการเปลี่ยนแปลง กดบันทึกบัญชีที่เลือกก่อนกลับไปส่งยอด':'เลือกไว้ '+chosen.size+' บัญชี · ข้อความและใบแจ้งยอดจะใช้บัญชีที่บันทึกเลือกไว้');}
+    root.querySelector('[data-page-edit]').addEventListener('click',manage);
+    root.querySelector('[data-page-load]').addEventListener('click',async()=>{
+      const button=root.querySelector('[data-page-load]');try{button.disabled=true;status('กำลังโหลดข้อมูลบัญชีของร้าน…');const result=await sendOutstandingOwnerAction('getPaymentChannels',{store:store()},getSheetUrl());remember(result.channels,result.selectedKeys);resetChoice();dirty=false;render();}catch(e){status(e.message);}finally{button.disabled=false;}
+    });
+    root.querySelector('[data-page-save]').addEventListener('click',async()=>{
+      const button=root.querySelector('[data-page-save]');try{const selectedKeys=[...chosen];PaymentChannelData.select(channels,selectedKeys);button.disabled=true;status('กำลังบันทึกบัญชีที่เลือก…');const result=await sendOutstandingOwnerAction('savePaymentChannels',{store:store(),selectionOnly:true,selectedKeys},getSheetUrl());remember(result.channels,result.selectedKeys);resetChoice();dirty=false;render();status('บันทึกแล้ว '+chosen.size+' บัญชี กลับไปส่งยอดได้เลย');}catch(e){status(e.message);}finally{button.disabled=false;}
+    });
+    refreshAccountPage=render;render();
+  }
+
   function init(){channels=cached();document.querySelectorAll('[data-manage-payment-channels]').forEach(button=>button.addEventListener('click',manage));}
-  return {init,manage,text,append,html,showQr,choose};
+  return {init,manage,text,append,html,showQr,choose,mountPage};
 })();
