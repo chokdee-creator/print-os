@@ -1,0 +1,29 @@
+var PaymentChannelData=(function(){
+  function normalize(items){
+    if(!Array.isArray(items)||items.length>10)throw new Error('บันทึกช่องทางรับชำระได้ไม่เกิน 10 รายการ');
+    const result=items.map(item=>{
+      if(!item || !['bank','promptpay','other'].includes(item.kind))throw new Error('เลือกประเภทช่องทางรับชำระ');
+      const r={kind:item.kind,enabled:item.enabled!==false,qrDataUrl:String(item.qrDataUrl || '')};
+      if(r.qrDataUrl && (!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(r.qrDataUrl)||r.qrDataUrl.length>1000000))throw new Error('รูป QR ต้องเป็น PNG, JPG หรือ WebP ขนาดไม่เกิน 700 KB');
+      for(const key of ['provider','accountName','number','note']){
+        if(typeof item[key]!=='string' || item[key].length>(key==='note'?300:120))throw new Error('ข้อมูลช่องทางรับชำระไม่ถูกต้อง');
+        r[key]=item[key].trim();
+      }
+      if(!r.provider || !r.accountName || !r.number)throw new Error('กรอกชื่อธนาคาร/ช่องทาง ชื่อบัญชี และเลขบัญชี/หมายเลขรับเงินให้ครบ');
+      return r;
+    });
+    if(JSON.stringify(result).length>1500000)throw new Error('รูป QR รวมใหญ่เกินไป กรุณาลดขนาดรูป');
+    return result;
+  }
+  function text(items){
+    const rows=normalize(items).filter(r=>r.enabled);
+    if(!rows.length)return '';
+    return 'ช่องทางชำระเงินของร้าน\n'+rows.map(r=>(r.kind==='promptpay'?'พร้อมเพย์':r.kind==='bank'?'บัญชีธนาคาร':'ช่องทางรับเงิน')+': '+r.provider+'\nชื่อบัญชี: '+r.accountName+'\n'+(r.kind==='promptpay'?'หมายเลขพร้อมเพย์: ':'เลขบัญชี/หมายเลข: ')+r.number+(r.note?'\nหมายเหตุ: '+r.note:'')).join('\n\n');
+  }
+  const methods=['เงินสด','โอนธนาคาร','พร้อมเพย์','บัตรเครดิต/เดบิต','อื่นๆ'];
+  function readHistory(value){
+    try{const list=typeof value==='string'?JSON.parse(value||'[]'):value||[];if(!Array.isArray(list))return [];return list.filter(r=>r && methods.includes(r.method) && Number.isFinite(r.amount) && r.amount>0 && typeof r.date==='string' && Number.isFinite(Date.parse(r.date))).map(r=>({date:r.date,amount:r.amount,method:r.method,note:String(r.note||'').slice(0,300)}));}catch(e){return [];}
+  }
+  return {normalize,text,methods,readHistory};
+})();
+if(typeof module!=='undefined' && module.exports)module.exports=PaymentChannelData;

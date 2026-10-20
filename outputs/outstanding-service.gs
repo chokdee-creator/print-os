@@ -24,6 +24,7 @@ function orRecords_(store) {
   });
   return values.slice(1).filter(row=>String(row[indices.name] || '').trim()).map(row=>{
     const r={};Object.keys(indices).forEach(k=>r[k]=row[indices[k]]);
+    const methodIndex=headers.indexOf('ช่องทางชำระเงินล่าสุด');r.paymentMethod=methodIndex>=0?row[methodIndex]:'';
     r.date=prDay_(r.date);r.customerType=r.customerType || 'มานา เด็กดื้อ';return r;
   });
 }
@@ -38,7 +39,8 @@ function orKnown_(config, records) {
 function orReport_(config,store) {
   const selectedStore=orStore_(store);
   const records=orRecords_(store);orKnown_(config,records);
-  return PrintOutstanding.text(PrintOutstanding.build(records,config,orToday_())).replace('ร้านปริ้นอิมเมจ',selectedStore.name);
+  const text=PrintOutstanding.text(PrintOutstanding.build(records,config,orToday_())).replace('ร้านปริ้นอิมเมจ',selectedStore.name);
+  const payment=PaymentChannelData.text(orPaymentChannels_(selectedStore.id));return text+(payment?'\n\n'+payment:'');
 }
 function orDeliveryFolder_() {
   const p=orProperties_(), id=p.getProperty('PRINT_OUTSTANDING_LOG_FOLDER');

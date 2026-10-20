@@ -49,6 +49,9 @@ const ctx=vm.createContext({console,Date:FakeDate,PrintOutstanding:P,prSettings_
   LockService:{getScriptLock:()=>({tryLock:()=>true,waitLock(){},releaseLock(){}})},
   ContentService:{createTextOutput:json=>({setMimeType:()=>JSON.parse(json)}),MimeType:{JSON:'json'}}
 });
+vm.runInContext(fs.readFileSync(path.join(__dirname,'../payment-channel-data.js'),'utf8'),ctx);
+vm.runInContext(fs.readFileSync(path.join(__dirname,'../payment-channels.gs'),'utf8'),ctx);
+ctx.orPaymentChannels_=()=>[];
 vm.runInContext(fs.readFileSync(path.join(__dirname,'../outstanding-service.gs'),'utf8'),ctx);
 vm.runInContext(fs.readFileSync(path.join(__dirname,'../line-recipients.gs'),'utf8'),ctx);
 ctx.orRecords_=()=>dataRows;

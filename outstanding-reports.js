@@ -28,7 +28,7 @@ var PrintOutstanding = (function () {
   function balance(record) {
     var sale = money(record.saleTotal);
     if (String(record.paymentStatus || '').indexOf('จ่ายแล้ว') >= 0) return 0;
-    var evidence = record.paymentSlipUrl || record.paymentSlipDataUrl || record.paymentSlipName;
+    var evidence = record.paymentSlipUrl || record.paymentSlipDataUrl || record.paymentSlipName || ['เงินสด','โอนธนาคาร','พร้อมเพย์','บัตรเครดิต/เดบิต','อื่นๆ'].includes(record.paymentMethod);
     var paid = evidence && record.paidAmount !== '' && record.paidAmount != null ? money(record.paidAmount) : 0;
     // The existing sheet loader resets contradictory "unpaid but fully paid" values.
     if (String(record.paymentStatus || '').indexOf('ค้าง') >= 0 && paid >= sale) paid = 0;

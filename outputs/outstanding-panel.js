@@ -46,7 +46,7 @@ function initOutstandingPanel() {
   }
   function click(id, action) { $(id).addEventListener('click', async () => { try {await action();} catch(e) {status(e.message);} }); }
   click('Preview', preview);
-  click('Copy', async () => {await navigator.clipboard.writeText(PrintOutstanding.text(preview())); status('คัดลอกข้อความสรุปแล้ว');});
+  click('Copy', async () => {await navigator.clipboard.writeText(StorePaymentChannels.append(PrintOutstanding.text(preview()))); status('คัดลอกข้อความสรุปแล้ว');});
   click('OpenOa', () => copyAndOpenLineOa(PrintOutstanding.text(preview())));
   click('Command', async () => {await navigator.clipboard.writeText(PrintOutstanding.command(config())); status('คัดลอกคำสั่งแล้ว ใช้ได้เมื่อเชื่อมตัวรับคำสั่ง LINE ถาวรสำเร็จ');});
   click('Csv', () => {
@@ -116,12 +116,12 @@ function selectedOutstandingConfig() {
 /** Prepare a manual OA chat message. This never calls the send API. */
 async function copyAndOpenLineOa(text) {
   const storeName=SHEET_TAB_NAME==='Chokdee'?'ร้านโชคดีการพิมพ์':'ร้านปริ้นอิมเมจ';
-  text=text.replace('สรุปยอดค้าง ร้านปริ้นอิมเมจ','สรุปยอดค้าง '+storeName);
+  text=StorePaymentChannels.append(text.replace('สรุปยอดค้าง ร้านปริ้นอิมเมจ','สรุปยอดค้าง '+storeName));
   let dialog=document.getElementById('lineOaChatDialog');
   if(!dialog){
     dialog=document.createElement('dialog');dialog.id='lineOaChatDialog';dialog.setAttribute('aria-label','คัดลอกยอดและเปิด LINE OA');
-    dialog.style.cssText='width:calc(100% - 28px);max-width:700px;padding:24px;border-radius:14px';
-    dialog.innerHTML='<h2>ส่งยอดผ่านแชท LINE OA</h2><p role="status" data-oa-copy-status></p><p>เลือกแชทลูกค้าใน OA ปริ้นอิมเมจ แล้ววางข้อความด้วย Ctrl+V และกดส่ง ข้อความยังไม่ถูกส่งจนกว่าคุณจะกดส่งในแชท</p><textarea readonly aria-label="ข้อความยอดสำหรับส่งใน LINE OA" style="width:100%;height:240px;padding:12px;box-sizing:border-box"></textarea><p><a class="btn" href="https://chat.line.biz/" target="_blank" rel="noopener">เปิดแชท LINE OA</a> <button type="button" class="btn secondary" data-copy-oa-again>คัดลอกข้อความอีกครั้ง</button> <button type="button" class="btn secondary" data-close-oa>ปิด</button></p>';
+    dialog.style.cssText='width:calc(100% - 28px);max-width:700px;max-height:90vh;overflow:auto;padding:24px;border-radius:14px';
+    dialog.innerHTML='<h2>ส่งยอดผ่านแชท LINE OA</h2><p role="status" data-oa-copy-status></p><p>เลือกแชทลูกค้าใน OA ปริ้นอิมเมจ แล้ววางข้อความด้วย Ctrl+V และกดส่ง ข้อความยังไม่ถูกส่งจนกว่าคุณจะกดส่งในแชท</p><div data-oa-payment-qr></div><textarea readonly aria-label="ข้อความยอดสำหรับส่งใน LINE OA" style="width:100%;height:240px;padding:12px;box-sizing:border-box"></textarea><p><a class="btn" href="https://chat.line.biz/" target="_blank" rel="noopener">เปิดแชท LINE OA</a> <button type="button" class="btn secondary" data-copy-oa-again>คัดลอกข้อความอีกครั้ง</button> <button type="button" class="btn secondary" data-close-oa>ปิด</button></p>';
     dialog.querySelector('[data-close-oa]').addEventListener('click',()=>dialog.close());
     dialog.querySelector('[data-copy-oa-again]').addEventListener('click',async()=>{
       try{await navigator.clipboard.writeText(dialog.querySelector('textarea').value);dialog.querySelector('[data-oa-copy-status]').textContent='คัดลอกยอดแล้ว เปิดแชท OA แล้ววางข้อความได้เลย';}
@@ -130,6 +130,7 @@ async function copyAndOpenLineOa(text) {
     document.body.append(dialog);
   }
   dialog.querySelector('textarea').value=text;
+  StorePaymentChannels.showQr(dialog.querySelector('[data-oa-payment-qr]'));
   if(!dialog.open)dialog.showModal();
   // Finish copying before another tab can take focus.
   try{await navigator.clipboard.writeText(text);window.open('https://chat.line.biz/','_blank','noopener');dialog.querySelector('[data-oa-copy-status]').textContent='คัดลอกยอดแล้ว เลือกแชทลูกค้าแล้ววางข้อความได้เลย หากแชทไม่เปิด ให้กดเปิดแชท LINE OA ด้านล่าง';}

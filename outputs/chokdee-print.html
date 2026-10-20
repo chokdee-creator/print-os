@@ -1506,6 +1506,7 @@
             <button class="btn secondary" id="syncNow" type="button">ซิงก์ Sheets</button>
             <button class="btn secondary" id="loadFromSheet" type="button">โหลดจาก Sheets</button>
             <button class="btn secondary" id="exportCsv" type="button">ส่งออก CSV</button>
+            <button class="btn secondary" type="button" data-manage-payment-channels>ช่องทางรับชำระและ QR ของร้าน</button>
             <button class="btn secondary" id="openSettings" type="button">ตั้งค่า Google Sheet</button>
           </div>
         </details>
@@ -1567,6 +1568,8 @@
               <option value="จ่ายแล้ว">จ่ายแล้ว</option>
             </select>
           </div>
+          <div class="field"><label for="paymentMethod">ช่องทางที่ลูกค้าชำระ</label><select id="paymentMethod"><option value="">ยังไม่ระบุ</option><option value="เงินสด">เงินสด</option><option value="โอนธนาคาร">โอนธนาคาร</option><option value="พร้อมเพย์">พร้อมเพย์</option><option value="บัตรเครดิต/เดบิต">บัตรเครดิต/เดบิต</option><option value="อื่นๆ">อื่นๆ</option></select></div>
+          <div class="field"><label for="paymentMethodNote">หมายเหตุการชำระ</label><input id="paymentMethodNote" maxlength="300" placeholder="เช่น โอนเข้าบัญชีร้าน / เลขอ้างอิง"></div>
         </div>
 
         <div class="print-type-panel" id="printTypePanel" hidden>
@@ -1794,7 +1797,7 @@
                 <input id="rowPaidAmount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0">
               </div>
               <div class="field">
-                <label for="rowPaymentSlip">แนบสลิป</label>
+                <label for="rowPaymentMethod">ช่องทางรับชำระครั้งนี้</label><select id="rowPaymentMethod"><option value="">ยังไม่ระบุ</option><option value="เงินสด">เงินสด</option><option value="โอนธนาคาร">โอนธนาคาร</option><option value="พร้อมเพย์">พร้อมเพย์</option><option value="บัตรเครดิต/เดบิต">บัตรเครดิต/เดบิต</option><option value="อื่นๆ">อื่นๆ</option></select></div><div class="field"><label for="rowPaymentNote">หมายเหตุการรับชำระ</label><input id="rowPaymentNote" maxlength="300" placeholder="ธนาคาร / เลขอ้างอิง / หมายเหตุ"></div><div class="field"><label for="rowPaymentSlip">แนบสลิป (ถ้ามี)</label>
                 <label class="slip-upload" for="rowPaymentSlip">
                   <span class="slip-upload-icon">⇧</span>
                   <span class="slip-upload-text">
@@ -1916,11 +1919,13 @@
 
   <div class="toast" id="toast"></div>
 
-  <script src="outstanding-reports.js?v=20261020-two-stores"></script>
+  <script src="outstanding-reports.js?v=20261020-payment"></script>
   <script src="outstanding-owner-client.js?v=20261020-two-stores"></script>
+  <script src="payment-channel-data.js?v=20261020-payment"></script>
+  <script src="store-payment-channels.js?v=20261020-payment"></script>
   <script src="line-recipients.js?v=20261020-contacts"></script>
-  <script src="outstanding-panel.js?v=20261020-oa-chat-2"></script>
-  <script src="selected-payment.js?v=20261020-two-stores"></script>
+  <script src="outstanding-panel.js?v=20261020-payment"></script>
+  <script src="selected-payment.js?v=20261020-payment"></script>
   <script>
     const STORAGE_KEY = "chokdee_print_records_v1";
     const URL_KEY = "print_job_tracker_sheet_url_v1";
@@ -1960,6 +1965,10 @@
       customerName: document.querySelector("#customerName"),
       jobName: document.querySelector("#jobName"),
       paymentStatus: document.querySelector("#paymentStatus"),
+      paymentMethod: document.querySelector("#paymentMethod"),
+      paymentMethodNote: document.querySelector("#paymentMethodNote"),
+      rowPaymentMethod: document.querySelector("#rowPaymentMethod"),
+      rowPaymentNote: document.querySelector("#rowPaymentNote"),
       width: document.querySelector("#width"),
       length: document.querySelector("#length"),
       quantity: document.querySelector("#quantity"),
@@ -2478,7 +2487,7 @@
           <td><span class="pill ${record.category === "สติ๊กเกอร์" ? "sticker" : ""}">${escapeHtml(record.category)}</span></td>
           <td><span class="pill ${customerTypeClass(record)}">${escapeHtml(customerType(record))}</span></td>
           <td>${escapeHtml(customerName(record))}</td>
-          <td>${escapeHtml(record.name)}</td>
+          <td>${escapeHtml(record.name)}${record.paymentMethod?`<br><small>ช่องทางล่าสุด: ${escapeHtml(record.paymentMethod)}${record.paymentMethodNote?" · "+escapeHtml(record.paymentMethodNote):""}</small>`:""}</td>
           <td class="number">${baht(record.saleTotal)}</td>
           <td>
             <select class="payment-status-select ${paymentStatus(record) === "จ่ายแล้ว" ? "paid" : "unpaid"}" data-payment-status-id="${escapeHtml(record.id)}" aria-label="สถานะชำระเงิน ${escapeHtml(record.name)}">
@@ -2595,7 +2604,7 @@
     }
 
     function hasPaymentEvidence(record) {
-      return Boolean(record.paymentSlipUrl || record.paymentSlipDataUrl || record.paymentSlipName);
+      return Boolean(record.paymentSlipUrl || record.paymentSlipDataUrl || record.paymentSlipName || PaymentChannelData.methods.includes(record.paymentMethod));
     }
 
     function slipLink(record) {
@@ -2909,12 +2918,15 @@
         profit: row[21 + customerNameOffset],
         createdAt: row[22 + customerNameOffset],
         updatedAt: row[23 + customerNameOffset],
-        discount: row[24 + customerNameOffset]
+        discount: row[24 + customerNameOffset],
+        paymentMethod: row[26],
+        paymentHistory: row[27],
+        paymentMethodNote: row[28]
       } : row;
       const rawStatus = String(record.paymentStatus || "");
       const saleTotalValue = Number(record.saleTotal) || 0;
       const hasPaidValue = record.paidAmount !== "" && record.paidAmount !== null && record.paidAmount !== undefined;
-      const hasSlipValue = Boolean(record.paymentSlipUrl || record.paymentSlipName || record.paymentSlipDataUrl);
+      const hasSlipValue = Boolean(record.paymentSlipUrl || record.paymentSlipName || record.paymentSlipDataUrl || PaymentChannelData.methods.includes(record.paymentMethod));
       let paidAmountValue = Number(record.paidAmount) || 0;
       let balanceTotalValue = Number(record.balanceTotal) || 0;
 
@@ -2943,6 +2955,9 @@
         customerType: record.customerType || "มานา เด็กดื้อ",
         customerName: record.customerName || "",
         paymentStatus: record.paymentStatus || "",
+        paymentMethod: PaymentChannelData.methods.includes(record.paymentMethod) ? record.paymentMethod : "",
+        paymentMethodNote: String(record.paymentMethodNote || ""),
+        paymentHistory: PaymentChannelData.readHistory(record.paymentHistory),
         name: record.name || "",
         width: Number(record.width) || 0,
         length: Number(record.length) || 0,
@@ -2997,12 +3012,12 @@
     }
 
     function exportCsv() {
-      const header = ["วันที่", "หมวดหมู่", "ประเภทลูกค้า", "รายชื่อลูกค้า", "สถานะชำระเงิน", "รายชื่องาน", "กว้าง", "ยาว", "จำนวนชิ้นงาน", "พื้นที่", "ราคาขายต่อตร.ม.", "ค่าวัสดุต่อตร.ม.", "ค่าหมึกต่อตร.ม.", "ค่าไฟต่อตร.ม.", "ค่า Maintenance เครื่องพิมพ์ต่อตร.ม.", "ต้นทุนต่อตร.ม.", "ส่วนลด", "ราคาขาย", "ลูกค้าชำระ", "ค้างเหลือ", "ลิงก์สลิป", "ต้นทุน", "กำไร"];
+      const header = ["วันที่", "หมวดหมู่", "ประเภทลูกค้า", "รายชื่อลูกค้า", "สถานะชำระเงิน", "รายชื่องาน", "กว้าง", "ยาว", "จำนวนชิ้นงาน", "พื้นที่", "ราคาขายต่อตร.ม.", "ค่าวัสดุต่อตร.ม.", "ค่าหมึกต่อตร.ม.", "ค่าไฟต่อตร.ม.", "ค่า Maintenance เครื่องพิมพ์ต่อตร.ม.", "ต้นทุนต่อตร.ม.", "ส่วนลด", "ราคาขาย", "ลูกค้าชำระ", "ค้างเหลือ", "ลิงก์สลิป", "ต้นทุน", "กำไร", "ช่องทางชำระเงินล่าสุด", "หมายเหตุชำระเงิน", "ประวัติรับชำระ"];
       const rows = filteredRecords().map(record => [
         record.date, record.category, customerType(record), customerName(record), paymentStatus(record), record.name, record.width, record.length, record.quantity || 1, record.area,
         record.saleRate, record.materialCost, record.inkCost, record.electricityCost, record.maintenanceCost,
         record.costRate, record.discount || 0, record.saleTotal, paidAmount(record), balanceAmount(record), record.paymentSlipUrl || record.paymentSlipName || "",
-        record.costTotal, record.profit
+        record.costTotal, record.profit, record.paymentMethod || "", record.paymentMethodNote || "", JSON.stringify(record.paymentHistory || [])
       ]);
       const csv = [header, ...rows].map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
       const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
@@ -3104,6 +3119,8 @@
       els.customerType.value = customerType(record);
       els.customerName.value = record.customerName || "";
       els.paymentStatus.value = paymentStatus(record);
+      els.paymentMethod.value = record.paymentMethod || "";
+      els.paymentMethodNote.value = record.paymentMethodNote || "";
       els.jobName.value = record.name;
       els.width.value = record.width;
       els.length.value = record.length;
@@ -3204,6 +3221,9 @@
         customerType: els.customerType.value,
         customerName: els.customerName.value.trim(),
         paymentStatus: selectedPaymentStatus,
+        paymentMethod: els.paymentMethod.value,
+        paymentMethodNote: els.paymentMethodNote.value.trim(),
+        paymentHistory: existingRecord?.paymentHistory || [],
         name: els.jobName.value.trim(),
         width: calc.width,
         length: calc.length,
@@ -3259,6 +3279,7 @@
         return;
       }
 
+      if(!els.rowPaymentMethod.value){toast("กรุณาเลือกช่องทางรับชำระครั้งนี้");return;}
       const slip = await readSlipFile(els.rowPaymentSlip.files[0]);
       let remainingPayment = Number(els.rowPaidAmount.value) || 0;
       const updatedRecords = [];
@@ -3272,6 +3293,9 @@
           ...record,
           sheetName: SHEET_TAB_NAME,
           paidAmount: paid,
+          paymentMethod: els.rowPaymentMethod.value,
+          paymentMethodNote: els.rowPaymentNote.value.trim(),
+          paymentHistory: [...PaymentChannelData.readHistory(record.paymentHistory),{date:new Date().toISOString(),amount:Math.round(applied*100)/100,method:els.rowPaymentMethod.value,note:els.rowPaymentNote.value.trim()}],
           balanceTotal: Math.max((record.saleTotal || 0) - paid, 0),
           paymentStatus: Math.max((record.saleTotal || 0) - paid, 0) <= 0 && (record.saleTotal || 0) > 0 ? "จ่ายแล้ว" : "ค้างจ่าย",
           paymentSlipName: slip?.name || record.paymentSlipName || "",
@@ -3471,6 +3495,7 @@
     updatePreview();
     render();
     LineRecipients.init();
+    StorePaymentChannels.init();
     document.getElementById("copySelectedOpenOa").addEventListener("click", copySelectedAndOpenLineOa);
     document.getElementById("sendSelectedOutstanding").addEventListener("click", sendSelectedOutstanding);
     document.getElementById("printSelectedReceipt").addEventListener("click", printSelectedReceipt);
