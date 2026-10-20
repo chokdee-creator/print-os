@@ -36,3 +36,13 @@ const ui=vm.createContext({PaymentChannelData:D,SHEET_TAB_NAME:'Data Account',lo
 const accountPage=fs.readFileSync(path.join(repo,'payment-accounts.html'),'utf8');for(const script of accountPage.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g))new vm.Script(script[1]);
 console.log('PASS: payment/QR validation, store isolation, legacy preservation, cash partial-payment round trip in both shops, receipt escaping, and page syntax.');
 
+
+(async()=>{
+ const savedSettings=new Map([['printPaymentChannels:printImage',JSON.stringify(settings)],['printPaymentChannels:printImage:useAccounts',JSON.stringify([D.selectionKey(settings[0],0)])]]);
+ const chooser=vm.createContext({PaymentChannelData:D,SHEET_TAB_NAME:'',localStorage:{getItem:k=>savedSettings.get(k)||null},document:{querySelectorAll:()=>[]}});
+ vm.runInContext(fs.readFileSync(path.join(repo,'store-payment-channels.js'),'utf8'),chooser);chooser.StorePaymentChannels.init();
+ assert.equal((await chooser.StorePaymentChannels.choose())[0],D.selectionKey(settings[0],0));
+ const changed=[{...settings[0],number:'updated-account'}];savedSettings.set('printPaymentChannels:printImage',JSON.stringify(changed));savedSettings.set('printPaymentChannels:printImage:useAccounts',JSON.stringify([D.selectionKey(changed[0],0)]));
+ assert.equal((await chooser.StorePaymentChannels.choose())[0],D.selectionKey(changed[0],0));
+ console.log('PASS: saved page selection is reused and account changes from another page are refreshed.');
+})().catch(error=>{console.error(error);process.exitCode=1;});
