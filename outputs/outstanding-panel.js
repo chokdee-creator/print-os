@@ -95,12 +95,16 @@ async function sendSelectedOutstanding() {
   if(button.disabled)return;
   try {
     const config=selectedOutstandingConfig();
-    button.disabled=true;button.textContent='กำลังส่งเข้า LINE…';
-    const paymentKeys=await StorePaymentChannels.choose('ยืนยันบัญชีและส่งยอด');if(paymentKeys===null)return;
-    const result=await sendOutstandingOwnerAction('previewSend',{config,paymentKeys,store:SHEET_TAB_NAME==='Chokdee'?'chokdee':'printImage',recipientId:LineRecipients.selected('selectedLineRecipient')},getSheetUrl());
-    toast('ส่งยอดชำระเข้า LINE ของ '+result.recipientName+' แล้ว');
-  } catch(e) {toast(e.message);}
-  finally {button.disabled=false;button.textContent='ส่งยอดชำระ';}
+    const selected=new Set(config.recordIds);
+    const rows=selectedPaymentRows(records.filter(r=>selected.has(String(r.id))));
+    SelectedPayment.documents(rows);
+    button.disabled=true;button.textContent='กำลังสร้างบิล…';
+    const paymentKeys=await StorePaymentChannels.choose('ใช้บัญชีที่เลือกในบิล');if(paymentKeys===null)return;
+    const store=SHEET_TAB_NAME==='Chokdee'?'chokdee':'printImage';
+    const html=SelectedPayment.html(rows,new Intl.DateTimeFormat('th-TH',{timeZone:'Asia/Bangkok',dateStyle:'long'}).format(new Date()),store==='chokdee'?'ร้านโชคดีการพิมพ์':'ร้านปริ้นอิมเมจ',StorePaymentChannels.html(paymentKeys),{kind:'invoice'});
+    showSelectedPaymentDocument(html,()=>sendOutstandingOwnerAction('previewSend',{config,paymentKeys,store,recipientId:LineRecipients.selected('selectedLineRecipient')},getSheetUrl()));
+  }catch(e){toast(e.message);}
+  finally{button.disabled=false;button.textContent='ส่งยอดชำระ';}
 }
 
 function selectedOutstandingConfig() {

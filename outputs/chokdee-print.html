@@ -1841,7 +1841,7 @@
             <label style="display:flex;align-items:center;gap:6px;font-size:13px">ผู้รับ LINE <select id="selectedLineRecipient" data-line-recipient style="width:auto;max-width:210px;min-height:40px"><option value="owner">วินDS (บัญชีเดิมของฉัน)</option></select></label>
             <button class="btn small secondary" type="button" data-manage-line-recipients>บัญชี LINE</button>
             <button class="btn small" id="copySelectedOpenOa" type="button">คัดลอกยอดและเปิด LINE OA</button>
-            <button class="btn small secondary" id="sendSelectedOutstanding" type="button" title="ส่งยอดค้างของรายการที่เลือกเข้า LINE ของฉัน">ส่งยอดชำระ</button>
+            <button class="btn small secondary" id="sendSelectedOutstanding" type="button" title="สร้างบิลเฉพาะรายการค้างชำระที่เลือก">ส่งยอดชำระ</button>
             <button class="btn small secondary" id="printSelectedReceipt" type="button">พิมพ์ใบเสร็จ</button>
             <button class="btn small secondary" id="clearSelectedPayments" type="button">ยกเลิกการเลือก</button>
             <button class="btn small secondary" id="editSelected" type="button">แก้ไข</button>
@@ -1925,8 +1925,8 @@
   <script src="payment-channel-data.js?v=20261020-5mb"></script>
   <script src="payment-qr-cache.js?v=20261020-5mb"></script><script src="store-payment-channels.js?v=20261020-5mb"></script>
   <script src="line-recipients.js?v=20261020-contacts"></script>
-  <script src="outstanding-panel.js?v=20261020-choose-account"></script>
-  <script src="selected-payment.js?v=20261020-choose-account"></script>
+  <script src="outstanding-panel.js?v=20261020-selected-bill"></script>
+  <script src="selected-payment.js?v=20261020-selected-bill"></script>
   <script>
     const STORAGE_KEY = "chokdee_print_records_v1";
     const URL_KEY = "print_job_tracker_sheet_url_v1";
