@@ -39,6 +39,10 @@ function showSelectedPaymentDocument(html, onSend) {
   if(!dialog){
     dialog=document.createElement('dialog');dialog.id='selectedReceiptDialog';
     dialog.style.cssText='width:96vw;max-width:1060px;height:94vh;padding:12px;border:0;border-radius:12px;background:#edf1f5';
+    const outside=event=>{const r=dialog.getBoundingClientRect();return event.target===dialog&&(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom);};
+    let backdropPress=false;
+    dialog.addEventListener('pointerdown',event=>{backdropPress=outside(event);});
+    dialog.addEventListener('click',event=>{if(backdropPress&&outside(event))dialog.close();backdropPress=false;});
     const tools=document.createElement('div');tools.style.cssText='display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px';
     const close=document.createElement('button');close.type='button';close.className='btn secondary';close.textContent='ปิดตัวอย่าง';close.addEventListener('click',()=>dialog.close());
     const send=document.createElement('button');send.type='button';send.className='btn';send.dataset.sendSelectedBill='';
