@@ -31,9 +31,9 @@ function outstandingOwnerPage_() {
   try {orRequireOwner_();}
   catch(e) {return ContentService.createTextOutput(e.message);}
   return HtmlService.createHtmlOutput(`<!doctype html><html lang="th"><head><base target="_top"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-  <body style="font-family:system-ui;padding:24px;background:#071a28;color:#eee"><h2>ส่งยอดค้างเข้า LINE ของฉัน</h2>
-  <p id="status">กำลังเชื่อมกับหน้ารายงานปริ้นอิมเมจ… ไม่ต้องกรอกข้อมูลเพิ่ม</p>
-  <p>ใช้บัญชี Google เจ้าของร้านที่ลงชื่อเข้าไว้แล้ว หน้านี้จะส่งเข้า LINE ผู้รับที่เลือกและยืนยันไว้</p>
+  <body style="font-family:system-ui;padding:24px;background:#071a28;color:#eee"><h2>ยืนยันบัญชีเจ้าของร้าน</h2>
+  <p id="status">กำลังเชื่อมกับหน้าเว็บของร้าน… ไม่ต้องกรอกข้อมูลเพิ่ม</p>
+  <p>ใช้บัญชี Google เจ้าของร้านที่ลงชื่อเข้าไว้แล้ว เพื่อดำเนินการตามปุ่มที่กดบนเว็บ</p>
   <script>
   let running=false;
   window.addEventListener('message',event=>{
@@ -50,5 +50,5 @@ function outstandingOwnerPage_() {
       respond({ok:false,error:message});
     }).outstandingOwnerRequest(request);
   });
-  <\/script></body></html>`).setTitle('ส่งยอดค้างเข้า LINE ของฉัน');
+  <\/script></body></html>`).setTitle('ยืนยันบัญชีเจ้าของร้าน');
 }
