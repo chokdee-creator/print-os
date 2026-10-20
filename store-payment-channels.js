@@ -3,8 +3,22 @@ var StorePaymentChannels=(function(){
   const store=()=>SHEET_TAB_NAME==='Chokdee'?'chokdee':'printImage';
   const key=()=> 'printPaymentChannels:'+store();
   let channels=[];let refreshPicker=()=>{},refreshAccountPage=()=>{};
-  function cached(){try{return PaymentChannelData.normalize(JSON.parse(localStorage.getItem(key())||'[]'));}catch(e){return [];}}
-  function remember(items,selectedKeys){const valid=PaymentChannelData.normalize(items);localStorage.setItem(key(),JSON.stringify(valid));channels=valid;if(Array.isArray(selectedKeys))localStorage.setItem(key()+':useAccounts',JSON.stringify(selectedKeys));else if(selectedKeys===null)localStorage.removeItem(key()+':useAccounts');refreshPicker();refreshAccountPage();}
+  let ready=Promise.resolve(),missingQr=false;
+  function cacheMetadata(){try{const raw=localStorage.getItem(key());if(!raw)return {channels:[],modifiedAt:0};const saved=JSON.parse(raw);return Array.isArray(saved)?{channels:saved,modifiedAt:0,legacy:true}:saved;}catch(e){return {channels:[],modifiedAt:0};}}
+  function cached(){try{return PaymentChannelData.normalize(cacheMetadata().channels||[]);}catch(e){return [];}}
+  async function hydrate(){
+    const meta=cacheMetadata();channels=cached();missingQr=(meta.channels||[]).some(r=>r.qrCached&&!r.qrDataUrl);
+    try{const saved=typeof PaymentQrCache==='undefined'?null:await PaymentQrCache.read(store());if(saved && !meta.legacy && saved.modifiedAt>=(meta.modifiedAt||0)){channels=PaymentChannelData.normalize(saved.channels);missingQr=false;}}catch(e){/* Load from Google if browser image storage is unavailable. */}
+    refreshPicker();refreshAccountPage();
+  }
+  async function remember(items,selectedKeys){
+    const valid=PaymentChannelData.normalize(items),modifiedAt=Date.now();
+    try{if(typeof PaymentQrCache!=='undefined')await PaymentQrCache.write(store(),{channels:valid,modifiedAt});}catch(e){/* Google remains the saved source if the browser cache is full. */}
+    try{localStorage.setItem(key(),JSON.stringify({channels:valid.map(r=>({...r,qrCached:!!r.qrDataUrl,qrDataUrl:''})),modifiedAt}));}catch(e){/* Image data stays in IndexedDB and Google, never a full localStorage copy. */}
+    channels=valid;missingQr=false;
+    try{if(Array.isArray(selectedKeys))localStorage.setItem(key()+':useAccounts',JSON.stringify(selectedKeys));else if(selectedKeys===null)localStorage.removeItem(key()+':useAccounts');}catch(e){}
+    refreshPicker();refreshAccountPage();
+  }
   const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   function text(keys){return PaymentChannelData.text(PaymentChannelData.select(channels,keys));}
   function append(message,keys){const details=text(keys);return message+(details?'\n\n'+details:'');}
@@ -28,7 +42,7 @@ var StorePaymentChannels=(function(){
       function add(item={kind:'bank',provider:'',accountName:'',number:'',note:'',enabled:true,qrDataUrl:''}){
         if(list.children.length>=10){status('เพิ่มได้ไม่เกิน 10 ช่องทาง');return;}
         const card=document.createElement('fieldset');card.style.cssText='border:1px solid #888;border-radius:10px;padding:14px;margin:16px 0';
-        card.innerHTML='<legend>ช่องทางรับเงิน</legend><label>ประเภท<select data-field="kind"><option value="bank">บัญชีธนาคาร</option><option value="promptpay">พร้อมเพย์</option><option value="other">อื่นๆ</option></select></label><label>ชื่อธนาคาร / ช่องทาง<input data-field="provider" maxlength="120" placeholder="เช่น กสิกรไทย หรือพร้อมเพย์"></label><label>ชื่อบัญชี<input data-field="accountName" maxlength="120" autocomplete="off"></label><label>เลขบัญชี / หมายเลขพร้อมเพย์<input data-field="number" maxlength="120" inputmode="text" autocomplete="off"></label><label>หมายเหตุ<input data-field="note" maxlength="300" placeholder="เช่น กรุณาส่งสลิปหลังชำระ"></label><label><input type="checkbox" data-field="enabled"> เปิดใช้งานบัญชีนี้</label><label>รูป QR Code<input type="file" accept="image/png,image/jpeg,image/webp" data-qr-upload></label><p style="font-size:13px">ใช้รูป QR รับเงินของร้าน ขนาดไม่เกิน 700 KB</p><img data-qr-preview alt="ตัวอย่าง QR รับชำระเงิน" style="max-width:180px;max-height:180px;object-fit:contain;background:white" hidden><p><button type="button" class="btn small secondary" data-clear-qr>ลบรูป QR</button> <button type="button" class="btn small danger" data-remove-payment>นำช่องทางนี้ออก</button></p>';
+        card.innerHTML='<legend>ช่องทางรับเงิน</legend><label>ประเภท<select data-field="kind"><option value="bank">บัญชีธนาคาร</option><option value="promptpay">พร้อมเพย์</option><option value="other">อื่นๆ</option></select></label><label>ชื่อธนาคาร / ช่องทาง<input data-field="provider" maxlength="120" placeholder="เช่น กสิกรไทย หรือพร้อมเพย์"></label><label>ชื่อบัญชี<input data-field="accountName" maxlength="120" autocomplete="off"></label><label>เลขบัญชี / หมายเลขพร้อมเพย์<input data-field="number" maxlength="120" inputmode="text" autocomplete="off"></label><label>หมายเหตุ<input data-field="note" maxlength="300" placeholder="เช่น กรุณาส่งสลิปหลังชำระ"></label><label><input type="checkbox" data-field="enabled"> เปิดใช้งานบัญชีนี้</label><label>รูป QR Code<input type="file" accept="image/png,image/jpeg,image/webp" data-qr-upload></label><p style="font-size:13px">ใช้รูป QR รับเงินของร้าน ขนาดไม่เกิน 5 MB</p><img data-qr-preview alt="ตัวอย่าง QR รับชำระเงิน" style="max-width:180px;max-height:180px;object-fit:contain;background:white" hidden><p><button type="button" class="btn small secondary" data-clear-qr>ลบรูป QR</button> <button type="button" class="btn small danger" data-remove-payment>นำช่องทางนี้ออก</button></p>';
         card.querySelectorAll('label').forEach(el=>{el.style.cssText='display:block;margin:10px 0';});
         const grid=document.createElement('div');grid.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:0 14px';
         const labels=Array.from(card.querySelectorAll('label'));labels.slice(0,5).forEach(label=>grid.append(label));labels[4].style.gridColumn='1 / -1';card.insertBefore(grid,labels[5]);
@@ -39,7 +53,7 @@ var StorePaymentChannels=(function(){
         refreshQr();
         card.querySelector('[data-qr-upload]').addEventListener('change',async event=>{
           const file=event.target.files[0];if(!file)return;
-          if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>700000){status('ใช้รูป PNG, JPG หรือ WebP ขนาดไม่เกิน 700 KB');event.target.value='';return;}
+          if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>PaymentChannelData.MAX_QR_BYTES){status('ใช้รูป PNG, JPG หรือ WebP ขนาดไม่เกิน 5 MB');event.target.value='';return;}
           try{card.qrDataUrl=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file);});refreshQr();status('เลือกรูปแล้ว กดบันทึกเพื่อเก็บ QR ของร้าน');}catch(e){status('อ่านรูป QR ไม่สำเร็จ');}
         });
         card.querySelector('[data-clear-qr]').addEventListener('click',()=>{card.qrDataUrl='';card.querySelector('[data-qr-upload]').value='';refreshQr();});
@@ -48,14 +62,14 @@ var StorePaymentChannels=(function(){
       function render(){list.replaceChildren();channels.forEach(add);if(!channels.length)add();}
       dialog.querySelector('[data-add-payment]').addEventListener('click',()=>add());
       dialog.querySelector('[data-load-payment]').addEventListener('click',async()=>{
-        try{dialog.querySelector('[data-save-payment]').disabled=true;list.inert=true;dialog.querySelector('[data-add-payment]').disabled=true;status('กำลังโหลดข้อมูลของร้าน…');const result=await sendOutstandingOwnerAction('getPaymentChannels',{store:store()},getSheetUrl());remember(result.channels,result.selectedKeys);render();status('โหลดข้อมูลของร้านแล้ว '+channels.length+' ช่องทาง');}catch(e){status(e.message);}finally{dialog.querySelector('[data-save-payment]').disabled=false;list.inert=false;dialog.querySelector('[data-add-payment]').disabled=false;}
+        try{dialog.querySelector('[data-save-payment]').disabled=true;list.inert=true;dialog.querySelector('[data-add-payment]').disabled=true;status('กำลังโหลดข้อมูลของร้าน…');const result=await sendOutstandingOwnerAction('getPaymentChannels',{store:store()},getSheetUrl());await remember(result.channels,result.selectedKeys);render();status('โหลดข้อมูลของร้านแล้ว '+channels.length+' ช่องทาง');}catch(e){status(e.message);}finally{dialog.querySelector('[data-save-payment]').disabled=false;list.inert=false;dialog.querySelector('[data-add-payment]').disabled=false;}
       });
       dialog.querySelector('[data-save-payment]').addEventListener('click',async()=>{
         const button=dialog.querySelector('[data-save-payment]');
         try{
           const items=Array.from(list.children).map(card=>{const item={qrDataUrl:card.qrDataUrl};card.querySelectorAll('[data-field]').forEach(el=>item[el.dataset.field]=el.type==='checkbox'?el.checked:el.value);return item;});
           const valid=PaymentChannelData.normalize(items);button.disabled=true;status('กำลังบันทึกข้อมูลและรูป QR ของร้าน…');
-          const result=await sendOutstandingOwnerAction('savePaymentChannels',{store:store(),channels:valid},getSheetUrl());remember(result.channels,result.selectedKeys);status('บันทึกบน Google แล้ว '+channels.length+' ช่องทาง พร้อมใช้ในข้อความแจ้งยอดและเอกสาร');
+          const result=await sendOutstandingOwnerAction('savePaymentChannels',{store:store(),channels:valid},getSheetUrl());await remember(result.channels,result.selectedKeys);status('บันทึกบน Google แล้ว '+channels.length+' ช่องทาง พร้อมใช้ในข้อความแจ้งยอดและเอกสาร');
         }catch(e){status(e.message);}finally{button.disabled=false;}
       });
       dialog.querySelector('[data-close-payment]').addEventListener('click',()=>dialog.close());
@@ -66,8 +80,9 @@ var StorePaymentChannels=(function(){
   }
 
   let choosing=false;
-  function choose(actionLabel='ใช้บัญชีที่เลือก'){
-    channels=cached();
+  async function choose(actionLabel='ใช้บัญชีที่เลือก'){
+    await ready;await hydrate();
+    if(missingQr){const result=await sendOutstandingOwnerAction('getPaymentChannels',{store:store()},getSheetUrl());await remember(result.channels,result.selectedKeys);}
     try{const saved=JSON.parse(localStorage.getItem(key()+':useAccounts')||'null');if(Array.isArray(saved)){PaymentChannelData.select(channels,saved);return Promise.resolve(saved);}}catch(e){/* Re-open selection if accounts changed. */}
     if(choosing)return Promise.reject(new Error('กรุณาเลือกบัญชีในหน้าต่างที่เปิดไว้ก่อน'));
     choosing=true;
@@ -103,7 +118,7 @@ var StorePaymentChannels=(function(){
       dialog.addEventListener('cancel',event=>{event.preventDefault();finish(null);});
       dialog.querySelector('[data-pick-load]').addEventListener('click',async()=>{
         const button=dialog.querySelector('[data-pick-load]'),proceed=dialog.querySelector('[data-pick-continue]');
-        try{button.disabled=true;proceed.disabled=true;status('กำลังโหลดบัญชีของร้าน…');const result=await sendOutstandingOwnerAction('getPaymentChannels',{store:store()},getSheetUrl());remember(result.channels,result.selectedKeys);status('โหลดแล้ว '+channels.filter(r=>r.enabled).length+' บัญชี เลือกบัญชีที่จะส่งได้เลย');}catch(e){status(e.message);}finally{button.disabled=false;proceed.disabled=false;}
+        try{button.disabled=true;proceed.disabled=true;status('กำลังโหลดบัญชีของร้าน…');const result=await sendOutstandingOwnerAction('getPaymentChannels',{store:store()},getSheetUrl());await remember(result.channels,result.selectedKeys);status('โหลดแล้ว '+channels.filter(r=>r.enabled).length+' บัญชี เลือกบัญชีที่จะส่งได้เลย');}catch(e){status(e.message);}finally{button.disabled=false;proceed.disabled=false;}
       });
       dialog.querySelector('[data-pick-manage]').addEventListener('click',manage);
       refreshPicker=render;document.body.append(dialog);render();dialog.showModal();
@@ -135,14 +150,14 @@ var StorePaymentChannels=(function(){
     function update(){root.querySelector('[data-page-save]').textContent='บันทึกบัญชีที่เลือก ('+chosen.size+')';status(dirty?'มีการเปลี่ยนแปลง กดบันทึกบัญชีที่เลือกก่อนกลับไปส่งยอด':'เลือกไว้ '+chosen.size+' บัญชี · ข้อความและใบแจ้งยอดจะใช้บัญชีที่บันทึกเลือกไว้');}
     root.querySelector('[data-page-edit]').addEventListener('click',manage);
     root.querySelector('[data-page-load]').addEventListener('click',async()=>{
-      const button=root.querySelector('[data-page-load]');try{button.disabled=true;status('กำลังโหลดข้อมูลบัญชีของร้าน…');const result=await sendOutstandingOwnerAction('getPaymentChannels',{store:store()},getSheetUrl());remember(result.channels,result.selectedKeys);resetChoice();dirty=false;render();}catch(e){status(e.message);}finally{button.disabled=false;}
+      const button=root.querySelector('[data-page-load]');try{button.disabled=true;status('กำลังโหลดข้อมูลบัญชีของร้าน…');const result=await sendOutstandingOwnerAction('getPaymentChannels',{store:store()},getSheetUrl());await remember(result.channels,result.selectedKeys);resetChoice();dirty=false;render();}catch(e){status(e.message);}finally{button.disabled=false;}
     });
     root.querySelector('[data-page-save]').addEventListener('click',async()=>{
-      const button=root.querySelector('[data-page-save]');try{const selectedKeys=[...chosen];PaymentChannelData.select(channels,selectedKeys);button.disabled=true;status('กำลังบันทึกบัญชีที่เลือก…');const result=await sendOutstandingOwnerAction('savePaymentChannels',{store:store(),selectionOnly:true,selectedKeys},getSheetUrl());remember(result.channels,result.selectedKeys);resetChoice();dirty=false;render();status('บันทึกแล้ว '+chosen.size+' บัญชี กลับไปส่งยอดได้เลย');}catch(e){status(e.message);}finally{button.disabled=false;}
+      const button=root.querySelector('[data-page-save]');try{const selectedKeys=[...chosen];PaymentChannelData.select(channels,selectedKeys);button.disabled=true;status('กำลังบันทึกบัญชีที่เลือก…');const result=await sendOutstandingOwnerAction('savePaymentChannels',{store:store(),selectionOnly:true,selectedKeys},getSheetUrl());await remember(result.channels,result.selectedKeys);resetChoice();dirty=false;render();status('บันทึกแล้ว '+chosen.size+' บัญชี กลับไปส่งยอดได้เลย');}catch(e){status(e.message);}finally{button.disabled=false;}
     });
     refreshAccountPage=render;render();
   }
 
-  function init(){channels=cached();document.querySelectorAll('[data-manage-payment-channels]').forEach(button=>button.addEventListener('click',manage));}
+  function init(){channels=cached();ready=hydrate();document.querySelectorAll('[data-manage-payment-channels]').forEach(button=>button.addEventListener('click',manage));return ready;}
   return {init,manage,text,append,html,showQr,choose,mountPage};
 })();

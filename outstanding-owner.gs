@@ -37,7 +37,9 @@ function outstandingOwnerPage_() {
   <script>
   let running=false;
   window.addEventListener('message',event=>{
-    if(event.origin!=='https://chokdee-creator.github.io' || !event.source || !event.data || event.data.type!=='PRINT_OUTSTANDING_REQUEST') return;
+    if(event.origin!=='https://chokdee-creator.github.io' || !event.source || !event.data) return;
+    if(event.data.type==='PRINT_OUTSTANDING_HELLO'){event.source.postMessage({type:'PRINT_OUTSTANDING_READY',id:event.data.id},event.origin);return;}
+    if(event.data.type!=='PRINT_OUTSTANDING_REQUEST')return;
     const request=event.data.request;
     if(running || !request || !/^[a-zA-Z0-9_-]{20,100}$/.test(request.id || '')) return;
     running=true;document.getElementById('status').textContent='กำลังตรวจบัญชีเจ้าของและดำเนินการ…';
