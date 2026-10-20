@@ -16,11 +16,14 @@ var BillImage=(function(){
     let controls=tools.querySelector('[data-bill-image-controls]');
     if(!controls){
       controls=document.createElement('span');controls.dataset.billImageControls='';controls.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap';
-      controls.innerHTML='<label>บิลที่จะคัดลอก <select aria-label="เลือกบิลลูกค้าที่จะคัดลอก"></select></label><button type="button" class="btn secondary" data-copy-bill-image>คัดลอกบิลเป็นรูปภาพ</button><button type="button" class="btn secondary" data-download-bill-image>ดาวน์โหลดรูปบิล</button>';
+      controls.innerHTML='<label>บิลที่จะคัดลอก <select aria-label="เลือกบิลลูกค้าที่จะคัดลอก"></select></label><button type="button" class="btn secondary" data-copy-bill-image>คัดลอกบิลเป็นรูปภาพ</button><button type="button" class="btn secondary" data-download-bill-image>ดาวน์โหลดรูปบิล</button><a data-preview-bill-image target="_blank" rel="noopener" hidden>ดูรูปบิล</a>';
       tools.insertBefore(controls,status);
     }
     const select=controls.querySelector('select'),label=controls.querySelector('label'),copy=controls.querySelector('[data-copy-bill-image]'),download=controls.querySelector('[data-download-bill-image]');
-    let sections=[],cached=new Map();select.replaceChildren();copy.disabled=true;download.disabled=true;
+    const preview=controls.querySelector('[data-preview-bill-image]');
+    function clearPreview(){if(preview.hasAttribute('href'))URL.revokeObjectURL(preview.href);preview.removeAttribute('href');preview.hidden=true;}
+    function showPreview(blob){clearPreview();preview.href=URL.createObjectURL(blob);preview.hidden=false;return preview.href;}
+    clearPreview();let sections=[],cached=new Map();select.replaceChildren();copy.disabled=true;download.disabled=true;
     frame.onload=()=>{
       sections=Array.from(frame.contentDocument.querySelectorAll('.document'));
       sections.forEach((section,index)=>{const option=document.createElement('option');option.value=String(index);option.textContent=(index+1)+'. '+(section.querySelector('.head p')?.textContent.split('ประเภทลูกค้า:')[0]||'บิล');select.append(option);});
@@ -32,7 +35,7 @@ var BillImage=(function(){
       if(!cached.has(index))cached.set(index,render(section).catch(error=>{cached.delete(index);throw error;}));
       return cached.get(index);
     }
-    select.onchange=()=>{status.textContent='เลือกบิลแล้ว กดคัดลอกหรือดาวน์โหลดรูป';};
+    select.onchange=()=>{clearPreview();status.textContent='เลือกบิลแล้ว กดคัดลอกหรือดาวน์โหลดรูป';};
     copy.onclick=async()=>{
       if(copy.disabled)return;
       if(!navigator.clipboard?.write||typeof ClipboardItem==='undefined'){status.textContent='เบราว์เซอร์นี้คัดลอกรูปไม่ได้ กดดาวน์โหลดรูปบิลแล้วแนบในแชทได้';return;}
@@ -40,13 +43,14 @@ var BillImage=(function(){
       try{
         // Start the clipboard write during the click, before rendering finishes.
         await navigator.clipboard.write([new ClipboardItem({'image/png':image()})]);
+        showPreview(await image());
         status.textContent='คัดลอกรูปบิลแล้ว เปิดแชท LINE แล้วกด Ctrl+V เพื่อวางรูป';
       }catch(e){status.textContent='คัดลอกรูปไม่สำเร็จ: '+e.message+' — ลองอีกครั้ง หรือกดดาวน์โหลดรูปบิล';}
       finally{copy.disabled=false;select.disabled=false;download.disabled=false;}
     };
     download.onclick=async()=>{
       download.disabled=true;copy.disabled=true;select.disabled=true;status.textContent='กำลังเตรียมรูปบิล…';
-      try{const blob=await image(),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='บิลชำระเงิน-'+(Number(select.value)+1)+'.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);status.textContent='ดาวน์โหลดรูปบิลแล้ว สามารถแนบรูปในแชท LINE ได้';}
+      try{const blob=await image(),url=showPreview(blob),a=document.createElement('a');a.href=url;a.download='บิลชำระเงิน-'+(Number(select.value)+1)+'.png';a.click();status.textContent='ดาวน์โหลดรูปบิลแล้ว สามารถแนบรูปในแชท LINE ได้';}
       catch(e){status.textContent=e.message;}
       finally{download.disabled=false;copy.disabled=false;select.disabled=false;}
     };
