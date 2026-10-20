@@ -40,7 +40,7 @@ function initOutstandingPanel() {
   }
   function preview() {
     latest = PrintOutstanding.build(records, config(), today());
-    $('Result').textContent = PrintOutstanding.text(latest);
+    $('Result').textContent = StorePaymentChannels.append(PrintOutstanding.text(latest));
     status('สรุปจากข้อมูลบนเว็บ ณ เวลานี้ ตรวจการซิงก์ชีตก่อนส่งหรือตั้งเวลา');
     return latest;
   }
