@@ -2,16 +2,16 @@
 var StorePaymentChannels=(function(){
   const store=()=>SHEET_TAB_NAME==='Chokdee'?'chokdee':'printImage';
   const key=()=> 'printPaymentChannels:'+store();
-  let channels=[];
+  let channels=[];let refreshPicker=()=>{};
   function cached(){try{return PaymentChannelData.normalize(JSON.parse(localStorage.getItem(key())||'[]'));}catch(e){return [];}}
-  function remember(items){const valid=PaymentChannelData.normalize(items);localStorage.setItem(key(),JSON.stringify(valid));channels=valid;}
+  function remember(items){const valid=PaymentChannelData.normalize(items);localStorage.setItem(key(),JSON.stringify(valid));channels=valid;refreshPicker();}
   const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  function text(){return PaymentChannelData.text(channels);}
-  function append(message){const details=text();return message+(details?'\n\n'+details:'');}
+  function text(keys){return PaymentChannelData.text(PaymentChannelData.select(channels,keys));}
+  function append(message,keys){const details=text(keys);return message+(details?'\n\n'+details:'');}
   function html(){return channels.filter(r=>r.enabled).map(r=>'<section style="margin:16px 0;break-inside:avoid"><strong>'+escape(r.kind==='promptpay'?'พร้อมเพย์':r.provider)+'</strong><br>'+escape(r.provider)+'<br>ชื่อบัญชี: '+escape(r.accountName)+'<br>เลขบัญชี/หมายเลข: '+escape(r.number)+(r.note?'<br>'+escape(r.note):'')+(r.qrDataUrl?'<br><img alt="QR ชำระเงิน '+escape(r.provider)+'" src="'+r.qrDataUrl+'" style="width:180px;height:180px;object-fit:contain;background:white">':'')+'</section>').join('');}
-  function showQr(root){
+  function showQr(root,keys){
     root.replaceChildren();
-    channels.filter(r=>r.enabled&&r.qrDataUrl).forEach((r,i)=>{
+    PaymentChannelData.select(channels,keys).filter(r=>r.qrDataUrl).forEach((r,i)=>{
       const item=document.createElement('div'),img=document.createElement('img'),a=document.createElement('a');
       img.src=r.qrDataUrl;img.alt='QR ชำระเงิน '+r.provider;img.style.cssText='display:block;width:180px;height:180px;object-fit:contain;background:white;margin:10px 0';
       a.href=r.qrDataUrl;a.download='QR-'+store()+'-'+(i+1)+'.'+(r.qrDataUrl.startsWith('data:image/jpeg')?'jpg':r.qrDataUrl.startsWith('data:image/webp')?'webp':'png');a.textContent='ดาวน์โหลด QR '+r.provider+' เพื่อแนบในแชท OA';item.append(img,a);root.append(item);
@@ -22,13 +22,13 @@ var StorePaymentChannels=(function(){
     if(!dialog){
       dialog=document.createElement('dialog');dialog.id='storePaymentChannelsDialog';dialog.setAttribute('aria-label','ช่องทางรับชำระเงินของร้าน');
       dialog.style.cssText='width:calc(100% - 28px);max-width:760px;max-height:90vh;padding:24px;border-radius:14px;overflow:auto';
-      dialog.innerHTML='<h2>ช่องทางรับชำระเงินของร้าน</h2><p data-payment-store></p><p>บันทึกแยกตามร้าน แนบข้อมูลที่เปิดใช้งานในข้อความแจ้งยอดและเอกสารพิมพ์ รูป QR จะแสดงในเอกสารและดาวน์โหลดเพื่อแนบแชทได้</p><button type="button" class="btn secondary" data-load-payment>โหลดข้อมูลที่บันทึกบน Google</button><div data-payment-channel-list></div><button type="button" class="btn secondary" data-add-payment>เพิ่มช่องทางรับเงิน</button><p role="status" data-payment-channel-status></p><button type="button" class="btn" data-save-payment>บันทึกช่องทางและ QR บน Google</button> <button type="button" class="btn secondary" data-close-payment>ปิด</button>';
+      dialog.innerHTML='<h2>ช่องทางรับชำระเงินของร้าน</h2><p data-payment-store></p><p>บันทึกแยกตามร้าน เพิ่มได้หลายบัญชี และเลือกบัญชีที่จะแนบก่อนส่งยอดแต่ละครั้ง รูป QR จะแสดงในเอกสารและดาวน์โหลดเพื่อแนบแชทได้</p><button type="button" class="btn secondary" data-load-payment>โหลดข้อมูลที่บันทึกบน Google</button><div data-payment-channel-list></div><button type="button" class="btn secondary" data-add-payment>เพิ่มบัญชีรับเงิน</button><p role="status" data-payment-channel-status></p><button type="button" class="btn" data-save-payment>บันทึกช่องทางและ QR บน Google</button> <button type="button" class="btn secondary" data-close-payment>ปิด</button>';
       const status=s=>dialog.querySelector('[data-payment-channel-status]').textContent=s;
       const list=dialog.querySelector('[data-payment-channel-list]');
       function add(item={kind:'bank',provider:'',accountName:'',number:'',note:'',enabled:true,qrDataUrl:''}){
         if(list.children.length>=10){status('เพิ่มได้ไม่เกิน 10 ช่องทาง');return;}
         const card=document.createElement('fieldset');card.style.cssText='border:1px solid #888;border-radius:10px;padding:14px;margin:16px 0';
-        card.innerHTML='<legend>ช่องทางรับเงิน</legend><label>ประเภท<select data-field="kind"><option value="bank">บัญชีธนาคาร</option><option value="promptpay">พร้อมเพย์</option><option value="other">อื่นๆ</option></select></label><label>ชื่อธนาคาร / ช่องทาง<input data-field="provider" maxlength="120" placeholder="เช่น กสิกรไทย หรือพร้อมเพย์"></label><label>ชื่อบัญชี<input data-field="accountName" maxlength="120" autocomplete="off"></label><label>เลขบัญชี / หมายเลขพร้อมเพย์<input data-field="number" maxlength="120" inputmode="text" autocomplete="off"></label><label>หมายเหตุ<input data-field="note" maxlength="300" placeholder="เช่น กรุณาส่งสลิปหลังชำระ"></label><label><input type="checkbox" data-field="enabled"> แนบช่องทางนี้ในข้อความและเอกสาร</label><label>รูป QR Code<input type="file" accept="image/png,image/jpeg,image/webp" data-qr-upload></label><p style="font-size:13px">ใช้รูป QR รับเงินของร้าน ขนาดไม่เกิน 700 KB</p><img data-qr-preview alt="ตัวอย่าง QR รับชำระเงิน" style="max-width:180px;max-height:180px;object-fit:contain;background:white" hidden><p><button type="button" class="btn small secondary" data-clear-qr>ลบรูป QR</button> <button type="button" class="btn small danger" data-remove-payment>นำช่องทางนี้ออก</button></p>';
+        card.innerHTML='<legend>ช่องทางรับเงิน</legend><label>ประเภท<select data-field="kind"><option value="bank">บัญชีธนาคาร</option><option value="promptpay">พร้อมเพย์</option><option value="other">อื่นๆ</option></select></label><label>ชื่อธนาคาร / ช่องทาง<input data-field="provider" maxlength="120" placeholder="เช่น กสิกรไทย หรือพร้อมเพย์"></label><label>ชื่อบัญชี<input data-field="accountName" maxlength="120" autocomplete="off"></label><label>เลขบัญชี / หมายเลขพร้อมเพย์<input data-field="number" maxlength="120" inputmode="text" autocomplete="off"></label><label>หมายเหตุ<input data-field="note" maxlength="300" placeholder="เช่น กรุณาส่งสลิปหลังชำระ"></label><label><input type="checkbox" data-field="enabled"> เปิดใช้งานบัญชีนี้</label><label>รูป QR Code<input type="file" accept="image/png,image/jpeg,image/webp" data-qr-upload></label><p style="font-size:13px">ใช้รูป QR รับเงินของร้าน ขนาดไม่เกิน 700 KB</p><img data-qr-preview alt="ตัวอย่าง QR รับชำระเงิน" style="max-width:180px;max-height:180px;object-fit:contain;background:white" hidden><p><button type="button" class="btn small secondary" data-clear-qr>ลบรูป QR</button> <button type="button" class="btn small danger" data-remove-payment>นำช่องทางนี้ออก</button></p>';
         card.querySelectorAll('label').forEach(el=>{el.style.cssText='display:block;margin:10px 0';});
         const grid=document.createElement('div');grid.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:0 14px';
         const labels=Array.from(card.querySelectorAll('label'));labels.slice(0,5).forEach(label=>grid.append(label));labels[4].style.gridColumn='1 / -1';card.insertBefore(grid,labels[5]);
@@ -64,6 +64,50 @@ var StorePaymentChannels=(function(){
     }
     dialog.showModal();dialog.querySelector('[data-load-payment]').click();
   }
+
+  let choosing=false;
+  function choose(actionLabel='ใช้บัญชีที่เลือก'){
+    if(choosing)return Promise.reject(new Error('กรุณาเลือกบัญชีในหน้าต่างที่เปิดไว้ก่อน'));
+    choosing=true;
+    return new Promise(resolve=>{
+      const dialog=document.createElement('dialog');dialog.setAttribute('aria-label','เลือกบัญชีรับเงินที่จะส่งให้ลูกค้า');dialog.id='paymentAccountPicker';
+      dialog.style.cssText='width:calc(100% - 28px);max-width:680px;max-height:90vh;overflow:auto;padding:24px;border-radius:14px';
+      dialog.innerHTML='<h2>เลือกบัญชีรับเงินที่จะส่งให้ลูกค้า</h2><p>เลือกได้หนึ่งบัญชีหรือหลายบัญชี ข้อความและ QR จะแสดงเฉพาะบัญชีที่เลือกครั้งนี้</p><div data-payment-pick-list></div><p><button type="button" class="btn secondary" data-pick-load>โหลดบัญชีที่บันทึกบน Google</button> <button type="button" class="btn secondary" data-pick-manage>เพิ่ม / แก้ไขบัญชี</button></p><p role="status" data-pick-status></p><button type="button" class="btn" data-pick-continue>ใช้บัญชีที่เลือก</button> <button type="button" class="btn secondary" data-pick-cancel>ยกเลิก</button>';
+      let chosen=new Set(),initialized=false,finished=false;
+      try{const saved=JSON.parse(localStorage.getItem(key()+':lastChoice')||'null');if(Array.isArray(saved)){chosen=new Set(saved);initialized=true;}}catch(e){}
+      const status=message=>dialog.querySelector('[data-pick-status]').textContent=message;
+      function render(){
+        const list=dialog.querySelector('[data-payment-pick-list]');list.replaceChildren();
+        const available=channels.map((r,i)=>({row:r,key:PaymentChannelData.selectionKey(r,i)})).filter(item=>item.row.enabled);
+        if(!initialized && available.length){chosen.add(available[0].key);initialized=true;}
+        const valid=new Set(available.map(item=>item.key));chosen=new Set([...chosen].filter(k=>valid.has(k)));
+        available.forEach(item=>{
+          const label=document.createElement('label');label.style.cssText='display:flex;align-items:flex-start;gap:12px;border:1px solid #888;border-radius:10px;padding:14px;margin:12px 0;cursor:pointer';
+          const input=document.createElement('input');input.type='checkbox';input.checked=chosen.has(item.key);input.style.cssText='width:20px;height:20px;min-height:20px;flex:0 0 20px;margin:3px 0;padding:0';
+          input.setAttribute('aria-label',item.row.provider+' · '+item.row.accountName+' · '+item.row.number);
+          input.addEventListener('change',()=>{input.checked?chosen.add(item.key):chosen.delete(item.key);update();});
+          const detail=document.createElement('span');detail.style.cssText='white-space:pre-line;overflow-wrap:anywhere';detail.textContent=item.row.provider+'\n'+item.row.accountName+'\n'+item.row.number+(item.row.qrDataUrl?'\nมี QR Code':'');
+          label.append(input,detail);list.append(label);
+        });
+        if(!available.length)list.textContent='ยังไม่มีบัญชีรับเงินที่เปิดใช้งาน กดโหลดบัญชีจาก Google หรือเพิ่มบัญชีของร้าน';
+        update();
+      }
+      function update(){dialog.querySelector('[data-pick-continue]').textContent=chosen.size?actionLabel+' ('+chosen.size+' บัญชี)':actionLabel+' · ไม่แนบบัญชี';}
+      function finish(result){if(finished)return;finished=true;choosing=false;refreshPicker=()=>{};dialog.close();dialog.remove();resolve(result);}
+      dialog.querySelector('[data-pick-continue]').addEventListener('click',()=>{
+        try{const keys=[...chosen];PaymentChannelData.select(channels,keys);localStorage.setItem(key()+':lastChoice',JSON.stringify(keys));finish(keys);}catch(e){status(e.message);}
+      });
+      dialog.querySelector('[data-pick-cancel]').addEventListener('click',()=>finish(null));
+      dialog.addEventListener('cancel',event=>{event.preventDefault();finish(null);});
+      dialog.querySelector('[data-pick-load]').addEventListener('click',async()=>{
+        const button=dialog.querySelector('[data-pick-load]'),proceed=dialog.querySelector('[data-pick-continue]');
+        try{button.disabled=true;proceed.disabled=true;status('กำลังโหลดบัญชีของร้าน…');const result=await sendOutstandingOwnerAction('getPaymentChannels',{store:store()},getSheetUrl());remember(result.channels);status('โหลดแล้ว '+channels.filter(r=>r.enabled).length+' บัญชี เลือกบัญชีที่จะส่งได้เลย');}catch(e){status(e.message);}finally{button.disabled=false;proceed.disabled=false;}
+      });
+      dialog.querySelector('[data-pick-manage]').addEventListener('click',manage);
+      refreshPicker=render;document.body.append(dialog);render();dialog.showModal();
+    });
+  }
+
   function init(){channels=cached();document.querySelectorAll('[data-manage-payment-channels]').forEach(button=>button.addEventListener('click',manage));}
-  return {init,manage,text,append,html,showQr};
+  return {init,manage,text,append,html,showQr,choose};
 })();

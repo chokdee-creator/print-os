@@ -11,3 +11,5 @@
 สคริปต์หลักที่ใช้งานจริงอยู่ใน `google-apps-script-installed.js` และโมดูล `payment-channel-data.js`/`payment-channels.gs` ต้องอยู่ในชุด OutstandingReports ด้วย
 
 ทดสอบ: `node tests/payment-channels.cjs`, `node tests/outstanding-reports.cjs`, `node tests/selected-payment.cjs`, `node tests/print-image-line-reports.cjs`.
+
+ก่อนคัดลอกหรือส่งยอดด้วยตนเอง ระบบจะแสดงหน้าต่างเลือกบัญชีรับเงิน เลือกหนึ่งบัญชี หลายบัญชี หรือไม่แนบบัญชีได้ ตัวเลือกนี้ใช้เฉพาะครั้งนั้น ข้อความและ QR สำหรับแนบแชทจะใช้เฉพาะบัญชีที่เลือก การส่งตรงผ่าน API ตรวจตัวเลือกกับบัญชีที่เก็บบนเซิร์ฟเวอร์อีกครั้ง ถ้าบัญชีเปลี่ยนหรือถูกปิดใช้งาน ระบบจะให้โหลดและเลือกใหม่

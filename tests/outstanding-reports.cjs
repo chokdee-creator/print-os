@@ -113,6 +113,15 @@ assert.equal(ctx.outstandingOwnerRequest({...ownerRequest,action:'addRecipient',
 assert.equal(ctx.orRecipients_().length,2);ctx.UrlFetchApp.fetch=profileFetch;
 
 // Imported display names must never become sendable addresses by name alone.
+const originalChannels=ctx.orPaymentChannels_;
+const testAccounts=[{kind:'bank',provider:'Test bank A',accountName:'Test A',number:'test-account-A',note:'',enabled:true},{kind:'bank',provider:'Test bank B',accountName:'Test B',number:'test-account-B',note:'',enabled:true}];
+ctx.orPaymentChannels_=()=>testAccounts;
+const paymentKey=ctx.PaymentChannelData.selectionKey(testAccounts[1],1);
+ctx.orAction_({action:'previewSend',recipientId:'owner',config:c,paymentKeys:[paymentKey]},'selected-bank-request');
+const selectedBankPayload=calls.at(-1).payload;assert.ok(selectedBankPayload.includes('test-account-B'));assert.equal(selectedBankPayload.includes('test-account-A'),false);
+const callsBeforeStaleAccount=calls.length;
+assert.throws(()=>ctx.orAction_({action:'previewSend',recipientId:'owner',config:c,paymentKeys:['stale']},'stale-bank-request'));assert.equal(calls.length,callsBeforeStaleAccount);
+ctx.orPaymentChannels_=originalChannels;
 const callsBeforeImport=calls.length;
 ctx.orImportContactNames_(['Customer A','Customer A','Customer B']);
 let imported=ctx.orImportedContacts_();assert.equal(imported.length,3);assert.notEqual(imported[0].id,imported[1].id);

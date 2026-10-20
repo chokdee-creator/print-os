@@ -46,7 +46,7 @@ function initOutstandingPanel() {
   }
   function click(id, action) { $(id).addEventListener('click', async () => { try {await action();} catch(e) {status(e.message);} }); }
   click('Preview', preview);
-  click('Copy', async () => {await navigator.clipboard.writeText(StorePaymentChannels.append(PrintOutstanding.text(preview()))); status('คัดลอกข้อความสรุปแล้ว');});
+  click('Copy', async () => {const report=preview(),keys=await StorePaymentChannels.choose('คัดลอกข้อความ');if(keys===null)return;await navigator.clipboard.writeText(StorePaymentChannels.append(PrintOutstanding.text(report),keys)); status('คัดลอกข้อความสรุปแล้ว');});
   click('OpenOa', () => copyAndOpenLineOa(PrintOutstanding.text(preview())));
   click('Command', async () => {await navigator.clipboard.writeText(PrintOutstanding.command(config())); status('คัดลอกคำสั่งแล้ว ใช้ได้เมื่อเชื่อมตัวรับคำสั่ง LINE ถาวรสำเร็จ');});
   click('Csv', () => {
@@ -65,7 +65,7 @@ function initOutstandingPanel() {
   click('Send', async () => {
     if(sending)return;
     const c=config();sending=true;$('Send').disabled=true;
-    try{const result=await request('previewSend',{config:c,recipientId:LineRecipients.selected('reportLineRecipient')});status('ส่งยอดค้างเข้า LINE ของ '+result.recipientName+' แล้ว');}
+    try{const paymentKeys=await StorePaymentChannels.choose('ยืนยันบัญชีและส่งยอด');if(paymentKeys===null)return;const result=await request('previewSend',{config:c,paymentKeys,recipientId:LineRecipients.selected('reportLineRecipient')});status('ส่งยอดค้างเข้า LINE ของ '+result.recipientName+' แล้ว');}
     finally{sending=false;$('Send').disabled=false;}
   });
   click('Save', async () => {
@@ -96,7 +96,8 @@ async function sendSelectedOutstanding() {
   try {
     const config=selectedOutstandingConfig();
     button.disabled=true;button.textContent='กำลังส่งเข้า LINE…';
-    const result=await sendOutstandingOwnerAction('previewSend',{config,store:SHEET_TAB_NAME==='Chokdee'?'chokdee':'printImage',recipientId:LineRecipients.selected('selectedLineRecipient')},getSheetUrl());
+    const paymentKeys=await StorePaymentChannels.choose('ยืนยันบัญชีและส่งยอด');if(paymentKeys===null)return;
+    const result=await sendOutstandingOwnerAction('previewSend',{config,paymentKeys,store:SHEET_TAB_NAME==='Chokdee'?'chokdee':'printImage',recipientId:LineRecipients.selected('selectedLineRecipient')},getSheetUrl());
     toast('ส่งยอดชำระเข้า LINE ของ '+result.recipientName+' แล้ว');
   } catch(e) {toast(e.message);}
   finally {button.disabled=false;button.textContent='ส่งยอดชำระ';}
@@ -116,7 +117,8 @@ function selectedOutstandingConfig() {
 /** Prepare a manual OA chat message. This never calls the send API. */
 async function copyAndOpenLineOa(text) {
   const storeName=SHEET_TAB_NAME==='Chokdee'?'ร้านโชคดีการพิมพ์':'ร้านปริ้นอิมเมจ';
-  text=StorePaymentChannels.append(text.replace('สรุปยอดค้าง ร้านปริ้นอิมเมจ','สรุปยอดค้าง '+storeName));
+  const paymentKeys=await StorePaymentChannels.choose('คัดลอกยอดและเปิด LINE OA');if(paymentKeys===null)return;
+  text=StorePaymentChannels.append(text.replace('สรุปยอดค้าง ร้านปริ้นอิมเมจ','สรุปยอดค้าง '+storeName),paymentKeys);
   let dialog=document.getElementById('lineOaChatDialog');
   if(!dialog){
     dialog=document.createElement('dialog');dialog.id='lineOaChatDialog';dialog.setAttribute('aria-label','คัดลอกยอดและเปิด LINE OA');
@@ -130,7 +132,7 @@ async function copyAndOpenLineOa(text) {
     document.body.append(dialog);
   }
   dialog.querySelector('textarea').value=text;
-  StorePaymentChannels.showQr(dialog.querySelector('[data-oa-payment-qr]'));
+  StorePaymentChannels.showQr(dialog.querySelector('[data-oa-payment-qr]'),paymentKeys);
   if(!dialog.open)dialog.showModal();
   // Finish copying before another tab can take focus.
   try{await navigator.clipboard.writeText(text);window.open('https://chat.line.biz/','_blank','noopener');dialog.querySelector('[data-oa-copy-status]').textContent='คัดลอกยอดแล้ว เลือกแชทลูกค้าแล้ววางข้อความได้เลย หากแชทไม่เปิด ให้กดเปิดแชท LINE OA ด้านล่าง';}

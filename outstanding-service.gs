@@ -36,11 +36,11 @@ function orKnown_(config, records) {
     config.recordIds.forEach(id=>{if(!ids.has(id)) throw new Error('ไม่พบรายการที่เลือกในชีต กรุณาซิงก์ข้อมูลก่อนส่ง');});
   }
 }
-function orReport_(config,store) {
+function orReport_(config,store,paymentKeys) {
   const selectedStore=orStore_(store);
   const records=orRecords_(store);orKnown_(config,records);
   const text=PrintOutstanding.text(PrintOutstanding.build(records,config,orToday_())).replace('ร้านปริ้นอิมเมจ',selectedStore.name);
-  const payment=PaymentChannelData.text(orPaymentChannels_(selectedStore.id));return text+(payment?'\n\n'+payment:'');
+  const payment=PaymentChannelData.text(PaymentChannelData.select(orPaymentChannels_(selectedStore.id),paymentKeys));return text+(payment?'\n\n'+payment:'');
 }
 function orDeliveryFolder_() {
   const p=orProperties_(), id=p.getProperty('PRINT_OUTSTANDING_LOG_FOLDER');
@@ -110,7 +110,7 @@ function orAction_(data, requestId) {
     const store=orStore_(data.store);
     const recipient=orRecipient_(data.recipientId);
     const config=PrintOutstanding.validate(data.config);
-    orSend_('request:'+store.id+':'+recipient.id+':'+requestId,()=>orReport_(config,store.id),recipient.id);return {ok:true,recipientName:recipient.name};
+    orSend_('request:'+store.id+':'+recipient.id+':'+requestId,()=>orReport_(config,store.id,data.paymentKeys),recipient.id);return {ok:true,recipientName:recipient.name};
   }
   if(data.action==='line') {
     const previous=orReadDelivery_('line:'+requestId);
