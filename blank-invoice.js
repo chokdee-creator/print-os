@@ -30,7 +30,7 @@ function prepareBlankInvoice(frame){
   function changed(){root.dispatchEvent(new frame.contentWindow.Event('input',{bubbles:true}));}
   function addRow(){
     const row=doc.createElement('tr');
-    row.innerHTML='<td><span data-row-index></span></td><td class="description"><input aria-label="รายการงาน" placeholder="กรอกรายละเอียดงาน" required><button type="button" class="screen-only" data-html2canvas-ignore data-remove-row>ลบรายการ</button></td><td><input aria-label="จำนวน" data-quantity type="number" min="0.01" step="any" value="1" required></td><td><input aria-label="ราคา/หน่วย" data-price type="number" min="0" step="0.01" value="0" required></td><td class="amount"><output></output></td>';
+    row.innerHTML='<td><span data-row-index></span></td><td class="description"><input aria-label="รายการงาน" placeholder="กรอกรายละเอียดงาน" required><button type="button" class="screen-only" data-html2canvas-ignore data-remove-row>ลบรายการ</button></td><td class="bill-item-size"><input aria-label="ขนาด" data-item-size placeholder="กว้าง × ยาว"></td><td><input aria-label="จำนวน" data-quantity type="number" min="0.01" step="any" value="1" required></td><td><input aria-label="ราคา/หน่วย" data-price type="number" min="0" step="0.01" value="0" required></td><td class="amount"><output></output></td>';
     row.querySelector('[data-remove-row]').onclick=()=>{row.remove();if(!body.rows.length)addRow();calculate();changed();};
     body.append(row);calculate();
   }
