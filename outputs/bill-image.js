@@ -25,7 +25,7 @@ var BillImage=(function(){
         bill.querySelectorAll('[data-bill-empty]').forEach(node=>node.remove());
         bill.querySelectorAll('input').forEach(field=>field.removeAttribute('placeholder'));
         bill.style.setProperty('min-height','0','important');
-        bill.style.setProperty('height','auto','important');
+        if(!bill.classList?.contains('bill-layout-canvas'))bill.style.setProperty('height','auto','important');
         bill.style.setProperty('box-shadow','none','important');
         // Canvas textareas do not wrap reliably. Export their current text as
         // ordinary wrapping content, keeping the editing form unchanged.
@@ -35,6 +35,7 @@ var BillImage=(function(){
           text.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:inherit;padding:2px 3px;min-width:0;width:100%';
           field.replaceWith(text);
         });
+        if(typeof BillLayout!=='undefined')BillLayout.prepareExport(bill);
         const bounds=bill.getBoundingClientRect(),width=Math.ceil(bounds.width),height=Math.ceil(Math.max(bounds.height,bill.scrollHeight));
         const scale=Math.min(2,16000/height,Math.sqrt(16000000/(width*height)));
         if(!width||!height||scale<0.75)throw new Error('บิลยาวเกินขนาดรูป กรุณาแบ่งเลือกรายการให้น้อยลง หรือบันทึกเป็น PDF');
@@ -72,6 +73,7 @@ var BillImage=(function(){
         cached.clear();clearPreview();sections.forEach((section,index)=>{select.options[index].textContent=(index+1)+'. ลูกค้า: '+caption(section);});
         status.textContent='รายละเอียดบิลเปลี่ยนแล้ว กดคัดลอกรูปอีกครั้งเพื่อใช้ข้อมูลล่าสุด';
       });
+      frame.contentDocument.addEventListener('bill-layout-change',()=>{cached.clear();clearPreview();});
       label.hidden=sections.length<2;copy.disabled=download.disabled=!sections.length;
     };
     function image(){
