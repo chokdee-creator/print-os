@@ -33,6 +33,8 @@ var BillImage=(function(){
           const text=clonedDoc.createElement('div');
           text.textContent=field.value||'';
           text.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:inherit;padding:2px 3px;min-width:0;width:100%';
+          const font=clonedDoc.defaultView.getComputedStyle(field);
+          ['fontSize','fontFamily','fontWeight','fontStyle','lineHeight'].forEach(key=>text.style[key]=font[key]);
           field.replaceWith(text);
         });
         if(typeof BillLayout!=='undefined')BillLayout.prepareExport(bill);

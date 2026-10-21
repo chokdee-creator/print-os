@@ -82,6 +82,7 @@ function showSelectedPaymentDocument(html, onSend, documentTitle) {
   frame.addEventListener('load',()=>{print.disabled=false;mountBillCustomerPicker(frame);},{once:true});
   BillImage.mount(frame,send.parentElement,status);
   if(typeof BillLayout!=='undefined')BillLayout.mount(frame,send.parentElement,status);
+  if(typeof BillTypography!=='undefined')BillTypography.mount(frame,send.parentElement,status);
   send.hidden=!onSend;send.disabled=false;send.textContent='ส่งยอดเข้า LINE';status.textContent='';
   send.onclick=onSend?async()=>{
     if(send.disabled)return;send.disabled=true;status.textContent='กำลังส่งยอดของรายการในบิลเข้า LINE…';
