@@ -21,7 +21,10 @@ function doPost(e) {
       .createTextOutput(JSON.stringify({ ok: true, backup: backup }))
       .setMimeType(ContentService.MimeType.JSON);
   }
+  const jobLock=LockService.getScriptLock();jobLock.waitLock(30000);
+  try {
   const sheet = getSheet_(data.sheetName);
+  jobReferenceRows_(sheet);
   const rowIndex = findRowById_(sheet, data.id);
   if (data.action === "delete") {
     if (rowIndex) sheet.deleteRow(rowIndex);
@@ -32,7 +35,9 @@ function doPost(e) {
   const existingValues = rowIndex
     ? sheet.getRange(rowIndex, 1, 1, sheet.getLastColumn()).getValues()[0]
     : [];
+  const reference=jobReferenceReserve_(sheet,[{id:data.id,date:jobReferenceDate_(data.date,data.createdAt),category:data.category,createdAt:data.createdAt,reference:String(existingValues[29]||'')}])[0];
   const row = buildRow_(data, existingValues);
+  row.push(reference);
 
   if (rowIndex) {
     sheet.getRange(rowIndex, 1, 1, row.length).setValues([row]);
@@ -41,8 +46,9 @@ function doPost(e) {
   }
 
   return ContentService
-    .createTextOutput(JSON.stringify({ ok: true, sheetName: sheet.getName() }))
+    .createTextOutput(JSON.stringify({ ok: true, sheetName: sheet.getName(), reference:reference }))
     .setMimeType(ContentService.MimeType.JSON);
+  } finally {jobLock.releaseLock();}
 }
 
 function doGet(e) {
@@ -78,13 +84,13 @@ function doGet(e) {
   }
   if (params.action === "list") {
     const sheet = getSheet_(params.sheetName);
-    const rows = sheet.getLastRow() < 2
-      ? []
-      : sheet.getRange(2, 1, sheet.getLastRow() - 1, 29).getValues();
+    const listLock=LockService.getScriptLock();listLock.waitLock(30000);
+    let rows;try{rows=jobReferenceRows_(sheet);}finally{listLock.releaseLock();}
     const payload = {
       ok: true,
       sheetName: sheet.getName(),
-      records: rows.filter(row => row[0] || row[5])
+      referenceVersion:1,
+      records: rows.filter(row => row[0] || row[6])
     };
     const json = JSON.stringify(payload);
     if (params.callback) {
@@ -190,7 +196,8 @@ function getSheet_(sheetName) {
     "ส่วนลด",
     "ช่องทางชำระเงินล่าสุด",
     "ประวัติรับชำระ",
-    "หมายเหตุช่องทางชำระ"
+    "หมายเหตุช่องทางชำระ",
+    "เลขอ้างอิง"
   ];
 
   if (!sheet) {
@@ -421,4 +428,74 @@ function extensionFromMime_(mimeType) {
     "application/pdf": ".pdf"
   };
   return map[mimeType] || "";
+}
+
+
+/* Display references are separate from immutable internal job IDs. */
+var JobReferences=(function(){
+  function prefix(category){
+    var value=String(category||'').trim().toLowerCase();
+    return ['ไวนิล','vinyl','v'].indexOf(value)>=0?'v':['สติ๊กเกอร์','สติกเกอร์','sticker','s'].indexOf(value)>=0?'s':'o';
+  }
+  function parse(value){
+    var match=/^([vso]\d{6})(\d{2,})$/.exec(String(value||''));
+    return match&&Number(match[2])>0?{stem:match[1],sequence:Number(match[2])}:null;
+  }
+  function stem(record){
+    var value=String(record.date||'').slice(0,10),match=/^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    if(!match||new Date(value+'T00:00:00Z').toISOString().slice(0,10)!==value)throw new Error('วันที่งานไม่ถูกต้อง ไม่สามารถออกเลขอ้างอิง');
+    return prefix(record.category)+match[1].slice(2)+match[2]+match[3];
+  }
+  function allocate(records,highWater){
+    var counters=Object.assign({},highWater||{}),references=new Array(records.length),seen={};
+    records.forEach(function(record,index){var old=parse(record.reference);if(!old)return;
+      if(seen[record.reference]&&seen[record.reference]!==String(record.id))throw new Error('พบเลขอ้างอิงซ้ำในข้อมูลเดิม');
+      seen[record.reference]=String(record.id);references[index]=record.reference;counters[old.stem]=Math.max(Number(counters[old.stem])||0,old.sequence);
+    });
+    records.map(function(record,index){return {record:record,index:index};}).sort(function(a,b){
+      return String(a.record.createdAt||'').localeCompare(String(b.record.createdAt||''))||String(a.record.id).localeCompare(String(b.record.id));
+    }).forEach(function(item){if(references[item.index])return;var key=stem(item.record),next=(Number(counters[key])||0)+1;
+      if(!Number.isSafeInteger(next))throw new Error('ลำดับเลขอ้างอิงเกินขอบเขต');
+      counters[key]=next;references[item.index]=key+String(next).padStart(2,'0');
+    });
+    return {references:references,counters:counters};
+  }
+  return {prefix:prefix,parse:parse,stem:stem,allocate:allocate};
+})();
+if(typeof module!=='undefined'&&module.exports)module.exports=JobReferences;
+
+
+/* Called only under the script lock shared by saves and list migration. */
+function jobReferenceDate_(value,fallback){
+  if(value instanceof Date&&!isNaN(value.getTime()))return Utilities.formatDate(value,'Asia/Bangkok','yyyy-MM-dd');
+  var text=String(value||'').slice(0,10);
+  if(/^\d{4}-\d{2}-\d{2}$/.test(text))return text;
+  var date=new Date(fallback);return !isNaN(date.getTime())?Utilities.formatDate(date,'Asia/Bangkok','yyyy-MM-dd'):'';
+}
+function jobReferenceKey_(sheet,stem){return 'JOB_REF_V1:'+sheet.getSheetId()+':'+stem;}
+function jobReferenceReserve_(sheet,records){
+  var properties=PropertiesService.getScriptProperties(),counters={},keys={};
+  records.forEach(function(record){var old=JobReferences.parse(record.reference),stem=old?old.stem:JobReferences.stem(record);keys[stem]=jobReferenceKey_(sheet,stem);});
+  Object.keys(keys).forEach(function(stem){counters[stem]=Number(properties.getProperty(keys[stem]))||0;});
+  var result=JobReferences.allocate(records,counters),updates={};
+  Object.keys(result.counters).forEach(function(stem){if(result.counters[stem]!==counters[stem])updates[jobReferenceKey_(sheet,stem)]=String(result.counters[stem]);});
+  // Persist the counter first: a failed row write may leave a gap, never reuse.
+  if(Object.keys(updates).length)properties.setProperties(updates,false);
+  return result.references;
+}
+function jobReferenceRows_(sheet){
+  if(sheet.getLastRow()<2)return [];
+  var rows=sheet.getRange(2,1,sheet.getLastRow()-1,30).getValues(),models=[],indices=[];
+  rows.forEach(function(row,index){if(!row[0]||!String(row[6]||'').trim())return;
+    indices.push(index);models.push({id:row[0],date:jobReferenceDate_(row[1],row[23]),category:row[2],createdAt:row[23] instanceof Date?row[23].toISOString():String(row[23]||''),reference:String(row[29]||'')});
+  });
+  var references=jobReferenceReserve_(sheet,models),changed=false;
+  indices.forEach(function(index,i){if(rows[index][29]!==references[i]){rows[index][29]=references[i];changed=true;}});
+  if(changed)sheet.getRange(2,30,rows.length,1).setNumberFormat('@').setValues(rows.map(function(row){return [row[29]];}));
+  return rows;
+}
+function migrateJobReferences(){
+  orRequireOwner_();var lock=LockService.getScriptLock();lock.waitLock(30000);
+  try{var result=['Data Account','Chokdee'].map(function(name){var sheet=getSheet_(name),rows=jobReferenceRows_(sheet);return {store:name,count:rows.filter(function(row){return !!row[29];}).length};});console.log(JSON.stringify(result));return result;}
+  finally{lock.releaseLock();}
 }
