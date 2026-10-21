@@ -24,10 +24,14 @@ var BillLayout=(function(){
   }
   function mount(frame,tools,status){
     let bar=tools.querySelector('[data-layout-tools]');
-    if(!bar){bar=document.createElement('span');bar.dataset.layoutTools='';bar.style.cssText='display:flex;gap:8px;flex-wrap:wrap';
-      bar.innerHTML='<button type="button" data-layout-toggle>จัดบิลเอง</button><button type="button" data-layout-save>บันทึกแบบจัดวาง</button><button type="button" data-layout-auto>จัดอัตโนมัติ</button><button type="button" data-layout-reset>คืนค่าเดิม</button>';
+    if(!bar){bar=document.createElement('details');bar.dataset.layoutTools='';
+      bar.innerHTML='<summary>จัดวางบิล <span aria-hidden="true">▾</span></summary><div class="bill-layout-menu"><button type="button" data-layout-toggle>จัดบิลเอง</button><button type="button" data-layout-save>บันทึกแบบจัดวาง</button><button type="button" data-layout-auto>จัดอัตโนมัติ</button><button type="button" data-layout-reset>คืนค่าเดิม</button></div>';
       bar.querySelectorAll('button').forEach(button=>button.style.cssText='background:#f3d78c;color:#142342;border:1px solid #ddb350;border-radius:6px;padding:9px 12px;font-weight:bold;cursor:pointer');tools.insertBefore(bar,status);
+      bar.addEventListener('click',event=>{if(event.target.closest('button'))bar.open=false;});
+      document.addEventListener('click',event=>{if(!bar.contains(event.target))bar.open=false;});
+      bar.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();bar.open=false;bar.querySelector('summary').focus();}});
     }
+    bar.open=false;
     const toggle=bar.querySelector('[data-layout-toggle]'),save=bar.querySelector('[data-layout-save]'),auto=bar.querySelector('[data-layout-auto]'),reset=bar.querySelector('[data-layout-reset]');
     let sessions=[],editing=false,key='';save.disabled=true;
     function changed(){frame.contentDocument.dispatchEvent(new frame.contentWindow.Event('bill-layout-change'));}
@@ -102,6 +106,7 @@ var BillLayout=(function(){
     auto.onclick=()=>{automatic();status.textContent='กลับเป็นการจัดอัตโนมัติตามหน้าจอแล้ว';};
     reset.onclick=()=>{automatic();localStorage.removeItem(key);status.textContent='คืนแบบจัดวางเดิมของร้านนี้แล้ว';};
     frame.addEventListener('load',()=>{
+      frame.contentDocument.addEventListener('pointerdown',()=>{bar.open=false;});
       sessions=[];editing=false;save.disabled=true;toggle.textContent='จัดบิลเอง';toggle.setAttribute('aria-pressed','false');key='printBillLayout:v1:'+(frame.contentDocument.title.includes('โชคดี')?'chokdee':'printImage');
       frame.contentWindow.addEventListener('resize',()=>sessions.forEach(fit));
       frame.contentDocument.addEventListener('input',()=>sessions.forEach(session=>{session.boxes.forEach(box=>{if(box.node.scrollHeight>parseFloat(box.node.style.height))box.node.style.height=box.node.scrollHeight+'px';});fit(session);}));

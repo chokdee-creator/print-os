@@ -145,3 +145,16 @@
 #selectedReceiptDialog [data-font-tools] [data-font-up],#selectedReceiptDialog [data-font-tools] [data-font-down]{width:28px;font-size:16px!important}
 #selectedReceiptDialog [data-font-tools] output{font-size:11px;min-width:30px;text-align:center;font-variant-numeric:tabular-nums}
 @media(max-width:600px){#selectedReceiptDialog [data-font-tools]{grid-column:1 / -1;gap:5px}#selectedReceiptDialog [data-font-tools] button{min-height:28px!important}}
+
+/* One compact layout button; tools expand only when requested. */
+#selectedReceiptDialog details[data-layout-tools]{order:0;display:block;flex:0 0 auto;grid-column:auto;padding:0;border:0}
+#selectedReceiptDialog details[data-layout-tools]:before{content:none}
+#selectedReceiptDialog [data-layout-tools]>summary{display:flex;align-items:center;justify-content:center;gap:7px;min-height:32px;padding:6px 10px;border:1px solid #3a5161;border-radius:7px;background:#152c3d;color:#dce7ed;font-size:12px;font-weight:550;line-height:1.35;list-style:none;cursor:pointer}
+#selectedReceiptDialog [data-layout-tools]>summary::-webkit-details-marker{display:none}
+#selectedReceiptDialog [data-layout-tools]>summary:hover{background:#203d51;border-color:#7893a2}
+#selectedReceiptDialog [data-layout-tools]>summary:focus-visible{outline:2px solid #f3cc78;outline-offset:2px}
+#selectedReceiptDialog [data-layout-tools][open]>summary{border-color:#cda45c;color:#ffe1a2}
+#selectedReceiptDialog .bill-layout-menu{display:grid;gap:5px;padding:7px;margin-top:5px;background:#102535;border:1px solid #3a5161;border-radius:8px;min-width:180px}
+#selectedReceiptDialog [data-layout-tools]:not([open])>.bill-layout-menu{display:none}
+#selectedReceiptDialog .bill-layout-menu button{width:100%;justify-content:flex-start}
+@media(max-width:720px){#selectedReceiptDialog [data-layout-tools]>summary{min-height:34px;font-size:11px;padding:6px 7px}#selectedReceiptDialog .bill-layout-menu{min-width:0}#selectedReceiptDialog [data-layout-tools] button{flex:none}}
