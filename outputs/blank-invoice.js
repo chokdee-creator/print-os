@@ -43,11 +43,7 @@ function prepareBlankInvoice(frame){
   let bank=tools.querySelector('[data-blank-payment]');
   if(!bank){bank=document.createElement('button');bank.type='button';bank.className='btn secondary';bank.dataset.blankPayment='';bank.textContent='เลือกบัญชี / QR รับชำระ';bank.style.cssText='background:#f3d78c;color:#142342;border:1px solid #ddb350;font-weight:bold';tools.insertBefore(bank,tools.querySelector('[role="status"]'));}
   bank.hidden=false;
-  const payment=root.querySelector('.payment-details');payment.innerHTML='<h2 class="gold-heading">ช่องทางการชำระเงิน</h2><p class="empty-payment">กดเลือกบัญชี / QR รับชำระ จากแถบด้านบน</p>';
-  bank.onclick=async()=>{
-    bank.disabled=true;
-    try{const keys=await StorePaymentChannels.choose('ใช้บัญชีที่เลือกในบิล');if(keys===null)return;payment.innerHTML='<h2 class="gold-heading">ช่องทางการชำระเงิน</h2>'+StorePaymentChannels.html(keys);changed();}
-    catch(e){tools.querySelector('[role="status"]').textContent=e.message;}
-    finally{bank.disabled=false;}
-  };
+  const billAccounts=StorePaymentChannels.mountBill(root.querySelector('.payment-details'));
+  bank.textContent='เลือกบัญชีในบิล';
+  bank.onclick=()=>billAccounts.focus();
 }

@@ -158,6 +158,40 @@ var StorePaymentChannels=(function(){
     refreshAccountPage=render;render();
   }
 
+  function mountBill(payment){
+    const doc=payment.ownerDocument;
+    payment.innerHTML='<h2 class="gold-heading">ช่องทางการชำระเงิน</h2><div class="bill-bank-picker screen-only" data-html2canvas-ignore="true"><strong>เลือกบัญชีที่จะแสดงในบิลนี้</strong><p>ติ๊กได้หลายบัญชี รายละเอียดและ QR จะแสดงด้านล่างทันที</p><div data-bill-bank-list></div><div class="bill-bank-tools"><button type="button" data-bill-bank-load>โหลดบัญชีที่บันทึก</button><button type="button" data-bill-bank-manage>จัดการบัญชี</button></div><p role="status" data-bill-bank-status></p></div><div data-bill-bank-output></div>';
+    const picker=payment.querySelector('.bill-bank-picker'),list=payment.querySelector('[data-bill-bank-list]'),output=payment.querySelector('[data-bill-bank-output]'),status=payment.querySelector('[data-bill-bank-status]');
+    let chosen=new Set(),initialized=false;
+    function defaults(){try{return JSON.parse(localStorage.getItem(key()+':useAccounts')||localStorage.getItem(key()+':lastChoice')||'[]');}catch(e){return [];}}
+    function update(){
+      output.innerHTML=html([...chosen])||'<p class="empty-payment">ไม่แนบบัญชีรับชำระในบิลนี้</p>';
+      status.textContent='เลือกไว้ '+chosen.size+' บัญชี · ใช้เฉพาะบิลนี้';
+      payment.closest('.document').dispatchEvent(new doc.defaultView.Event('input',{bubbles:true}));
+    }
+    function render(){
+      const available=channels.map((row,i)=>({row,key:PaymentChannelData.selectionKey(row,i)})).filter(item=>item.row.enabled),valid=new Set(available.map(item=>item.key));
+      if(!initialized){chosen=new Set(defaults());initialized=available.length>0;}
+      chosen=new Set([...chosen].filter(k=>valid.has(k)));list.replaceChildren();
+      available.forEach(item=>{
+        const label=doc.createElement('label');label.className='bill-bank-option';
+        const check=doc.createElement('input');check.type='checkbox';check.checked=chosen.has(item.key);check.setAttribute('aria-label','แนบบัญชี '+item.row.provider+' '+item.row.number);
+        const detail=doc.createElement('span');detail.textContent=item.row.provider+' · '+item.row.accountName+' · '+item.row.number+(item.row.qrDataUrl?' · มี QR':'');
+        check.onchange=()=>{check.checked?chosen.add(item.key):chosen.delete(item.key);update();};label.append(check,detail);list.append(label);
+      });
+      if(!available.length)list.textContent='ยังไม่มีบัญชีในเครื่อง กดโหลดบัญชีที่บันทึก หรือจัดการบัญชีเพื่อเพิ่มบัญชีรับเงิน';
+      update();
+    }
+    payment.querySelector('[data-bill-bank-load]').onclick=async event=>{
+      const button=event.currentTarget;button.disabled=true;status.textContent='กำลังโหลดบัญชีของร้าน…';
+      try{const result=await sendOutstandingOwnerAction('getPaymentChannels',{store:store()},getSheetUrl());await remember(result.channels,result.selectedKeys);render();}
+      catch(e){status.textContent=e.message;}finally{button.disabled=false;}
+    };
+    payment.querySelector('[data-bill-bank-manage]').onclick=()=>{openAccounts();document.getElementById('paymentAccountsDialog').addEventListener('close',()=>{hydrate().then(render);},{once:true});};
+    ready.then(()=>hydrate()).then(render).catch(e=>{status.textContent=e.message;});
+    return {focus(){picker.scrollIntoView({behavior:'smooth',block:'center'});picker.querySelector('input,button')?.focus({preventScroll:true});}};
+  }
+
   function openAccounts(){
     let dialog=document.getElementById('paymentAccountsDialog');
     if(!dialog){
@@ -170,5 +204,5 @@ var StorePaymentChannels=(function(){
     if(!dialog.open)dialog.showModal();
   }
   function init(){channels=cached();ready=hydrate();document.querySelectorAll('[data-manage-payment-channels]').forEach(button=>button.addEventListener('click',manage));document.querySelectorAll('#paymentChannelsNav').forEach(button=>button.addEventListener('click',openAccounts));return ready;}
-  return {init,manage,text,append,html,showQr,choose,mountPage};
+  return {init,manage,text,append,html,showQr,choose,mountPage,mountBill};
 })();
