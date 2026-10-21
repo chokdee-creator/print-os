@@ -60,7 +60,7 @@ function initOutstandingPanel() {
   }
   function click(id, action) { $(id).addEventListener('click', async () => { try {await action();} catch(e) {status(e.message);} }); }
   click('Preview', preview);
-  click('Copy', async () => {const report=preview(),keys=await StorePaymentChannels.choose('คัดลอกข้อความ');if(keys===null)return;await navigator.clipboard.writeText(StorePaymentChannels.append(PrintOutstanding.text(report),keys)); status('คัดลอกข้อความสรุปแล้ว');});
+  click('Copy', async () => {const report=preview(),keys=await StorePaymentChannels.choose('คัดลอกข้อความ');if(keys===null)return;await navigator.clipboard.writeText(StorePaymentChannels.append(reportText(report),keys)); status('คัดลอกข้อความสรุปแล้ว');});
   click('OpenOa', () => copyAndOpenLineOa(reportText(preview())));
   click('Command', async () => {await navigator.clipboard.writeText(PrintOutstanding.command(config())); status('คัดลอกคำสั่งแล้ว ใช้ได้เมื่อเชื่อมตัวรับคำสั่ง LINE ถาวรสำเร็จ');});
   click('Csv', () => {
