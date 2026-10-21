@@ -57,19 +57,23 @@ function showSelectedPaymentDocument(html, onSend, documentTitle) {
   if(!dialog){
     dialog=document.createElement('dialog');dialog.id='selectedReceiptDialog';
     dialog.style.cssText='width:96vw;max-width:1060px;height:94vh;padding:12px;border:0;border-radius:12px;background:#122949';
-    const tools=document.createElement('div');tools.style.cssText='display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px';
+    const tools=document.createElement('div');tools.className='bill-dialog-tools';tools.style.cssText='display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px';
     const close=document.createElement('button');close.type='button';close.className='btn secondary';close.textContent='ปิดตัวอย่าง';close.addEventListener('click',()=>dialog.close());
     const send=document.createElement('button');send.type='button';send.className='btn';send.dataset.sendSelectedBill='';
     const status=document.createElement('span');status.setAttribute('role','status');
     const print=document.createElement('button');print.type='button';print.className='btn secondary';print.dataset.printBill='';print.textContent='พิมพ์ / บันทึก PDF';
     print.onclick=()=>dialog.querySelector('iframe').contentDocument.querySelector('.tools button').click();
-    tools.append(close,send,print,status);
+    const header=document.createElement('div');header.className='bill-dialog-header';
+    header.innerHTML='<span class="bill-dialog-mark" aria-hidden="true">▤</span><div class="bill-dialog-heading"><strong class="bill-dialog-title">จัดการบิล</strong><span>แก้ไขข้อมูล · จัดวาง · ส่งออกเอกสาร</span></div>';
+    close.textContent='×';close.setAttribute('aria-label','ปิดตัวอย่าง');close.className='bill-dialog-close';header.append(close);
+    tools.append(send,print,status);
     status.style.cssText='color:#fff;width:100%;font-size:13px';
     [close,send,print].forEach(button=>button.style.cssText='background:#f3d78c;color:#142342;border:1px solid #ddb350;font-weight:bold');
     const frame=document.createElement('iframe');frame.style.cssText='display:block;width:100%;min-height:0;flex:1;border:0;background:white';
-    const layout=document.createElement('div');layout.style.cssText='display:flex;flex-direction:column;height:100%';tools.style.flexShrink='0';layout.append(tools,frame);dialog.append(layout);document.body.append(dialog);
+    const layout=document.createElement('div');layout.className='bill-dialog-layout';layout.style.cssText='display:flex;flex-direction:column;height:100%';tools.style.flexShrink='0';layout.append(header,tools,frame);dialog.append(layout);document.body.append(dialog);
   }
   const title=documentTitle||(onSend?'ตัวอย่างบิลยอดชำระของรายการที่เลือก':'ตัวอย่างใบเสร็จของรายการที่เลือก');
+  dialog.querySelector('.bill-dialog-title').textContent=title;
   const manualBank=dialog.querySelector('[data-blank-payment]');if(manualBank)manualBank.hidden=true;
   const manualAdd=dialog.querySelector('[data-add-manual-line]');if(manualAdd)manualAdd.hidden=true;
   dialog.setAttribute('aria-label',title);const frame=dialog.querySelector('iframe');frame.title=title;frame.srcdoc=html;

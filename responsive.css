@@ -91,3 +91,48 @@
 #paymentAccountsDialog .account-empty {padding:20px;border:1px dashed var(--line);border-radius:12px;line-height:1.6;}
 #paymentAccountsDialog [role=status] {overflow-wrap:anywhere;}
 @media screen and (max-width:720px){#paymentAccountsDialog .payment-accounts-body{padding:8px 4px}#paymentAccountsDialog .account-page-tools .btn{width:100%;justify-content:center}#paymentAccountsDialog .account-cards{grid-template-columns:minmax(0,1fr)}}
+
+/* Compact bill workspace: a quiet header, small actions, and a paper preview. */
+#selectedReceiptDialog{width:96vw!important;max-width:1160px!important;height:94dvh!important;max-height:96dvh!important;padding:0!important;border:1px solid #304657!important;border-radius:18px!important;background:#0c1d2c!important;color:#e9eff5;box-shadow:0 24px 80px #0008;overflow:hidden}
+#selectedReceiptDialog::backdrop{background:#061019b8;backdrop-filter:blur(4px)}
+#selectedReceiptDialog .bill-dialog-layout{min-height:0}
+#selectedReceiptDialog .bill-dialog-header{display:flex;align-items:center;gap:12px!important;padding:14px 18px;flex-shrink:0;background:linear-gradient(115deg,#122c40,#0d2031);border-bottom:1px solid #294151;max-height:none!important;overflow:visible!important}
+#selectedReceiptDialog .bill-dialog-mark{display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px;border:1px solid #aa8545;border-radius:10px;color:#f3cf80;background:#d9ad4320;font-size:23px}
+#selectedReceiptDialog .bill-dialog-heading{display:flex;flex-direction:column;gap:3px;min-width:0}
+#selectedReceiptDialog .bill-dialog-title{font-size:15px;font-weight:650;line-height:1.3;color:#f3f5f7}
+#selectedReceiptDialog .bill-dialog-heading>span{font-size:11px;color:#94aaba}
+#selectedReceiptDialog button{box-sizing:border-box;font-family:inherit!important;letter-spacing:0!important;min-width:0!important;box-shadow:none!important;text-transform:none!important}
+#selectedReceiptDialog .bill-dialog-close{margin-left:auto;flex:0 0 30px;width:30px;height:30px;min-height:30px!important;padding:0!important;border:1px solid #38505e!important;border-radius:8px!important;background:#ffffff08!important;color:#b9c9d5!important;font-size:22px!important;line-height:1;cursor:pointer}
+#selectedReceiptDialog .bill-dialog-close:hover{background:#ffffff18!important;color:white!important}
+#selectedReceiptDialog .bill-dialog-tools{display:flex;align-items:center;flex-wrap:wrap;gap:7px!important;margin:0!important;padding:11px 16px 9px;background:#0c1d2c;border-bottom:1px solid #294151;max-height:36dvh;overflow:auto}
+#selectedReceiptDialog .bill-dialog-tools button{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:32px!important;height:auto;padding:6px 10px!important;border:1px solid #3a5161!important;border-radius:7px!important;background:#152c3d!important;color:#dce7ed!important;font-size:12px!important;font-weight:550!important;line-height:1.35!important;white-space:nowrap;cursor:pointer;transition:background .15s,border-color .15s}
+#selectedReceiptDialog .bill-dialog-tools button:hover{background:#203d51!important;border-color:#7893a2!important}
+#selectedReceiptDialog .bill-dialog-tools button:focus-visible,#selectedReceiptDialog .bill-dialog-close:focus-visible{outline:2px solid #f3cc78;outline-offset:2px}
+#selectedReceiptDialog .bill-dialog-tools button:disabled{opacity:.4;cursor:default}
+#selectedReceiptDialog .bill-dialog-tools [data-copy-bill-image],#selectedReceiptDialog .bill-dialog-tools [data-send-selected-bill]{background:#f0ca79!important;color:#152638!important;border-color:#f0ca79!important;font-weight:700!important}
+#selectedReceiptDialog .bill-dialog-tools [data-copy-bill-image]:hover{background:#ffe0a0!important}
+#selectedReceiptDialog [data-bill-image-controls]{display:flex;gap:7px!important;align-items:center}
+#selectedReceiptDialog [data-bill-image-controls]>label{font-size:11px;color:#a7bac8}
+#selectedReceiptDialog [data-bill-image-controls] select{min-height:30px!important;padding:4px 6px!important;font-size:12px!important;max-width:180px}
+#selectedReceiptDialog [data-preview-bill-image]{font-size:11px;color:#f0cc88;white-space:nowrap;padding:4px}
+#selectedReceiptDialog [data-layout-tools]{order:10;display:flex;flex-wrap:wrap;align-items:center;gap:6px!important;flex-basis:100%;padding-top:8px;border-top:1px solid #243e50}
+#selectedReceiptDialog [data-layout-tools]:before{content:'จัดวาง';font-size:11px;color:#8da7ba;margin-right:4px}
+#selectedReceiptDialog [data-layout-tools] [aria-pressed=true]{background:#29465b!important;border-color:#cda45c!important;color:#ffe1a2!important}
+#selectedReceiptDialog .bill-dialog-tools [role=status]{order:20;width:100%;margin:0;padding:2px 0 0;color:#91aab9!important;font-size:11px!important;line-height:1.4;min-height:15px}
+#selectedReceiptDialog iframe{background:#e8edf1!important;border-radius:0!important}
+@media(max-width:720px){
+ #selectedReceiptDialog{width:calc(100vw - 12px)!important;max-width:calc(100vw - 12px)!important;height:calc(100dvh - 12px)!important;max-height:calc(100dvh - 12px)!important;border-radius:12px!important;padding:0!important}
+ #selectedReceiptDialog .bill-dialog-header{padding:10px 12px;gap:9px!important}
+ #selectedReceiptDialog .bill-dialog-title{font-size:14px}
+ #selectedReceiptDialog .bill-dialog-mark{width:30px;height:30px;flex-basis:30px;font-size:20px;border-radius:8px}
+ #selectedReceiptDialog .bill-dialog-tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px!important;padding:8px 10px;max-height:34dvh}
+ #selectedReceiptDialog .bill-dialog-tools button{min-height:34px!important;padding:6px 7px!important;font-size:11px!important;white-space:normal}
+ #selectedReceiptDialog [data-bill-image-controls]{display:contents!important}
+ #selectedReceiptDialog [data-bill-image-controls]>label,#selectedReceiptDialog [data-preview-bill-image]{grid-column:1 / -1}
+ #selectedReceiptDialog [data-layout-tools]{grid-column:1 / -1;padding-top:7px;gap:5px!important}
+ #selectedReceiptDialog [data-layout-tools]:before{display:none}
+ #selectedReceiptDialog [data-layout-tools] button{flex:1 1 calc(50% - 5px)}
+ #selectedReceiptDialog .bill-dialog-tools [role=status]{grid-column:1 / -1;font-size:10px!important}
+}
+
+#selectedReceiptDialog [hidden]{display:none!important}
