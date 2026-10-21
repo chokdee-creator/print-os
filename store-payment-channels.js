@@ -158,6 +158,17 @@ var StorePaymentChannels=(function(){
     refreshAccountPage=render;render();
   }
 
-  function init(){channels=cached();ready=hydrate();document.querySelectorAll('[data-manage-payment-channels]').forEach(button=>button.addEventListener('click',manage));return ready;}
+  function openAccounts(){
+    let dialog=document.getElementById('paymentAccountsDialog');
+    if(!dialog){
+      dialog=document.createElement('dialog');dialog.id='paymentAccountsDialog';dialog.setAttribute('aria-labelledby','paymentAccountsTitle');
+      dialog.innerHTML='<div class="outstanding-dialog-head"><h2 id="paymentAccountsTitle">ช่องทางการชำระเงิน</h2><button type="button" class="btn secondary" data-close-accounts>ปิด</button></div><div class="payment-accounts-body"><p data-accounts-shop></p><p>ติ๊กเลือกบัญชีที่จะใช้แจ้งยอดลูกค้า แล้วกดบันทึกบัญชีที่เลือก</p><section data-accounts-root aria-label="บัญชีรับเงินของร้าน"></section></div>';
+      dialog.querySelector('[data-accounts-shop]').textContent=store()==='chokdee'?'ร้านโชคดีการพิมพ์':'ร้านปริ้นอิมเมจ';
+      dialog.querySelector('[data-close-accounts]').addEventListener('click',()=>dialog.close());
+      document.body.append(dialog);mountPage(dialog.querySelector('[data-accounts-root]'));
+    }
+    if(!dialog.open)dialog.showModal();
+  }
+  function init(){channels=cached();ready=hydrate();document.querySelectorAll('[data-manage-payment-channels]').forEach(button=>button.addEventListener('click',manage));document.querySelectorAll('#paymentChannelsNav').forEach(button=>button.addEventListener('click',openAccounts));return ready;}
   return {init,manage,text,append,html,showQr,choose,mountPage};
 })();

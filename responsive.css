@@ -76,3 +76,18 @@
   body .summary, body.prince-image .summary, body .preview { grid-template-columns:minmax(0,1fr); }
   body .actions, body.prince-image .actions { grid-template-columns:minmax(0,1fr); }
 }
+
+/* Receiving accounts use the same in-page dialog pattern as customer reports. */
+#paymentAccountsDialog {width:calc(100% - 28px);max-width:980px;max-height:90dvh;padding:0;color:var(--ink);background:var(--panel);border:1px solid var(--line);}
+#paymentAccountsDialog .payment-accounts-body {padding:20px;}
+#paymentAccountsDialog .account-page-tools {display:flex;gap:10px;flex-wrap:wrap;margin:16px 0;}
+#paymentAccountsDialog .account-cards {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:16px;}
+#paymentAccountsDialog .account-card {border:1px solid var(--line);border-radius:12px;padding:18px;background:var(--soft);min-width:0;}
+#paymentAccountsDialog .account-check {display:flex;align-items:center;gap:12px;cursor:pointer;}
+#paymentAccountsDialog .account-check input {width:24px;height:24px;min-height:24px;flex:0 0 24px;margin:0;padding:0;accent-color:var(--brand);}
+#paymentAccountsDialog .account-details {white-space:pre-line;overflow-wrap:anywhere;line-height:1.6;}
+#paymentAccountsDialog .account-qr {display:block;width:190px;height:190px;object-fit:contain;background:white;padding:8px;border-radius:8px;}
+#paymentAccountsDialog .account-state {font-size:13px;color:var(--muted);}
+#paymentAccountsDialog .account-empty {padding:20px;border:1px dashed var(--line);border-radius:12px;line-height:1.6;}
+#paymentAccountsDialog [role=status] {overflow-wrap:anywhere;}
+@media screen and (max-width:720px){#paymentAccountsDialog .payment-accounts-body{padding:8px 4px}#paymentAccountsDialog .account-page-tools .btn{width:100%;justify-content:center}#paymentAccountsDialog .account-cards{grid-template-columns:minmax(0,1fr)}}
