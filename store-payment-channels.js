@@ -39,7 +39,7 @@ var StorePaymentChannels=(function(){
   const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   function text(keys){return PaymentChannelData.text(PaymentChannelData.select(channels,keys));}
   function append(message,keys){const details=text(keys);return message+(details?'\n\n'+details:'');}
-  function html(keys){return PaymentChannelData.select(channels,keys).map(r=>'<section style="margin:16px 0;break-inside:avoid"><strong>'+escape(r.kind==='promptpay'?'พร้อมเพย์':r.provider)+'</strong><br>'+escape(r.provider)+'<br>ชื่อบัญชี: '+escape(r.accountName)+'<br>เลขบัญชี/หมายเลข: '+escape(r.number)+(r.note?'<br>'+escape(r.note):'')+(r.qrDataUrl?'<br><img alt="QR ชำระเงิน '+escape(r.provider)+'" src="'+r.qrDataUrl+'" style="width:180px;height:180px;object-fit:contain;background:white">':'')+'</section>').join('');}
+  function html(keys){return PaymentChannelData.select(channels,keys).map(r=>'<section class="bill-payment-account'+(r.qrDataUrl?' has-qr':'')+'"><div class="bill-payment-description"><strong>'+escape(r.kind==='promptpay'?'พร้อมเพย์':r.provider)+'</strong><div>ชื่อบัญชี: '+escape(r.accountName)+'</div><div>เลขบัญชี/หมายเลข: '+escape(r.number)+'</div>'+(r.note?'<div>'+escape(r.note)+'</div>':'')+'</div>'+(r.qrDataUrl?'<img class="bill-payment-qr" alt="QR ชำระเงิน '+escape(r.provider)+'" src="'+r.qrDataUrl+'">':'')+'</section>').join('');}
   function showQr(root,keys){
     root.replaceChildren();
     PaymentChannelData.select(channels,keys).filter(r=>r.qrDataUrl).forEach((r,i)=>{
