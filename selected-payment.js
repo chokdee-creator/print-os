@@ -24,6 +24,11 @@ var SelectedPayment = (function () {
     const chokdee=storeName.includes('โชคดี');
     const field=(value='',placeholder='',type='text')=>'<input type="'+type+'" value="'+escape(value)+'" placeholder="'+escape(placeholder)+'">';
     const notes=value=>'<textarea rows="2">'+escape(value)+'</textarea>';
+    const customerLabel=doc=>{
+      const name=String(doc.customerName||'').trim();
+      if(name&&name!=='-')return name;
+      return ['มานา เด็กดื้อ','ตาชัย'].includes(doc.customerType)?doc.customerType:'';
+    };
     const qty=r=>Number.isFinite(Number(r.quantity))&&Number(r.quantity)>0?Number(r.quantity):1;
     return `<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${invoice?'ใบแจ้งยอดชำระ':'ใบเสร็จ / ยอดชำระ'} ${escape(storeName)}</title><style>${theme.css}</style></head><body>
       <div class="tools"><button type="button" onclick="window.print()">พิมพ์ / บันทึก PDF</button><span>แยกเอกสารตามลูกค้า ${docs.length} ราย · แก้ไขข้อมูลติดต่อและรายละเอียดได้เฉพาะบิลนี้</span></div>
@@ -33,7 +38,7 @@ var SelectedPayment = (function () {
         <header class="header-art"><img src="${theme.headerArt}" alt="หัวบิล โชคดีการพิมพ์"></header>
         <section class="head-grid head"><div class="company"><h1>${escape(storeName)}</h1><label>ที่อยู่ ${notes(chokdee?'1/11 ถ.สฤทฎิ์ยุทธศิลป์ ต.หน้าเมือง อ.เมือง จ.ปราจีนบุรี 25000':'')}</label><div class="inline"><label>โทร ${field(chokdee?'091-040-2986':'','เบอร์โทรร้าน')}</label><label>LINE ${field(chokdee?'@chokdeeprint':'','LINE ของร้าน')}</label></div><label>เลขประจำตัวผู้เสียภาษี ${field('','กรอกเมื่อต้องการแสดง')}</label></div>
         <div class="document-title"><div class="gold-heading large"><h2>${heading}</h2><small>${heading==='ใบเสร็จรับเงิน'?'RECEIPT':'INVOICE'}</small></div><label>เลขที่ ${field('','เลขที่เอกสาร')}</label><label>วันที่ ${field(date)}</label><label>ครบกำหนดชำระ ${field('','','date')}</label><label>อ้างอิง ${field('','เลขอ้างอิง')}</label></div></section>
-        <section class="panel"><h2 class="gold-heading">ข้อมูลลูกค้า</h2><p class="customer-caption">ประเภทลูกค้า: ${escape(doc.customerType)}</p><div class="customer-grid"><label>ชื่อลูกค้า <input data-bill-customer value="${escape(doc.customerName)}" placeholder="ชื่อ/บริษัท"></label><label>เบอร์โทร ${field('','โทรศัพท์ลูกค้า')}</label><label class="span2">ที่อยู่ ${notes('')}</label><label class="span2">พนักงานขาย ${field('','ชื่อพนักงานขาย')}</label></div></section>
+        <section class="panel"><h2 class="gold-heading">ข้อมูลลูกค้า</h2><p class="customer-caption">ประเภทลูกค้า: ${escape(doc.customerType)}</p><div class="customer-grid"><label>ชื่อลูกค้า <input data-bill-customer value="${escape(customerLabel(doc))}" placeholder="ชื่อ/บริษัท"></label><label>เบอร์โทร ${field('','โทรศัพท์ลูกค้า')}</label><label class="span2">ที่อยู่ ${notes('')}</label><label class="span2">พนักงานขาย ${field('','ชื่อพนักงานขาย')}</label></div></section>
         <section class="items"><table><thead><tr><th>ลำดับ</th><th>รายการ</th><th>จำนวน</th><th>ราคา/หน่วย</th><th>รวมเงิน</th></tr></thead><tbody>${doc.rows.map((r,i)=>`<tr><td>${i+1}</td><td class="description">${escape(r.name)}<br><small>วันที่งาน: ${escape(r.date)} · อ้างอิง: ${escape(r.id)}</small>${r.paymentMethod?`<br><small>ช่องทางล่าสุด: ${escape(r.paymentMethod)} ${escape(r.paymentMethodNote||'')}</small>`:''}${(r.paymentHistory||[]).map(h=>`<br><small>รับชำระ ${escape(h.method)} ${amount(Math.round(h.amount*100))} บาท · ${escape(new Intl.DateTimeFormat('th-TH',{timeZone:'Asia/Bangkok',dateStyle:'short',timeStyle:'short'}).format(new Date(h.date)))}</small>`).join('')}</td><td>${escape(qty(r))}</td><td class="amount">${amount(r.sale/qty(r))}</td><td class="amount">${amount(r.sale)}</td></tr>`).join('')}</tbody></table></section>
         <div class="bottom-grid bill-summary-grid"><section class="panel totals"><div><span>ยอดขายรวม</span><output>${amount(doc.sale)} บาท</output></div><div><span>รับชำระแล้ว</span><output>${amount(doc.paid)} บาท</output></div><div class="balance"><span>ค้างชำระ</span><output>${amount(doc.balance)} บาท</output></div></section>
         <section class="panel payment-details"><h2 class="gold-heading">ช่องทางการชำระเงิน</h2>${doc.balance>0&&paymentHtml?paymentHtml:'<p class="empty-payment">'+(doc.balance>0?'ยังไม่ได้เลือกบัญชีรับชำระ':'รายการนี้รับชำระครบแล้ว')+'</p>'}</section></div>
@@ -69,7 +74,7 @@ function showSelectedPaymentDocument(html, onSend, documentTitle) {
   dialog.setAttribute('aria-label',title);const frame=dialog.querySelector('iframe');frame.title=title;frame.srcdoc=html;
   const send=dialog.querySelector('[data-send-selected-bill]'),status=dialog.querySelector('[role="status"]');
   const print=dialog.querySelector('[data-print-bill]');print.disabled=true;
-  frame.addEventListener('load',()=>{print.disabled=false;},{once:true});
+  frame.addEventListener('load',()=>{print.disabled=false;mountBillCustomerPicker(frame);},{once:true});
   BillImage.mount(frame,send.parentElement,status);
   send.hidden=!onSend;send.disabled=false;send.textContent='ส่งยอดเข้า LINE';status.textContent='';
   send.onclick=onSend?async()=>{
@@ -100,3 +105,32 @@ async function openSavedJobBill(record) {
   }catch(e){toast('บันทึกแล้ว แต่เปิดบิลไม่สำเร็จ: '+e.message);}
 }
 if (typeof module !== 'undefined' && module.exports) module.exports = SelectedPayment;
+
+function mountBillCustomerPicker(frame){
+  const doc=frame.contentDocument;
+  const directory=()=>{
+    const names=new Set();
+    records.forEach(row=>{
+      const value=String(customerName(row)||'').trim(),type=customerType(row);
+      const name=value&&value!=='-'?value:['มานา เด็กดื้อ','ตาชัย'].includes(type)?type:'';
+      if(name)names.add(name);
+    });
+    return [...names].sort((a,b)=>a.localeCompare(b,'th'));
+  };
+  const pickers=[];
+  doc.querySelectorAll('[data-bill-customer]').forEach(input=>{
+    const panel=input.closest('.panel'),control=doc.createElement('div');control.className='bill-customer-picker screen-only';control.setAttribute('data-html2canvas-ignore','true');
+    control.innerHTML='<label>เลือกชื่อลูกค้า / LINE<select aria-label="เลือกชื่อลูกค้าจากระบบหรือ LINE"></select></label><button type="button">โหลดชื่อ LINE</button><span role="status"></span>';
+    panel.querySelector('.customer-grid').before(control);
+    const select=control.querySelector('select'),button=control.querySelector('button'),status=control.querySelector('[role=status]');
+    function render(){
+      select.replaceChildren();const blank=doc.createElement('option');blank.value='';blank.textContent='เลือกชื่อเพื่อใส่ในบิล';select.append(blank);
+      function group(label,items){if(!items.length)return;const section=doc.createElement('optgroup');section.label=label;items.forEach((name,i)=>{const option=doc.createElement('option');option.value=label+':'+i;option.dataset.name=name;option.textContent=name;section.append(option);});select.append(section);}
+      group('ลูกค้าในระบบ',directory());group('ชื่อจาก LINE',LineRecipients.names().map(r=>r.name));
+      for(const option of select.options){if(option.dataset.name===input.value){select.value=option.value;break;}}
+    }
+    select.onchange=()=>{const name=select.selectedOptions[0]?.dataset.name;if(!name)return;input.value=name;input.dispatchEvent(new doc.defaultView.Event('input',{bubbles:true}));};
+    button.onclick=async()=>{button.disabled=true;status.textContent='กำลังโหลดชื่อ LINE…';try{await LineRecipients.loadNames();pickers.forEach(refresh=>refresh());status.textContent='โหลดแล้ว เลือกชื่อได้จากรายการด้านบน';}catch(e){status.textContent=e.message;}finally{button.disabled=false;}};
+    pickers.push(render);render();
+  });
+}

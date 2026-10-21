@@ -58,5 +58,6 @@ var LineRecipients=(function(){
     dialog.showModal();dialog.querySelector('[data-load-recipients]').click();
   }
   function init(){refresh();document.querySelectorAll('[data-manage-line-recipients]').forEach(button=>button.addEventListener('click',manage));}
-  return {init,selected,manage};
+  function names(){return recipients.map(r=>({id:r.id,name:r.name.replace(/\s*\(บัญชีเดิมของฉัน\)$/,''),pending:!!r.pending}));}
+  return {init,selected,manage,names,loadNames:load};
 })();

@@ -15,3 +15,7 @@ for(const store of ['ร้านโชคดีการพิมพ์','ร�
   assert.ok(html.includes('src="data:image/png;base64,'+expected+'"'), 'saved bill embeds the exact supplied image bytes');
 }
 console.log('PASS: supplied A4/gold form, complete embedded header, editable contact fields, safe escaping, quantities, unchanged saved totals, and only chosen bank details.');
+
+for(const type of ['มานา เด็กดื้อ','ตาชัย']){const html=P.html([{...row,customerName:'-',customerType:type}],'21 ตุลาคม 2569');assert.ok(html.includes('data-bill-customer value="'+type+'"'));}
+const unknown=P.html([{...row,customerName:'-',customerType:'ลูกค้าทั่วไป'}],'21 ตุลาคม 2569');assert.ok(unknown.includes('data-bill-customer value=""'));
+console.log('PASS: known customer labels fill missing names, while generic customer categories stay blank.');
