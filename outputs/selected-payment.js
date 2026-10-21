@@ -55,16 +55,21 @@ function showSelectedPaymentDocument(html, onSend, documentTitle) {
     const close=document.createElement('button');close.type='button';close.className='btn secondary';close.textContent='ปิดตัวอย่าง';close.addEventListener('click',()=>dialog.close());
     const send=document.createElement('button');send.type='button';send.className='btn';send.dataset.sendSelectedBill='';
     const status=document.createElement('span');status.setAttribute('role','status');
-    tools.append(close,send,status);
+    const print=document.createElement('button');print.type='button';print.className='btn secondary';print.dataset.printBill='';print.textContent='พิมพ์ / บันทึก PDF';
+    print.onclick=()=>dialog.querySelector('iframe').contentDocument.querySelector('.tools button').click();
+    tools.append(close,send,print,status);
     status.style.cssText='color:#fff;width:100%;font-size:13px';
-    [close,send].forEach(button=>button.style.cssText='background:#f3d78c;color:#142342;border:1px solid #ddb350;font-weight:bold');
+    [close,send,print].forEach(button=>button.style.cssText='background:#f3d78c;color:#142342;border:1px solid #ddb350;font-weight:bold');
     const frame=document.createElement('iframe');frame.style.cssText='display:block;width:100%;min-height:0;flex:1;border:0;background:white';
     const layout=document.createElement('div');layout.style.cssText='display:flex;flex-direction:column;height:100%';tools.style.flexShrink='0';layout.append(tools,frame);dialog.append(layout);document.body.append(dialog);
   }
   const title=documentTitle||(onSend?'ตัวอย่างบิลยอดชำระของรายการที่เลือก':'ตัวอย่างใบเสร็จของรายการที่เลือก');
   const manualBank=dialog.querySelector('[data-blank-payment]');if(manualBank)manualBank.hidden=true;
+  const manualAdd=dialog.querySelector('[data-add-manual-line]');if(manualAdd)manualAdd.hidden=true;
   dialog.setAttribute('aria-label',title);const frame=dialog.querySelector('iframe');frame.title=title;frame.srcdoc=html;
   const send=dialog.querySelector('[data-send-selected-bill]'),status=dialog.querySelector('[role="status"]');
+  const print=dialog.querySelector('[data-print-bill]');print.disabled=true;
+  frame.addEventListener('load',()=>{print.disabled=false;},{once:true});
   BillImage.mount(frame,send.parentElement,status);
   send.hidden=!onSend;send.disabled=false;send.textContent='ส่งยอดเข้า LINE';status.textContent='';
   send.onclick=onSend?async()=>{

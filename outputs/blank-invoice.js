@@ -40,6 +40,9 @@ function prepareBlankInvoice(frame){
   const productActions=doc.createElement('div');productActions.className='screen-only';productActions.setAttribute('data-html2canvas-ignore','true');productActions.style.margin='8px 0';productActions.append(addBelow);root.querySelector('.items').after(productActions);
   doc.querySelector('.tools button').onclick=()=>{const invalid=root.querySelector(':invalid');if(invalid){invalid.reportValidity();return;}frame.contentWindow.print();};
   const dialog=frame.closest('dialog'),tools=dialog.querySelector('[data-send-selected-bill]').parentElement;
+  let topAdd=tools.querySelector('[data-add-manual-line]');
+  if(!topAdd){topAdd=document.createElement('button');topAdd.type='button';topAdd.className='btn secondary';topAdd.dataset.addManualLine='';topAdd.textContent='+ เพิ่มรายการสินค้า';topAdd.style.cssText='background:#f3d78c;color:#142342;border:1px solid #ddb350;font-weight:bold';tools.insertBefore(topAdd,tools.querySelector('[role="status"]'));}
+  topAdd.hidden=false;topAdd.onclick=add.onclick;
   let bank=tools.querySelector('[data-blank-payment]');
   if(!bank){bank=document.createElement('button');bank.type='button';bank.className='btn secondary';bank.dataset.blankPayment='';bank.textContent='เลือกบัญชี / QR รับชำระ';bank.style.cssText='background:#f3d78c;color:#142342;border:1px solid #ddb350;font-weight:bold';tools.insertBefore(bank,tools.querySelector('[role="status"]'));}
   bank.hidden=false;
