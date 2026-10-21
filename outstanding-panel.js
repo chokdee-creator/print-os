@@ -63,14 +63,6 @@ function initOutstandingPanel() {
   click('Copy', async () => {const report=preview(),keys=await StorePaymentChannels.choose('คัดลอกข้อความ');if(keys===null)return;await navigator.clipboard.writeText(StorePaymentChannels.append(reportText(report),keys)); status('คัดลอกข้อความสรุปแล้ว');});
   click('OpenOa', () => copyAndOpenLineOa(reportText(preview())));
   click('Command', async () => {await navigator.clipboard.writeText(PrintOutstanding.command(config())); status('คัดลอกคำสั่งแล้ว ใช้ได้เมื่อเชื่อมตัวรับคำสั่ง LINE ถาวรสำเร็จ');});
-  click('Csv', () => {
-    const r = preview();
-    const cell = v => '"' + String(v).replace(/^\s*[=+@\-\t\r]/, "'$&").replace(/"/g,'""') + '"';
-    const rows = [['ลูกค้า','ประเภทลูกค้า','วันที่งาน/เดือน','จำนวนงาน','ยอดค้างปัจจุบัน (บาท)'],
-      ...r.rows.map(x=>[x.name,x.type,x.period,x.count,(x.satang/100).toFixed(2)])];
-    const url=URL.createObjectURL(new Blob(['\uFEFF'+rows.map(row=>row.map(cell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}));
-    const a=document.createElement('a');a.href=url;a.download='ยอดค้าง-'+r.start+'-'+r.end+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
-  });
   async function request(action, extra={}) {
     status('กำลังดำเนินการผ่านบัญชี Google เจ้าของร้าน…');
     return sendOutstandingOwnerAction(action,{...extra,store},getSheetUrl());
