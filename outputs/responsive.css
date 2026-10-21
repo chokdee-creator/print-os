@@ -1,0 +1,71 @@
+/* Shared layout for both shops; wide records scroll within their table. */
+@media screen {
+  .grid > *, .topbar > *, .filters > *, .two-col > *, .form-actions > *, .payment-workspace > * { min-width:0; }
+  body .filters, body.prince-image .filters { grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr)); }
+  .search-controls { grid-template-columns:minmax(0,.8fr) minmax(0,1fr) auto; }
+  .date-controls { grid-template-columns:minmax(0,1fr) auto; }
+  .list-panel, .table-wrap { min-width:0; max-width:100%; }
+  .table-wrap { overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; touch-action:pan-x pan-y; }
+  input, select, textarea { max-width:100%; min-width:0; }
+  dialog { max-height:calc(100dvh - 24px); overflow:auto; overscroll-behavior:contain; }
+  dialog fieldset { min-width:0; }
+  dialog img, .account-qr { max-width:100%; }
+  .btn, .segment, .ux-select-trigger { touch-action:manipulation; }
+}
+@media screen and (max-width:1180px) {
+  body .grid, body.prince-image .grid { grid-template-columns:minmax(0,1fr); }
+  body .topbar, body.prince-image .topbar { position:static; flex-direction:column; align-items:stretch; }
+  body .form-panel, body .list-panel, body.prince-image .form-panel, body.prince-image .list-panel { position:static; max-height:none; overflow:visible; }
+  body .filters, body.prince-image .filters { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media screen and (max-width:720px) {
+  body .app, body.prince-image .app { width:calc(100% - 24px); padding:12px 0 32px; }
+  body .topbar, body.prince-image .topbar { margin:0 0 16px; padding:16px 12px; gap:16px; border-radius:12px; }
+  body.prince-image .brand-title { min-width:0; gap:12px; }
+  body.prince-image .brand-emblem { flex:0 0 68px; width:68px; height:56px; }
+  body .title h1, body.prince-image .title h1 { font-size:clamp(23px,6vw,32px); line-height:1.3; overflow-wrap:anywhere; }
+  body .title p, body.prince-image .title p { font-size:12px; letter-spacing:.12em; }
+  body .actions, body.prince-image .actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; width:100%; }
+  body .actions > *, body.prince-image .actions > * { width:100%; min-width:0; }
+  body .actions .settings-menu { grid-column:1 / -1; }
+  body .actions .btn, body .actions summary, body.prince-image .actions .btn { width:100%; min-height:46px; padding:10px 8px; white-space:normal; text-align:center; justify-content:center; font-size:14px; }
+  body .settings-menu > .menu-panel { position:static; width:100%; min-width:0; max-width:none; max-height:60dvh; margin-top:8px; }
+  body .settings-menu .settings-section > .menu-panel { padding-left:0; }
+  body .form-panel { padding:14px; }
+  .panel-head { flex-wrap:wrap; gap:8px; }
+  body .summary, body.prince-image .summary { grid-template-columns:repeat(2,minmax(0,1fr)); padding:12px; gap:8px; }
+  body.prince-image .summary .metric { padding:12px; min-height:88px; }
+  body.prince-image .summary .metric-icon { position:static; transform:none; width:26px; height:26px; margin-bottom:7px; }
+  body.prince-image .summary .metric-icon svg { width:16px; height:16px; }
+  body .preview { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  body .filters, body.prince-image .filters, body .search-controls, body .date-controls { grid-template-columns:minmax(0,1fr); }
+  .filters { padding:12px; }
+  body input:not([type=checkbox]):not([type=radio]), body select, body textarea { font-size:16px; }
+  body .btn { min-height:44px; white-space:normal; overflow-wrap:anywhere; }
+  body .form-actions { grid-template-columns:minmax(0,1fr); }
+  .form-actions .btn { width:100%; padding:12px; }
+  body .table-wrap { width:100%; border-radius:0 0 8px 8px; }
+  .table-wrap th, .table-wrap td { padding:10px; }
+  #outstandingReports > div { grid-template-columns:minmax(0,1fr) !important; }
+  #outstandingReports { scroll-margin-top:12px; overflow-wrap:anywhere; }
+  #outstandingReports .btn { max-width:100%; }
+  #outstandingCustomers { grid-template-columns:minmax(0,1fr); }
+  #selectionBar:not([hidden]) { bottom:max(8px,env(safe-area-inset-bottom)); max-height:35dvh; overflow:auto; padding:10px; }
+  #selectionBar .selection-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); width:100%; gap:6px; }
+  #selectionBar .selection-actions .btn { font-size:13px; padding:8px; }
+  body:has(#selectionBar:not([hidden])) { padding-bottom:35dvh; }
+  body dialog { width:calc(100% - 16px) !important; max-width:calc(100% - 16px) !important; max-height:calc(100dvh - 16px) !important; padding:14px !important; margin:auto; }
+  dialog .dialog-body { padding:4px; }
+  #selectedReceiptDialog { height:calc(100dvh - 16px) !important; padding:8px !important; }
+  #selectedReceiptDialog > div > div:first-child { max-height:30dvh; overflow:auto; gap:6px !important; }
+  #selectedReceiptDialog .btn { min-height:40px; padding:8px; font-size:13px; }
+  #selectedReceiptDialog [data-bill-image-controls] { gap:6px !important; }
+  dialog input[type=file] { width:100%; }
+  .account-card { padding:16px; min-width:0; }
+  .account-page-tools .btn, .store-tabs .btn { text-align:center; white-space:normal; }
+  .store-tabs { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media screen and (max-width:360px) {
+  body .summary, body.prince-image .summary, body .preview { grid-template-columns:minmax(0,1fr); }
+  body .actions, body.prince-image .actions { grid-template-columns:minmax(0,1fr); }
+}
