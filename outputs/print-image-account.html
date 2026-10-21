@@ -1896,7 +1896,7 @@
   </style>
   <link rel="stylesheet" href="outstanding-panel.css?v=20261021-customer-dialog">
 <script src="dialog-backdrop.js?v=20261021-all-dialogs" defer></script>
-<link rel="stylesheet" href="responsive.css?v=20261021-mobile">
+<link rel="stylesheet" href="responsive.css?v=20261021-summary-grid">
 </head>
 <body class="prince-image">
   <main class="app">
@@ -2349,7 +2349,7 @@
   <section class="panel" id="outstandingReports" style="margin-top:24px;padding:24px">
     <h2>สรุปยอดค้างเฉพาะลูกค้า</h2>
     <p>เลือกวันที่งานและลูกค้าที่ต้องการ รายงานแสดงยอดที่ยังค้างอยู่ปัจจุบัน ไม่ใช่ยอดค้างย้อนหลัง ณ วันสิ้นสุด</p>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px">
+    <div class="outstanding-filters" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px">
       <label>เริ่มวันที่ <input type="date" id="outstandingStart"></label>
       <label>ถึงวันที่ <input type="date" id="outstandingEnd"></label>
       <label>แยกยอดตาม <select id="outstandingGroup"><option value="day">รายวัน</option><option value="month">รายเดือน</option></select></label>

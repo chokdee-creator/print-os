@@ -46,7 +46,12 @@
   .form-actions .btn { width:100%; padding:12px; }
   body .table-wrap { width:100%; border-radius:0 0 8px 8px; }
   .table-wrap th, .table-wrap td { padding:10px; }
-  #outstandingReports > div { grid-template-columns:minmax(0,1fr) !important; }
+  .outstanding-dialog-head > button { flex-shrink:0; white-space:nowrap; }
+  #outstandingReports > .outstanding-filters { grid-template-columns:repeat(2,minmax(0,1fr)) !important; gap:12px 8px !important; }
+  #outstandingReports > .outstanding-filters > label { min-width:0; }
+  #outstandingReports > .outstanding-filters > label:nth-child(n+5) { grid-column:1 / -1; }
+  #outstandingReports .outstanding-filters :is(input,select) { width:100%; min-width:0; padding:10px 4px; }
+  #outstandingReports .outstanding-filters input[type=date]::-webkit-calendar-picker-indicator { margin:0; padding:0; }
   #outstandingReports { scroll-margin-top:12px; overflow-wrap:anywhere; }
   #outstandingReports .btn { max-width:100%; }
   #outstandingCustomers { grid-template-columns:minmax(0,1fr); }
@@ -66,6 +71,8 @@
   .store-tabs { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
 @media screen and (max-width:360px) {
+  #outstandingReports .outstanding-filters input[type=date] { letter-spacing:-.6px; }
+  #outstandingReports .outstanding-filters input[type=date]::-webkit-calendar-picker-indicator { width:12px; }
   body .summary, body.prince-image .summary, body .preview { grid-template-columns:minmax(0,1fr); }
   body .actions, body.prince-image .actions { grid-template-columns:minmax(0,1fr); }
 }
