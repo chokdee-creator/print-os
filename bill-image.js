@@ -14,6 +14,15 @@ var BillImage=(function(){
         bill.style.setProperty('min-height','0','important');
         bill.style.setProperty('height','auto','important');
         bill.style.setProperty('box-shadow','none','important');
+        // Canvas textareas do not wrap reliably. Export their current text as
+        // ordinary wrapping content, keeping the editing form unchanged.
+        bill.querySelectorAll('textarea').forEach(field=>{
+          const text=clonedDoc.createElement('div');
+          text.textContent=field.value||field.placeholder||'';
+          text.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:inherit;padding:5px 3px;min-width:0;width:100%';
+          text.style.minHeight=field.getBoundingClientRect().height+'px';
+          field.replaceWith(text);
+        });
         const bounds=bill.getBoundingClientRect(),width=Math.ceil(bounds.width),height=Math.ceil(Math.max(bounds.height,bill.scrollHeight));
         const scale=Math.min(2,16000/height,Math.sqrt(16000000/(width*height)));
         if(!width||!height||scale<0.75)throw new Error('บิลยาวเกินขนาดรูป กรุณาแบ่งเลือกรายการให้น้อยลง หรือบันทึกเป็น PDF');
