@@ -9,6 +9,9 @@ for(const store of ['ร้านโชคดีการพิมพ์','ร�
   assert.ok(html.includes('70.00 บาท'));assert.ok(html.includes('30.00 บาท'));assert.ok(html.includes('Chosen receiving account'));
   assert.ok(!html.includes('id="vat"'),'theme must not introduce the template VAT calculation');
   assert.ok(html.includes('placeholder="กรอกเมื่อต้องการแสดง"'),'tax identifier starts empty');
-  assert.equal(html.includes('class="header-art prince-art"'),store==='ร้านปริ้นอิมเมจ');
+  assert.ok(html.includes('<header class="header-art"><img'), 'header is one complete image in both shops');
+  assert.ok(!html.includes('class="printer-crop"'), 'do not crop the printer out of the supplied banner');
+  const expected=require('node:fs').readFileSync(require('node:path').join(__dirname,'../assets/bill-header.png')).toString('base64');
+  assert.ok(html.includes('src="data:image/png;base64,'+expected+'"'), 'saved bill embeds the exact supplied image bytes');
 }
-console.log('PASS: supplied A4/gold form, separate branding, editable contact fields, safe escaping, quantities, unchanged saved totals, and only chosen bank details.');
+console.log('PASS: supplied A4/gold form, complete embedded header, editable contact fields, safe escaping, quantities, unchanged saved totals, and only chosen bank details.');
