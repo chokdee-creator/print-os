@@ -42,7 +42,7 @@ var SelectedPayment = (function () {
         <section class="panel"><h2 class="gold-heading">ข้อมูลลูกค้า</h2><p class="customer-caption">ประเภทลูกค้า: ${escape(doc.customerType)}</p><div class="customer-grid"><label>ชื่อลูกค้า <input data-bill-customer value="${escape(customerLabel(doc))}" placeholder="ชื่อ/บริษัท"></label><label>เบอร์โทร ${field('','โทรศัพท์ลูกค้า')}</label><label class="span2">ที่อยู่ ${notes('')}</label><label class="span2">พนักงานขาย ${field('','ชื่อพนักงานขาย')}</label></div></section>
         <section class="items"><table><thead><tr><th>ลำดับ</th><th>รายการ</th><th>ขนาด</th><th>จำนวน</th><th>ราคา/หน่วย</th><th>รวมเงิน</th></tr></thead><tbody>${doc.rows.map((r,i)=>`<tr><td>${i+1}</td><td class="description">${escape(r.name)}<small class="bill-item-date">วันที่งาน: ${escape(r.date)}</small><small class="bill-item-reference">อ้างอิง: ${escape(r.reference||"รอเลขอ้างอิง")}</small>${r.paymentMethod?`<br><small>ช่องทางล่าสุด: ${escape(r.paymentMethod)} ${escape(r.paymentMethodNote||'')}</small>`:''}${(r.paymentHistory||[]).map(h=>`<br><small>รับชำระ ${escape(h.method)} ${amount(Math.round(h.amount*100))} บาท · ${escape(new Intl.DateTimeFormat('th-TH',{timeZone:'Asia/Bangkok',dateStyle:'short',timeStyle:'short'}).format(new Date(h.date)))}</small>`).join('')}</td><td class="bill-item-size">${size(r)}</td><td>${escape(qty(r))}</td><td class="amount">${amount(r.sale/qty(r))}</td><td class="amount">${amount(r.sale)}</td></tr>`).join('')}</tbody></table></section>
         <div class="bottom-grid bill-summary-grid"><section class="panel totals"><div><span>ยอดขายรวม</span><output>${amount(doc.sale)} บาท</output></div><div><span>รับชำระแล้ว</span><output>${amount(doc.paid)} บาท</output></div><div class="balance"><span>ยอดที่ต้องชำระ</span><output>${amount(doc.balance)} บาท</output></div></section>
-        <section class="panel payment-details"><h2 class="gold-heading">ช่องทางการชำระเงิน</h2>${doc.balance>0&&paymentHtml?paymentHtml:'<p class="empty-payment">'+(doc.balance>0?'ยังไม่ได้เลือกบัญชีรับชำระ':'รายการนี้รับชำระครบแล้ว')+'</p>'}</section></div>
+        <section class="panel payment-details" data-receiving="${doc.balance>0}"><h2 class="gold-heading">ช่องทางการชำระเงิน</h2>${doc.balance>0&&paymentHtml?paymentHtml:'<p class="empty-payment">'+(doc.balance>0?'ยังไม่ได้เลือกบัญชีรับชำระ':'รายการนี้รับชำระครบแล้ว')+'</p>'}</section></div>
         <section class="panel terms"><h2 class="gold-heading">เงื่อนไข</h2>${notes('1. กรุณาตรวจสอบรายละเอียดก่อนยืนยันการผลิต\n2. กำหนดชำระเงินตามที่ตกลงร่วมกัน\n3. หากต้องการแก้ไขรายการ กรุณาติดต่อร้านก่อนดำเนินการ')}</section>
         <p class="note">${invoice?'บิลนี้แสดงเฉพาะรายการค้างชำระที่เลือก และยอดค้างหลังหักเงินที่รับชำระแล้ว เอกสารนี้ไม่ใช่ใบเสร็จรับเงิน':doc.paid>0?'ใบเสร็จนี้แสดงเฉพาะยอดรับชำระที่บันทึกไว้แล้วของรายการที่เลือก วันที่พิมพ์ไม่ใช่วันที่รับเงิน':'เอกสารแจ้งยอดนี้ยังไม่ใช่หลักฐานการรับเงิน เนื่องจากรายการที่เลือกยังไม่มีการรับชำระ'}<br>การพิมพ์ไม่เปลี่ยนสถานะชำระเงินในระบบ และไม่บวกภาษีหรือค่าบริการเพิ่ม</p></main>`;
       }).join('')}</body></html>`;
@@ -52,7 +52,7 @@ var SelectedPayment = (function () {
 function selectedPaymentRows(rows) {
   return rows.map(r=>({id:r.id,reference:r.reference,name:r.name,date:r.date,customerType:customerType(r),customerName:customerName(r),sale:Number(r.saleTotal)||0,quantity:r.quantity,width:r.width,length:r.length,size:r.size,paid:paidAmount(r),paymentMethod:r.paymentMethod,paymentMethodNote:r.paymentMethodNote,paymentHistory:PaymentChannelData.readHistory(r.paymentHistory)}));
 }
-function showSelectedPaymentDocument(html, onSend, documentTitle) {
+function showSelectedPaymentDocument(html, onSend, documentTitle, options={}) {
   let dialog=document.getElementById('selectedReceiptDialog');
   if(!dialog){
     dialog=document.createElement('dialog');dialog.id='selectedReceiptDialog';
@@ -78,6 +78,22 @@ function showSelectedPaymentDocument(html, onSend, documentTitle) {
   const manualAdd=dialog.querySelector('[data-add-manual-line]');if(manualAdd)manualAdd.hidden=true;
   dialog.setAttribute('aria-label',title);const frame=dialog.querySelector('iframe');frame.title=title;frame.srcdoc=html;
   const send=dialog.querySelector('[data-send-selected-bill]'),status=dialog.querySelector('[role="status"]');
+  let paymentKeys=Array.isArray(options.paymentKeys)?options.paymentKeys.slice():null;
+  let bank=dialog.querySelector('[data-bill-payment]');
+  if(!bank){bank=document.createElement('button');bank.type='button';bank.className='btn secondary';bank.dataset.billPayment='';bank.textContent='เลือกบัญชีรับชำระ';send.parentElement.insertBefore(bank,status);}
+  bank.hidden=paymentKeys===null;bank.disabled=false;
+  bank.onclick=async()=>{
+    bank.disabled=true;
+    try{
+      const next=await StorePaymentChannels.choose('ใช้บัญชีในบิลนี้',{force:true,initialKeys:paymentKeys});if(next===null)return;
+      const content=StorePaymentChannels.html(next)||'<p class="empty-payment">ไม่แนบบัญชีรับชำระในบิลนี้</p>';
+      frame.contentDocument.querySelectorAll('.payment-details[data-receiving="true"]').forEach(panel=>{panel.innerHTML='<h2 class="gold-heading">ช่องทางการชำระเงิน</h2>'+content;});
+      paymentKeys=next.slice();
+      frame.contentDocument.dispatchEvent(new frame.contentWindow.Event('input',{bubbles:true}));
+      frame.contentDocument.dispatchEvent(new frame.contentWindow.Event('bill-layout-change'));
+      status.textContent='เปลี่ยนบัญชีในบิลแล้ว '+paymentKeys.length+' บัญชี · ใช้บัญชีนี้เมื่อส่งยอด';
+    }catch(error){status.textContent=error.message;}finally{bank.disabled=false;}
+  };
   const print=dialog.querySelector('[data-print-bill]');print.disabled=true;
   frame.addEventListener('load',()=>{print.disabled=false;mountBillCustomerPicker(frame);},{once:true});
   BillImage.mount(frame,send.parentElement,status);
@@ -85,9 +101,10 @@ function showSelectedPaymentDocument(html, onSend, documentTitle) {
   if(typeof BillTypography!=='undefined')BillTypography.mount(frame,send.parentElement,status);
   send.hidden=!onSend;send.disabled=false;send.textContent='ส่งยอดเข้า LINE';status.textContent='';
   send.onclick=onSend?async()=>{
-    if(send.disabled)return;send.disabled=true;status.textContent='กำลังส่งยอดของรายการในบิลเข้า LINE…';
-    try{const result=await onSend();status.textContent='ส่งยอดชำระเข้า LINE ของ '+result.recipientName+' แล้ว';send.textContent='ส่งยอดแล้ว';}
+    if(send.disabled)return;send.disabled=true;bank.disabled=true;status.textContent='กำลังส่งยอดของรายการในบิลเข้า LINE…';
+    try{const result=await onSend(paymentKeys===null?undefined:paymentKeys.slice());status.textContent='ส่งยอดชำระเข้า LINE ของ '+result.recipientName+' แล้ว';send.textContent='ส่งยอดแล้ว';}
     catch(e){status.textContent=e.message;send.disabled=false;}
+    finally{bank.disabled=false;}
   }:null;
   if(!dialog.open)dialog.showModal();
 }
@@ -97,7 +114,7 @@ async function printSelectedReceipt() {
     SelectedPayment.documents(rows);
     const paymentKeys=rows.some(r=>r.sale>r.paid)?await StorePaymentChannels.choose('เปิดเอกสารด้วยบัญชีที่เลือก'):[];if(paymentKeys===null)return;
     const html=SelectedPayment.html(rows,new Intl.DateTimeFormat('th-TH',{timeZone:'Asia/Bangkok',dateStyle:'long'}).format(new Date()),SHEET_TAB_NAME==='Chokdee'?'ร้านโชคดีการพิมพ์':'ร้านปริ้นอิมเมจ',StorePaymentChannels.html(paymentKeys));
-    showSelectedPaymentDocument(html);
+    showSelectedPaymentDocument(html,undefined,undefined,rows.some(r=>r.sale>r.paid)?{paymentKeys}:{});
   }catch(e){toast(e.message);}
 }
 async function openSavedJobBill(record) {
@@ -108,7 +125,7 @@ async function openSavedJobBill(record) {
     const keys=unpaid?await StorePaymentChannels.choose('ใช้บัญชีที่เลือกในบิล'):[];
     if(keys===null)return;
     const html=SelectedPayment.html(rows,new Intl.DateTimeFormat('th-TH',{timeZone:'Asia/Bangkok',dateStyle:'long'}).format(new Date()),SHEET_TAB_NAME==='Chokdee'?'ร้านโชคดีการพิมพ์':'ร้านปริ้นอิมเมจ',StorePaymentChannels.html(keys),{kind:unpaid?'invoice':'receipt'});
-    showSelectedPaymentDocument(html,undefined,'ตัวอย่างบิลของรายการที่บันทึก');
+    showSelectedPaymentDocument(html,undefined,'ตัวอย่างบิลของรายการที่บันทึก',unpaid?{paymentKeys:keys}:{});
   }catch(e){toast('บันทึกแล้ว แต่เปิดบิลไม่สำเร็จ: '+e.message);}
 }
 if (typeof module !== 'undefined' && module.exports) module.exports = SelectedPayment;

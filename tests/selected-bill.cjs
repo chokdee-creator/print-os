@@ -26,6 +26,8 @@ const P=require('../selected-payment.js'),D=require('../payment-channel-data.js'
     ctx.selectedIds.clear();ctx.selectedIds.add('excluded');await preview.send();
     assert.equal(sent.length,1);assert.deepEqual(Array.from(sent[0].data.config.recordIds),['picked'],'send uses the bill selection captured before changing checkboxes');
     assert.equal(sent[0].data.store,store==='Chokdee'?'chokdee':'printImage');assert.equal(button.disabled,false);
+    await preview.send(['newly-selected-bank']);
+    assert.deepEqual(Array.from(sent[1].data.paymentKeys),['newly-selected-bank'],'LINE uses the accounts chosen in the current bill rather than the opening defaults');
     ctx.selectedIds.clear();preview=null;await ctx.sendSelectedOutstanding();assert.equal(preview,null);assert.equal(errors.length,1);
   }
   assert.throws(()=>P.documents([]));

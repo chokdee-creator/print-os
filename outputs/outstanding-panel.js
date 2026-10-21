@@ -105,7 +105,7 @@ async function sendSelectedOutstanding() {
     const paymentKeys=await StorePaymentChannels.choose('ใช้บัญชีที่เลือกในบิล');if(paymentKeys===null)return;
     const store=SHEET_TAB_NAME==='Chokdee'?'chokdee':'printImage';
     const html=SelectedPayment.html(rows,new Intl.DateTimeFormat('th-TH',{timeZone:'Asia/Bangkok',dateStyle:'long'}).format(new Date()),store==='chokdee'?'ร้านโชคดีการพิมพ์':'ร้านปริ้นอิมเมจ',StorePaymentChannels.html(paymentKeys),{kind:'invoice'});
-    showSelectedPaymentDocument(html,()=>sendOutstandingOwnerAction('previewSend',{config,paymentKeys,store,recipientId:LineRecipients.selected('selectedLineRecipient')},getSheetUrl()));
+    showSelectedPaymentDocument(html,(currentKeys=paymentKeys)=>sendOutstandingOwnerAction('previewSend',{config,paymentKeys:currentKeys,store,recipientId:LineRecipients.selected('selectedLineRecipient')},getSheetUrl()),undefined,{paymentKeys});
   }catch(e){toast(e.message);}
   finally{button.disabled=false;button.textContent='ส่งยอดชำระ';}
 }

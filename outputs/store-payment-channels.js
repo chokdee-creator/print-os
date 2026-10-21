@@ -97,10 +97,10 @@ var StorePaymentChannels=(function(){
   }
 
   let choosing=false;
-  async function choose(actionLabel='ใช้บัญชีที่เลือก'){
+  async function choose(actionLabel='ใช้บัญชีที่เลือก',options={}){
     await ready;await hydrate();
     if(missingQr){const result=await sendOutstandingOwnerAction('getPaymentChannels',{store:store()},getSheetUrl());await remember(result.channels,result.selectedKeys);}
-    try{const saved=JSON.parse(localStorage.getItem(key()+':useAccounts')||'null');if(Array.isArray(saved)){PaymentChannelData.select(channels,saved);return Promise.resolve(saved);}}catch(e){/* Re-open selection if accounts changed. */}
+    try{const saved=JSON.parse(localStorage.getItem(key()+':useAccounts')||'null');if(!options.force&&Array.isArray(saved)){PaymentChannelData.select(channels,saved);return Promise.resolve(saved);}}catch(e){/* Re-open selection if accounts changed. */}
     if(choosing)return Promise.reject(new Error('กรุณาเลือกบัญชีในหน้าต่างที่เปิดไว้ก่อน'));
     choosing=true;
     return new Promise(resolve=>{
@@ -109,6 +109,7 @@ var StorePaymentChannels=(function(){
       dialog.innerHTML='<h2>เลือกบัญชีรับเงินที่จะส่งให้ลูกค้า</h2><p>เลือกได้หนึ่งบัญชีหรือหลายบัญชี ข้อความและ QR จะแสดงเฉพาะบัญชีที่เลือกครั้งนี้</p><div data-payment-pick-list></div><p><button type="button" class="btn secondary" data-pick-load>โหลดบัญชีที่บันทึกบน Google</button> <button type="button" class="btn secondary" data-pick-manage>เพิ่ม / แก้ไขบัญชี</button></p><p role="status" data-pick-status></p><button type="button" class="btn" data-pick-continue>ใช้บัญชีที่เลือก</button> <button type="button" class="btn secondary" data-pick-cancel>ยกเลิก</button>';
       let chosen=new Set(),initialized=false,finished=false;
       try{const saved=JSON.parse(localStorage.getItem(key()+':lastChoice')||'null');if(Array.isArray(saved)){chosen=new Set(saved);initialized=true;}}catch(e){}
+      if(Array.isArray(options.initialKeys)){chosen=new Set(options.initialKeys);initialized=true;}
       const status=message=>dialog.querySelector('[data-pick-status]').textContent=message;
       function render(){
         const list=dialog.querySelector('[data-payment-pick-list]');list.replaceChildren();
