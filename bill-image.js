@@ -5,11 +5,21 @@ var BillImage=(function(){
     const doc=section.ownerDocument;
     if(doc.fonts)await doc.fonts.ready;
     await Promise.all(Array.from(section.querySelectorAll('img')).map(img=>img.decode()));
-    const bounds=section.getBoundingClientRect(),width=Math.ceil(bounds.width),height=Math.ceil(Math.max(bounds.height,section.scrollHeight));
-    const scale=Math.min(2,16000/height,Math.sqrt(16000000/(width*height)));
-    if(!width||!height||scale<0.75)throw new Error('บิลยาวเกินขนาดรูป กรุณาแบ่งเลือกรายการให้น้อยลง หรือบันทึกเป็น PDF');
-    const canvas=await html2canvas(section,{backgroundColor:'#ffffff',scale,logging:false,allowTaint:false,useCORS:false,
-      width,height,windowWidth:doc.documentElement.clientWidth,windowHeight:Math.max(doc.documentElement.clientHeight,height+100)});
+    // Measure the export clone after editing controls are removed. Measuring the
+    // live form includes their height and leaves that space below the PNG.
+    const options={backgroundColor:'#ffffff',logging:false,allowTaint:false,useCORS:false,
+      windowWidth:doc.documentElement.clientWidth,windowHeight:doc.documentElement.clientHeight,
+      onclone(clonedDoc,bill){
+        bill.querySelectorAll('.screen-only,.tools,.toolbar,[data-html2canvas-ignore]').forEach(node=>node.remove());
+        bill.style.setProperty('min-height','0','important');
+        bill.style.setProperty('height','auto','important');
+        bill.style.setProperty('box-shadow','none','important');
+        const bounds=bill.getBoundingClientRect(),width=Math.ceil(bounds.width),height=Math.ceil(Math.max(bounds.height,bill.scrollHeight));
+        const scale=Math.min(2,16000/height,Math.sqrt(16000000/(width*height)));
+        if(!width||!height||scale<0.75)throw new Error('บิลยาวเกินขนาดรูป กรุณาแบ่งเลือกรายการให้น้อยลง หรือบันทึกเป็น PDF');
+        Object.assign(options,{width,height,scale});
+      }};
+    const canvas=await html2canvas(section,options);
     return new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('สร้างรูปบิลไม่สำเร็จ')),'image/png'));
   }
   function mount(frame,tools,status){
