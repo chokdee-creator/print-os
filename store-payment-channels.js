@@ -1,19 +1,36 @@
-/* Each shop keeps its receiving details separate. Cloud writes require the Google owner. */
+/* Receiving accounts are shared; cloud writes still require the Google owner. */
 var StorePaymentChannels=(function(){
   const store=()=>SHEET_TAB_NAME==='Chokdee'?'chokdee':'printImage';
-  const key=()=> 'printPaymentChannels:'+store();
+  const key=()=> 'printPaymentChannels:shared';
   let channels=[];let refreshPicker=()=>{},refreshAccountPage=()=>{};
   let ready=Promise.resolve(),missingQr=false;
   function cacheMetadata(){try{const raw=localStorage.getItem(key());if(!raw)return {channels:[],modifiedAt:0};const saved=JSON.parse(raw);return Array.isArray(saved)?{channels:saved,modifiedAt:0,legacy:true}:saved;}catch(e){return {channels:[],modifiedAt:0};}}
   function cached(){try{return PaymentChannelData.normalize(cacheMetadata().channels||[]);}catch(e){return [];}}
   async function hydrate(){
+    if(!localStorage.getItem(key())){
+      const entries=[];let incomplete=false;
+      for(const id of ['printImage','chokdee']){
+        try{
+          const raw=JSON.parse(localStorage.getItem('printPaymentChannels:'+id)||'null');
+          let entry=Array.isArray(raw)?{channels:raw,modifiedAt:0}:raw||{channels:[],modifiedAt:0};
+          const saved=typeof PaymentQrCache==='undefined'?null:await PaymentQrCache.read(id);
+          if(saved&&saved.modifiedAt>=(entry.modifiedAt||0))entry=saved;
+          if((entry.channels||[]).some(r=>r.qrCached&&!r.qrDataUrl))incomplete=true;
+          let selectedKeys=[];try{selectedKeys=JSON.parse(localStorage.getItem('printPaymentChannels:'+id+':useAccounts')||localStorage.getItem('printPaymentChannels:'+id+':lastChoice')||'[]');}catch(e){}
+          entries.push({...entry,selectedKeys});
+        }catch(e){/* Preserve legacy entries if the browser cache is unavailable. */}
+      }
+      const merged=PaymentChannelData.mergeSettings(entries);channels=merged.channels;missingQr=incomplete;
+      if(!incomplete)await remember(channels,merged.selectedKeys);
+      refreshPicker();refreshAccountPage();return;
+    }
     const meta=cacheMetadata();channels=cached();missingQr=(meta.channels||[]).some(r=>r.qrCached&&!r.qrDataUrl);
-    try{const saved=typeof PaymentQrCache==='undefined'?null:await PaymentQrCache.read(store());if(saved && !meta.legacy && saved.modifiedAt>=(meta.modifiedAt||0)){channels=PaymentChannelData.normalize(saved.channels);missingQr=false;}}catch(e){/* Load from Google if browser image storage is unavailable. */}
+    try{const saved=typeof PaymentQrCache==='undefined'?null:await PaymentQrCache.read('shared');if(saved&&!meta.legacy&&saved.modifiedAt>=(meta.modifiedAt||0)){channels=PaymentChannelData.normalize(saved.channels);missingQr=false;}}catch(e){}
     refreshPicker();refreshAccountPage();
   }
   async function remember(items,selectedKeys){
     const valid=PaymentChannelData.normalize(items),modifiedAt=Date.now();
-    try{if(typeof PaymentQrCache!=='undefined')await PaymentQrCache.write(store(),{channels:valid,modifiedAt});}catch(e){/* Google remains the saved source if the browser cache is full. */}
+    try{if(typeof PaymentQrCache!=='undefined')await PaymentQrCache.write('shared',{channels:valid,modifiedAt});}catch(e){/* Google remains the saved source if the browser cache is full. */}
     try{localStorage.setItem(key(),JSON.stringify({channels:valid.map(r=>({...r,qrCached:!!r.qrDataUrl,qrDataUrl:''})),modifiedAt}));}catch(e){/* Image data stays in IndexedDB and Google, never a full localStorage copy. */}
     channels=valid;missingQr=false;
     try{if(Array.isArray(selectedKeys))localStorage.setItem(key()+':useAccounts',JSON.stringify(selectedKeys));else if(selectedKeys===null)localStorage.removeItem(key()+':useAccounts');}catch(e){}
@@ -36,7 +53,7 @@ var StorePaymentChannels=(function(){
     if(!dialog){
       dialog=document.createElement('dialog');dialog.id='storePaymentChannelsDialog';dialog.setAttribute('aria-label','ช่องทางรับชำระเงินของร้าน');
       dialog.style.cssText='width:calc(100% - 28px);max-width:760px;max-height:90vh;padding:24px;border-radius:14px;overflow:auto';
-      dialog.innerHTML='<h2>ช่องทางรับชำระเงินของร้าน</h2><p data-payment-store></p><p>บันทึกแยกตามร้าน เพิ่มได้หลายบัญชี และเลือกบัญชีที่จะแนบก่อนส่งยอดแต่ละครั้ง รูป QR จะแสดงในเอกสารและดาวน์โหลดเพื่อแนบแชทได้</p><button type="button" class="btn secondary" data-load-payment>โหลดข้อมูลที่บันทึกบน Google</button><div data-payment-channel-list></div><button type="button" class="btn secondary" data-add-payment>เพิ่มบัญชีรับเงิน</button><p role="status" data-payment-channel-status></p><button type="button" class="btn" data-save-payment>บันทึกช่องทางและ QR บน Google</button> <button type="button" class="btn secondary" data-close-payment>ปิด</button>';
+      dialog.innerHTML='<h2>ช่องทางรับชำระเงินของร้าน</h2><p data-payment-store></p><p>ใช้บัญชีรับเงินชุดเดียวกันทั้งสองร้าน เพิ่มได้หลายบัญชี และเลือกบัญชีที่จะแนบก่อนส่งยอดแต่ละครั้ง รูป QR จะแสดงในเอกสารและดาวน์โหลดเพื่อแนบแชทได้</p><button type="button" class="btn secondary" data-load-payment>โหลดข้อมูลที่บันทึกบน Google</button><div data-payment-channel-list></div><button type="button" class="btn secondary" data-add-payment>เพิ่มบัญชีรับเงิน</button><p role="status" data-payment-channel-status></p><button type="button" class="btn" data-save-payment>บันทึกช่องทางและ QR บน Google</button> <button type="button" class="btn secondary" data-close-payment>ปิด</button>';
       const status=s=>dialog.querySelector('[data-payment-channel-status]').textContent=s;
       const list=dialog.querySelector('[data-payment-channel-list]');
       function add(item={kind:'bank',provider:'',accountName:'',number:'',note:'',enabled:true,qrDataUrl:''}){
@@ -73,7 +90,7 @@ var StorePaymentChannels=(function(){
         }catch(e){status(e.message);}finally{button.disabled=false;}
       });
       dialog.querySelector('[data-close-payment]').addEventListener('click',()=>dialog.close());
-      dialog.querySelector('[data-payment-store]').textContent=SHEET_TAB_NAME==='Chokdee'?'ร้านโชคดีการพิมพ์':'ร้านปริ้นอิมเมจ';
+      dialog.querySelector('[data-payment-store]').textContent='บัญชีรับเงินร่วม · ปริ้นอิมเมจ / โชคดีการพิมพ์';
       document.body.append(dialog);render();
     }
     dialog.showModal();dialog.querySelector('[data-load-payment]').click();
@@ -155,7 +172,7 @@ var StorePaymentChannels=(function(){
     root.querySelector('[data-page-save]').addEventListener('click',async()=>{
       const button=root.querySelector('[data-page-save]');try{const selectedKeys=[...chosen];PaymentChannelData.select(channels,selectedKeys);button.disabled=true;status('กำลังบันทึกบัญชีที่เลือก…');const result=await sendOutstandingOwnerAction('savePaymentChannels',{store:store(),selectionOnly:true,selectedKeys},getSheetUrl());await remember(result.channels,result.selectedKeys);resetChoice();dirty=false;render();status('บันทึกแล้ว '+chosen.size+' บัญชี กลับไปส่งยอดได้เลย');}catch(e){status(e.message);}finally{button.disabled=false;}
     });
-    refreshAccountPage=render;render();
+    refreshAccountPage=()=>{if(!dirty)resetChoice();render();};render();
   }
 
   function mountBill(payment){
@@ -193,16 +210,18 @@ var StorePaymentChannels=(function(){
   }
 
   function openAccounts(){
+    hydrate();
     let dialog=document.getElementById('paymentAccountsDialog');
     if(!dialog){
       dialog=document.createElement('dialog');dialog.id='paymentAccountsDialog';dialog.setAttribute('aria-labelledby','paymentAccountsTitle');
       dialog.innerHTML='<div class="outstanding-dialog-head"><h2 id="paymentAccountsTitle">ช่องทางการชำระเงิน</h2><button type="button" class="btn secondary" data-close-accounts>ปิด</button></div><div class="payment-accounts-body"><p data-accounts-shop></p><p>ติ๊กเลือกบัญชีที่จะใช้แจ้งยอดลูกค้า แล้วกดบันทึกบัญชีที่เลือก</p><section data-accounts-root aria-label="บัญชีรับเงินของร้าน"></section></div>';
-      dialog.querySelector('[data-accounts-shop]').textContent=store()==='chokdee'?'ร้านโชคดีการพิมพ์':'ร้านปริ้นอิมเมจ';
+      dialog.querySelector('[data-accounts-shop]').textContent='บัญชีรับเงินร่วม · ปริ้นอิมเมจ / โชคดีการพิมพ์';
       dialog.querySelector('[data-close-accounts]').addEventListener('click',()=>dialog.close());
       document.body.append(dialog);mountPage(dialog.querySelector('[data-accounts-root]'));
     }
     if(!dialog.open)dialog.showModal();
   }
   function init(){channels=cached();ready=hydrate();document.querySelectorAll('[data-manage-payment-channels]').forEach(button=>button.addEventListener('click',manage));document.querySelectorAll('#paymentChannelsNav').forEach(button=>button.addEventListener('click',openAccounts));return ready;}
+  if(typeof window!=='undefined')window.addEventListener('storage',event=>{if(event.key===key()||event.key===key()+':useAccounts')hydrate();});
   return {init,manage,text,append,html,showQr,choose,mountPage,mountBill};
 })();

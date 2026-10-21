@@ -33,10 +33,24 @@ var PaymentChannelData=(function(){
     if(keys.some(key=>!available.has(key)))throw new Error('ข้อมูลบัญชีรับเงินเปลี่ยนแล้ว กรุณาโหลดและเลือกบัญชีใหม่');
     return keys.map(key=>available.get(key));
   }
+  function mergeSettings(entries){
+    const rows=[],selected=new Set();
+    const identity=r=>JSON.stringify([r.kind,r.provider,r.accountName,r.number]);
+    entries.filter(Boolean).sort((a,b)=>String(a.updatedAt||'').localeCompare(String(b.updatedAt||''))).forEach(entry=>{
+      const items=normalize(entry.channels||[]),keys=new Set(entry.selectedKeys||[]);
+      items.forEach((row,index)=>{
+        const id=identity(row),at=rows.findIndex(r=>identity(r)===id);
+        if(keys.has(selectionKey(row,index)))selected.add(id);
+        if(at<0)rows.push(row);else rows[at]={...row,qrDataUrl:row.qrDataUrl||rows[at].qrDataUrl};
+      });
+    });
+    const channels=normalize(rows);
+    return {channels,selectedKeys:channels.map((r,i)=>r.enabled&&selected.has(identity(r))?selectionKey(r,i):null).filter(Boolean)};
+  }
   const methods=['เงินสด','โอนธนาคาร','พร้อมเพย์','บัตรเครดิต/เดบิต','อื่นๆ'];
   function readHistory(value){
     try{const list=typeof value==='string'?JSON.parse(value||'[]'):value||[];if(!Array.isArray(list))return [];return list.filter(r=>r && methods.includes(r.method) && Number.isFinite(r.amount) && r.amount>0 && typeof r.date==='string' && Number.isFinite(Date.parse(r.date))).map(r=>({date:r.date,amount:r.amount,method:r.method,note:String(r.note||'').slice(0,300)}));}catch(e){return [];}
   }
-  return {normalize,text,methods,readHistory,selectionKey,select,MAX_QR_BYTES};
+  return {normalize,text,methods,readHistory,selectionKey,select,mergeSettings,MAX_QR_BYTES};
 })();
 if(typeof module!=='undefined' && module.exports)module.exports=PaymentChannelData;

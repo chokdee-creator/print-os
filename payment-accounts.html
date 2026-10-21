@@ -7,7 +7,7 @@
 </head><body><main>
 <header><div><h1>ข้อมูลบัญชีรับเงิน</h1><p id="storeTitle"></p></div><a class="btn secondary" id="backToStore" href="print-image-account.html">กลับหน้าร้าน</a></header>
 <nav class="store-tabs" aria-label="เลือกร้าน"><a class="btn secondary" data-shop="printImage" href="payment-accounts.html?store=printImage">ปริ้นอิมเมจ</a><a class="btn secondary" data-shop="chokdee" href="payment-accounts.html?store=chokdee">โชคดีการพิมพ์</a></nav>
-<h2>ติ๊กเลือกบัญชีที่จะใช้แจ้งยอดลูกค้า</h2><p>บันทึกบัญชีได้หลายบัญชี พร้อมรูป QR ของแต่ละบัญชี ติ๊กบัญชีที่ต้องการใช้แล้วกด “บันทึกบัญชีที่เลือก” ก่อนกลับไปส่งยอด ข้อความและใบแจ้งยอดจะใช้เฉพาะบัญชีที่เลือกไว้</p>
+<h2>ติ๊กเลือกบัญชีที่จะใช้แจ้งยอดลูกค้า</h2><p>บัญชีรับเงินใช้ร่วมกันทั้งปริ้นอิมเมจและโชคดีการพิมพ์ บันทึกได้หลายบัญชี พร้อมรูป QR ของแต่ละบัญชี ติ๊กบัญชีที่ต้องการใช้แล้วกด “บันทึกบัญชีที่เลือก” ก่อนกลับไปส่งยอด ข้อความและใบแจ้งยอดจะใช้เฉพาะบัญชีที่เลือกไว้</p>
 <p id="liveNotice" hidden>หากต้องการบันทึกกับ Google กรุณา <a id="liveLink" href="https://chokdee-creator.github.io/print-os/payment-accounts.html">เปิดหน้าข้อมูลบัญชีออนไลน์</a></p>
 <section id="pageRoot" aria-label="ข้อมูลบัญชีของร้าน"></section>
 </main>
@@ -20,6 +20,6 @@ document.getElementById('backToStore').href=paymentPageStore==='chokdee'?'chokde
 document.querySelector('[data-shop="'+paymentPageStore+'"]').setAttribute('aria-current','page');
 if(location.protocol==='file:'){document.getElementById('liveNotice').hidden=false;document.getElementById('liveLink').href='https://chokdee-creator.github.io/print-os/payment-accounts.html?store='+paymentPageStore;}
 </script>
-<script src="payment-channel-data.js?v=20261020-5mb"></script><script src="outstanding-owner-client.js?v=20261020-5mb"></script><script src="payment-qr-cache.js?v=20261020-5mb"></script><script src="store-payment-channels.js?v=20261021-all-dialogs"></script>
+<script src="payment-channel-data.js?v=20261021-shared-accounts"></script><script src="outstanding-owner-client.js?v=20261020-5mb"></script><script src="payment-qr-cache.js?v=20261020-5mb"></script><script src="store-payment-channels.js?v=20261021-shared-accounts"></script>
 <script>StorePaymentChannels.init();StorePaymentChannels.mountPage(document.getElementById('pageRoot'));</script>
 </body></html>

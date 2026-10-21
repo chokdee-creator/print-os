@@ -27,22 +27,34 @@ for(const page of ['print-image-account.html','chokdee-print.html']){
 }
 const files=new Map();c.orReadDelivery_=key=>files.get(key);c.orWriteDelivery_=(key,v)=>files.set(key,v);c.orStore_=store=>{if(!['printImage','chokdee'].includes(store))throw Error('store');return{id:store};};
 vm.runInContext(fs.readFileSync(path.join(repo,'payment-channels.gs'),'utf8'),c);
-c.orPaymentChannelAction_({action:'savePaymentChannels',store:'printImage',channels:settings});assert.equal(c.orPaymentChannels_('printImage').length,1);assert.equal(c.orPaymentChannels_('chokdee').length,0);assert.throws(()=>c.orPaymentChannels_('wrong'));
+c.orPaymentChannelAction_({action:'savePaymentChannels',store:'printImage',channels:settings});assert.equal(c.orPaymentChannels_('printImage').length,1);assert.equal(c.orPaymentChannels_('chokdee').length,1);assert.throws(()=>c.orPaymentChannels_('wrong'));
 c.orPaymentChannelAction_({action:'savePaymentChannels',store:'printImage',selectionOnly:true,selectedKeys:[D.selectionKey(settings[0],0)]});
-const selectedSettings=c.orPaymentChannelAction_({action:'getPaymentChannels',store:'printImage'});assert.equal(selectedSettings.channels.length,1);assert.equal(selectedSettings.selectedKeys.length,1);assert.equal(c.orPaymentChannels_('chokdee').length,0);
+const selectedSettings=c.orPaymentChannelAction_({action:'getPaymentChannels',store:'printImage'});assert.equal(selectedSettings.channels.length,1);assert.equal(selectedSettings.selectedKeys.length,1);assert.equal(c.orPaymentChannels_('chokdee').length,1);
 assert.throws(()=>c.orPaymentChannelAction_({action:'savePaymentChannels',store:'printImage',selectionOnly:true,selectedKeys:['stale']}));assert.equal(c.orPaymentChannels_('printImage')[0].number,'000-test');
 c.orPaymentChannelAction_({action:'savePaymentChannels',store:'printImage',channels:[{...settings[0],number:'changed'}]});assert.equal(c.orPaymentChannelAction_({action:'getPaymentChannels',store:'printImage'}).selectedKeys.length,0);
 const ui=vm.createContext({PaymentChannelData:D,SHEET_TAB_NAME:'Data Account',localStorage:{getItem:()=>JSON.stringify(settings)},document:{querySelectorAll:()=>[]}});vm.runInContext(fs.readFileSync(path.join(repo,'store-payment-channels.js'),'utf8'),ui);ui.StorePaymentChannels.init();assert.match(ui.StorePaymentChannels.html(),/Test &lt;Owner&gt;/);assert.match(ui.StorePaymentChannels.html(),/data:image\/png/);assert.equal(ui.StorePaymentChannels.append('Report').split('ช่องทางชำระเงินของร้าน').length,2);
 const accountPage=fs.readFileSync(path.join(repo,'payment-accounts.html'),'utf8');for(const script of accountPage.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g))new vm.Script(script[1]);
-console.log('PASS: payment/QR validation, store isolation, legacy preservation, cash partial-payment round trip in both shops, receipt escaping, and page syntax.');
+console.log('PASS: payment/QR validation, shared receiving accounts, legacy preservation, cash partial-payment round trip in both shops, receipt escaping, and page syntax.');
 
 
 (async()=>{
- const savedSettings=new Map([['printPaymentChannels:printImage',JSON.stringify(settings)],['printPaymentChannels:printImage:useAccounts',JSON.stringify([D.selectionKey(settings[0],0)])]]);
+ const savedSettings=new Map([['printPaymentChannels:shared',JSON.stringify(settings)],['printPaymentChannels:shared:useAccounts',JSON.stringify([D.selectionKey(settings[0],0)])]]);
  const chooser=vm.createContext({PaymentChannelData:D,SHEET_TAB_NAME:'',localStorage:{getItem:k=>savedSettings.get(k)||null},document:{querySelectorAll:()=>[]}});
  vm.runInContext(fs.readFileSync(path.join(repo,'store-payment-channels.js'),'utf8'),chooser);chooser.StorePaymentChannels.init();
  assert.equal((await chooser.StorePaymentChannels.choose())[0],D.selectionKey(settings[0],0));
- const changed=[{...settings[0],number:'updated-account'}];savedSettings.set('printPaymentChannels:printImage',JSON.stringify(changed));savedSettings.set('printPaymentChannels:printImage:useAccounts',JSON.stringify([D.selectionKey(changed[0],0)]));
+ const changed=[{...settings[0],number:'updated-account'}];savedSettings.set('printPaymentChannels:shared',JSON.stringify(changed));savedSettings.set('printPaymentChannels:shared:useAccounts',JSON.stringify([D.selectionKey(changed[0],0)]));
  assert.equal((await chooser.StorePaymentChannels.choose())[0],D.selectionKey(changed[0],0));
  console.log('PASS: saved page selection is reused and account changes from another page are refreshed.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
+
+// Merge legacy catalogs without losing QR images or duplicating an account.
+const merged=D.mergeSettings([{channels:settings,selectedKeys:[D.selectionKey(settings[0],0)]},{channels:[{...settings[0],qrDataUrl:''},accounts[1]],selectedKeys:[D.selectionKey(accounts[1],1)]}]);
+assert.equal(merged.channels.length,2);assert.equal(merged.channels[0].qrDataUrl,qr);assert.equal(merged.selectedKeys.length,2);
+const oldPrint={channels:settings,selectedKeys:[D.selectionKey(settings[0],0)]},oldChokdee={channels:[accounts[1]],selectedKeys:[D.selectionKey(accounts[1],0)]};
+files.clear();files.set('payment-channels:printImage',oldPrint);files.set('payment-channels:chokdee',oldChokdee);
+assert.equal(c.orPaymentChannelAction_({action:'getPaymentChannels',store:'printImage'}).channels.length,2);
+assert.equal(c.orPaymentChannelAction_({action:'getPaymentChannels',store:'chokdee'}).channels.length,2);
+assert.equal(files.get('payment-channels:printImage'),oldPrint);assert.equal(files.get('payment-channels:chokdee'),oldChokdee);
+c.orPaymentChannelAction_({action:'savePaymentChannels',store:'chokdee',selectionOnly:true,selectedKeys:[D.selectionKey(accounts[1],1)]});
+assert.equal(c.orPaymentChannelAction_({action:'getPaymentChannels',store:'printImage'}).selectedKeys[0],D.selectionKey(accounts[1],1));
+console.log('PASS: both legacy catalogs merge, QR and original backups remain, and both shops use one shared saved selection.');

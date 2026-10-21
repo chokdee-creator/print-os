@@ -1,11 +1,19 @@
-/** Payment details are private owner settings, separated by store. */
+/** Receiving accounts are shared by both shops. Legacy files remain as migration backups. */
+function orPaymentEntry_(){
+  const existing=orReadDelivery_('payment-channels:shared');
+  if(existing)return existing;
+  const merged=PaymentChannelData.mergeSettings(['printImage','chokdee'].map(id=>orReadDelivery_('payment-channels:'+id)));
+  const entry={channels:merged.channels,selectedKeys:merged.selectedKeys,updatedAt:new Date().toISOString(),migratedFrom:['printImage','chokdee']};
+  orWriteDelivery_('payment-channels:shared',entry);
+  return entry;
+}
 function orPaymentChannels_(store){
-  const entry=orReadDelivery_('payment-channels:'+orStore_(store).id);
-  return PaymentChannelData.normalize(entry && entry.channels || []);
+  orStore_(store);
+  return PaymentChannelData.normalize(orPaymentEntry_().channels||[]);
 }
 function orPaymentChannelAction_(data){
-  const store=orStore_(data.store),key='payment-channels:'+store.id,entry=orReadDelivery_(key)||{};
-  let channels=orPaymentChannels_(store.id),selectedKeys=Array.isArray(entry.selectedKeys)?entry.selectedKeys:null;
+  const store=orStore_(data.store),key='payment-channels:shared',entry=orPaymentEntry_();
+  let channels=PaymentChannelData.normalize(entry.channels||[]),selectedKeys=Array.isArray(entry.selectedKeys)?entry.selectedKeys:null;
   if(data.action==='savePaymentChannels'){
     if(data.selectionOnly){
       PaymentChannelData.select(channels,data.selectedKeys);
@@ -17,7 +25,7 @@ function orPaymentChannelAction_(data){
     }
     orWriteDelivery_(key,{channels:channels,selectedKeys:selectedKeys,updatedAt:new Date().toISOString()});
   }
-  return {ok:true,channels:channels,selectedKeys:selectedKeys,store:store.id};
+  return {ok:true,channels:channels,selectedKeys:selectedKeys,store:store.id,shared:true};
 }
 function preparePaymentChannelsSetup(){
   orRequireOwner_();
@@ -30,4 +38,10 @@ function preparePaymentChannelsSetup(){
     sheet.getRange(1,27,1,3).setValues([headers]);
     console.log(spec.name+': '+Math.max(sheet.getLastRow()-1,0)+' existing rows; payment columns ready; '+orPaymentChannels_(store).length+' receiving channels. No LINE message sent.');
   });
+}
+
+function migrateSharedPaymentChannels(){
+  orRequireOwner_();
+  const entry=orPaymentEntry_();
+  console.log('Shared receiving accounts ready: '+entry.channels.length+' accounts; '+(entry.selectedKeys||[]).length+' selected. Both legacy files retained. No payment or LINE message created.');
 }
