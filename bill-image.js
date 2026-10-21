@@ -1,5 +1,15 @@
 /* Render locally; no bill or QR data is uploaded to an image service. */
 var BillImage=(function(){
+  function markEmptyFields(bill){
+    bill.querySelectorAll('.company label,.document-title label,.customer-grid label').forEach(label=>{
+      const fields=Array.from(label.querySelectorAll('input,textarea'));
+      label.toggleAttribute('data-bill-empty',fields.length>0&&fields.every(field=>!String(field.value||'').trim()));
+    });
+    bill.querySelectorAll('.customer-grid').forEach(grid=>{
+      const fields=Array.from(grid.querySelectorAll('input,textarea'));
+      grid.closest('.panel').toggleAttribute('data-bill-empty',fields.every(field=>!String(field.value||'').trim()));
+    });
+  }
   async function render(section){
     if(typeof html2canvas!=='function')throw new Error('โหลดระบบสร้างรูปไม่สำเร็จ กรุณารีเฟรชหน้าเว็บ');
     const doc=section.ownerDocument;
@@ -11,6 +21,9 @@ var BillImage=(function(){
       windowWidth:doc.documentElement.clientWidth,windowHeight:doc.documentElement.clientHeight,
       onclone(clonedDoc,bill){
         bill.querySelectorAll('.screen-only,.tools,.toolbar,[data-html2canvas-ignore]').forEach(node=>node.remove());
+        markEmptyFields(bill);
+        bill.querySelectorAll('[data-bill-empty]').forEach(node=>node.remove());
+        bill.querySelectorAll('input').forEach(field=>field.removeAttribute('placeholder'));
         bill.style.setProperty('min-height','0','important');
         bill.style.setProperty('height','auto','important');
         bill.style.setProperty('box-shadow','none','important');
@@ -18,9 +31,8 @@ var BillImage=(function(){
         // ordinary wrapping content, keeping the editing form unchanged.
         bill.querySelectorAll('textarea').forEach(field=>{
           const text=clonedDoc.createElement('div');
-          text.textContent=field.value||field.placeholder||'';
-          text.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:inherit;padding:5px 3px;min-width:0;width:100%';
-          text.style.minHeight=field.getBoundingClientRect().height+'px';
+          text.textContent=field.value||'';
+          text.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:inherit;padding:2px 3px;min-width:0;width:100%';
           field.replaceWith(text);
         });
         const bounds=bill.getBoundingClientRect(),width=Math.ceil(bounds.width),height=Math.ceil(Math.max(bounds.height,bill.scrollHeight));
@@ -47,6 +59,13 @@ var BillImage=(function(){
     clearPreview();let sections=[],cached=new Map();select.replaceChildren();copy.disabled=true;download.disabled=true;
     frame.onload=()=>{
       sections=Array.from(frame.contentDocument.querySelectorAll('.document'));
+      function compact(){sections.forEach(bill=>{
+        markEmptyFields(bill);
+        bill.querySelectorAll('textarea').forEach(field=>{field.style.height='0';field.style.height=field.scrollHeight+'px';});
+      });}
+      compact();
+      frame.contentDocument.addEventListener('input',compact);
+      frame.contentWindow.addEventListener('beforeprint',compact);
       const caption=section=>section.querySelector('[data-bill-customer]')?.value||section.dataset.customerName||section.querySelector('.head p')?.textContent.split('ประเภทลูกค้า:')[0]||'บิล';
       sections.forEach((section,index)=>{const option=document.createElement('option');option.value=String(index);option.textContent=(index+1)+'. ลูกค้า: '+caption(section);select.append(option);});
       frame.contentDocument.addEventListener('input',()=>{
