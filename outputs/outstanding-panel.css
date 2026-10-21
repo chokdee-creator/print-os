@@ -27,3 +27,11 @@ body:has(#selectionBar:not([hidden])) {padding-bottom:160px;}
 @media(prefers-reduced-motion:reduce){#selectionBar:not([hidden]){animation:none}}
 @media(max-width:600px){#selectionBar:not([hidden]){bottom:8px;padding:10px;gap:8px}#selectionBar .selection-actions{justify-content:flex-start}#selectionBar .btn{min-height:40px}#selectionBar .selection-summary{gap:8px;font-size:13px}}
 @media print{#selectionBar{display:none !important}}
+
+/* Open the customer report only when requested from the navigation. */
+#customerOutstandingDialog {width:calc(100% - 28px);max-width:980px;max-height:90dvh;padding:0;color:var(--ink);background:var(--panel);border:1px solid var(--line);}
+.outstanding-dialog-head {position:sticky;top:0;z-index:2;background:var(--panel);display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line);}
+.outstanding-dialog-head h2 {font-size:21px;margin:0;}
+#customerOutstandingDialog #outstandingReports {margin:0!important;border:0;box-shadow:none;}
+#customerOutstandingDialog #outstandingReports > h2 {display:none;}
+@media screen and (max-width:720px){.outstanding-dialog-head{padding:8px 4px 14px;align-items:flex-start}.outstanding-dialog-head h2{font-size:20px}#customerOutstandingDialog #outstandingReports{padding:12px 4px!important}#customerOutstandingDialog #reportLineRecipient{max-width:100%!important;width:100%!important}#customerOutstandingDialog #outstandingReports > div > label{flex-wrap:wrap}}

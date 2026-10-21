@@ -1,6 +1,20 @@
 /* Uses the existing site's records, balance semantics, and toast UI. */
 function initOutstandingPanel() {
   const $ = id => document.getElementById('outstanding' + id);
+  const store = SHEET_TAB_NAME === 'Chokdee' ? 'chokdee' : 'printImage';
+  const reportText = report => PrintOutstanding.text(report).replace('ร้านปริ้นอิมเมจ', store === 'chokdee' ? 'ร้านโชคดีการพิมพ์' : 'ร้านปริ้นอิมเมจ');
+  const dialog = document.getElementById('customerOutstandingDialog');
+  const open = () => { if (!dialog.open) dialog.showModal(); };
+  document.getElementById('openCustomerOutstanding').addEventListener('click', open);
+  document.getElementById('closeCustomerOutstanding').addEventListener('click', () => dialog.close());
+  window.addEventListener('hashchange', () => { if (location.hash === '#outstandingReports') open(); });
+  if (location.hash === '#outstandingReports') open();
+  // Automatic schedules currently belong to Print Image only.
+  if (store === 'chokdee') {
+    $('Save').closest('details').hidden = true;
+    $('Command').hidden = true;
+    $('Cadence').closest('label').hidden = true;
+  }
   const chosen = new Set();
   let catalog = [];
   let latest = null;
@@ -40,14 +54,14 @@ function initOutstandingPanel() {
   }
   function preview() {
     latest = PrintOutstanding.build(records, config(), today());
-    $('Result').textContent = StorePaymentChannels.append(PrintOutstanding.text(latest));
+    $('Result').textContent = StorePaymentChannels.append(reportText(latest));
     status('สรุปจากข้อมูลบนเว็บ ณ เวลานี้ ตรวจการซิงก์ชีตก่อนส่งหรือตั้งเวลา');
     return latest;
   }
   function click(id, action) { $(id).addEventListener('click', async () => { try {await action();} catch(e) {status(e.message);} }); }
   click('Preview', preview);
   click('Copy', async () => {const report=preview(),keys=await StorePaymentChannels.choose('คัดลอกข้อความ');if(keys===null)return;await navigator.clipboard.writeText(StorePaymentChannels.append(PrintOutstanding.text(report),keys)); status('คัดลอกข้อความสรุปแล้ว');});
-  click('OpenOa', () => copyAndOpenLineOa(PrintOutstanding.text(preview())));
+  click('OpenOa', () => copyAndOpenLineOa(reportText(preview())));
   click('Command', async () => {await navigator.clipboard.writeText(PrintOutstanding.command(config())); status('คัดลอกคำสั่งแล้ว ใช้ได้เมื่อเชื่อมตัวรับคำสั่ง LINE ถาวรสำเร็จ');});
   click('Csv', () => {
     const r = preview();
@@ -59,7 +73,7 @@ function initOutstandingPanel() {
   });
   async function request(action, extra={}) {
     status('กำลังดำเนินการผ่านบัญชี Google เจ้าของร้าน…');
-    return sendOutstandingOwnerAction(action,extra,getSheetUrl());
+    return sendOutstandingOwnerAction(action,{...extra,store},getSheetUrl());
   }
   let sending=false;
   click('Send', async () => {

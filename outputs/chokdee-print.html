@@ -1478,7 +1478,7 @@
     .settings-menu .settings-section > .menu-panel { position: static; min-width: 0; width: 100%; margin: 6px 0 0; padding: 0 0 0 10px; border: 0; box-shadow: none; background: transparent; }
     .settings-menu .settings-section > .menu-panel .btn { white-space: normal; }
   </style>
-<link rel="stylesheet" href="outstanding-panel.css?v=20261020-two-stores">
+<link rel="stylesheet" href="outstanding-panel.css?v=20261021-customer-dialog">
 <script src="dialog-backdrop.js?v=20261021-all-dialogs" defer></script>
 <link rel="stylesheet" href="responsive.css?v=20261021-mobile">
 </head>
@@ -1493,6 +1493,7 @@
         <a class="btn secondary" href="index.html">หน้าหลัก</a>
         <a class="btn secondary" href="calculator.html">คำนวณราคา</a>
         <a class="btn secondary" id="paymentChannelsNav" href="https://chokdee-creator.github.io/print-os/payment-accounts.html?store=chokdee">ช่องทางการชำระเงิน</a>
+        <button class="btn secondary" id="openCustomerOutstanding" type="button" aria-haspopup="dialog" aria-controls="customerOutstandingDialog">ค้างชำระลูกค้า</button>
         <button class="btn secondary" id="openInvoiceForm" type="button">ออกบิล</button>
         <a class="btn secondary" href="print-image-account.html">ปริ้นอิมเมจ</a>
         <details class="menu settings-menu" id="settingsMenu">
@@ -1905,6 +1906,43 @@
     </section>
   </main>
 
+  <dialog id="customerOutstandingDialog" aria-labelledby="customerOutstandingTitle">
+    <div class="outstanding-dialog-head"><h2 id="customerOutstandingTitle">สรุปยอดค้างชำระลูกค้า</h2><button class="btn secondary" id="closeCustomerOutstanding" type="button" aria-label="ปิดสรุปยอดลูกค้า">ปิด</button></div>
+  <section class="panel" id="outstandingReports" style="margin-top:24px;padding:24px">
+    <h2>สรุปยอดค้างเฉพาะลูกค้า</h2>
+    <p>เลือกวันที่งานและลูกค้าที่ต้องการ รายงานแสดงยอดที่ยังค้างอยู่ปัจจุบัน ไม่ใช่ยอดค้างย้อนหลัง ณ วันสิ้นสุด</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px">
+      <label>เริ่มวันที่ <input type="date" id="outstandingStart"></label>
+      <label>ถึงวันที่ <input type="date" id="outstandingEnd"></label>
+      <label>แยกยอดตาม <select id="outstandingGroup"><option value="day">รายวัน</option><option value="month">รายเดือน</option></select></label>
+      <label>ช่วงวันที่ <select id="outstandingRange"><option value="fixed">ช่วงที่กำหนด</option><option value="throughToday">ตั้งแต่วันเริ่ม ถึงวันส่ง</option><option value="currentMonth">เดือนของวันส่ง ถึงวันส่ง</option></select></label>
+      <label>รอบส่ง LINE <select id="outstandingCadence"><option value="off">ไม่ส่งอัตโนมัติ</option><option value="day">ทุกวัน ประมาณ 21:00</option><option value="month">วันสุดท้ายของเดือน ประมาณ 21:00</option></select></label>
+      <label>ค้นหาลูกค้า <input id="outstandingSearch" type="search" placeholder="ชื่อหรือประเภทลูกค้า"></label>
+    </div>
+    <fieldset style="margin:16px 0"><legend>เลือกลูกค้า (เลือกได้หลายราย)</legend><div id="outstandingCustomers" style="max-height:220px;overflow:auto"></div></fieldset>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+      <button class="btn secondary" type="button" id="outstandingPreview">แสดงสรุปยอดค้าง</button>
+      <label style="display:flex;align-items:center;gap:8px">ผู้รับ LINE <select id="reportLineRecipient" data-line-recipient style="width:auto;max-width:240px"><option value="owner">วินDS (บัญชีเดิมของฉัน)</option></select></label>
+      <button class="btn secondary" type="button" data-manage-line-recipients>บัญชี LINE</button>
+      <button class="btn" type="button" id="outstandingSend">ส่งยอดเข้า LINE ที่เลือก</button>
+      <button class="btn" type="button" id="outstandingOpenOa">คัดลอกยอดและเปิด LINE OA</button>
+      <button class="btn secondary" type="button" id="outstandingCopy">คัดลอกข้อความสรุป</button>
+      <button class="btn secondary" type="button" id="outstandingCommand">คัดลอกคำสั่ง LINE</button>
+      <button class="btn secondary" type="button" id="outstandingCsv">ดาวน์โหลด CSV</button>
+    </div>
+    <p id="outstandingStatus" role="status" aria-live="polite"></p>
+    <pre id="outstandingResult" style="white-space:pre-wrap;font:inherit;overflow-wrap:anywhere"></pre>
+    <details><summary>ตั้งเวลาส่งอัตโนมัติ</summary>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin:14px 0">
+        <button class="btn secondary" type="button" id="outstandingSave">บันทึกเงื่อนไขและรอบส่ง</button>
+        <button class="btn secondary" type="button" id="outstandingList">ดูรอบส่งที่บันทึกไว้</button>
+      </div>
+      <div id="outstandingSchedules"></div>
+      <p>รอบส่งอัตโนมัติยังส่งเข้าบัญชีเดิมของฉัน ตัวเลือกผู้รับใช้สำหรับการกดส่งครั้งนี้เท่านั้น การเลือกบนหน้านี้ยังไม่เปิดส่งอัตโนมัติ ต้องกดบันทึกให้สำเร็จก่อน รายวันและรายเดือนเป็นคนละตัวเลือกกับการแยกยอดในรายงาน</p>
+    </details>
+  </section>
+  </dialog>
+
   <dialog id="settingsDialog">
     <div class="dialog-body">
       <h2>ตั้งค่า Google Sheet</h2>
@@ -1933,7 +1971,7 @@
   <script src="payment-channel-data.js?v=20261020-5mb"></script>
   <script src="payment-qr-cache.js?v=20261020-5mb"></script><script src="store-payment-channels.js?v=20261021-all-dialogs"></script>
   <script src="line-recipients.js?v=20261020-contacts"></script>
-  <script src="outstanding-panel.js?v=20261020-selected-bill"></script>
+  <script src="outstanding-panel.js?v=20261021-customer-dialog"></script>
   <script src="vendor/html2canvas-1.4.1.min.js"></script>
   <script src="bill-image.js?v=20261021-blank-form"></script>
   <script src="bill-theme.js?v=20261021-mobile"></script>
@@ -2043,6 +2081,7 @@
       sheetUrl: document.querySelector("#sheetUrl")
     };
 
+    let outstandingPanel = null;
     let records = loadRecords();
     let viewMode = "day";
     let editingId = null;
@@ -2466,6 +2505,7 @@
     }
 
     function render() {
+      if (outstandingPanel) outstandingPanel.refresh();
       const rows = filteredRecords().sort((a, b) => `${b.date}${b.createdAt}`.localeCompare(`${a.date}${a.createdAt}`));
       const totals = rows.reduce((acc, record) => {
         acc.area += record.area;
@@ -3519,6 +3559,7 @@
     refreshUxSelects();
     updatePreview();
     render();
+    outstandingPanel = initOutstandingPanel();
     LineRecipients.init();
     StorePaymentChannels.init();
     document.getElementById("copySelectedOpenOa").addEventListener("click", copySelectedAndOpenLineOa);
