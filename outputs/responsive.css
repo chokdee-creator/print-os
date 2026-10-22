@@ -158,3 +158,5 @@
 #selectedReceiptDialog [data-layout-tools]:not([open])>.bill-layout-menu{display:none}
 #selectedReceiptDialog .bill-layout-menu button{width:100%;justify-content:flex-start}
 @media(max-width:720px){#selectedReceiptDialog [data-layout-tools]>summary{min-height:34px;font-size:11px;padding:6px 7px}#selectedReceiptDialog .bill-layout-menu{min-width:0}#selectedReceiptDialog [data-layout-tools] button{flex:none}}
+
+.job-image-field{grid-column:1 / -1}.job-image-field input[type=file]{padding:9px;min-width:0;max-width:100%}.job-image-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:5px}.job-image-actions [role=status]{font-size:12px;color:var(--muted,#9eafba)}.job-image-link{border:1px solid #7d703d;border-radius:5px;padding:3px 7px;margin-top:4px;background:transparent;color:inherit;cursor:pointer;font-size:12px}.job-image-preview{max-width:94vw;max-height:94dvh;padding:12px;border:1px solid #526372;border-radius:12px;background:#0c1d2c}.job-image-preview img{display:block;max-width:86vw;max-height:78dvh;object-fit:contain;margin-top:8px}

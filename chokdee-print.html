@@ -1480,7 +1480,7 @@
   </style>
 <link rel="stylesheet" href="outstanding-panel.css?v=20261021-customer-dialog">
 <script src="dialog-backdrop.js?v=20261021-all-dialogs" defer></script>
-<link rel="stylesheet" href="responsive.css?v=20261022-layout-menu">
+<link rel="stylesheet" href="responsive.css?v=20261022-job-images">
 </head>
 <body>
   <main class="app">
@@ -1973,6 +1973,8 @@
   <script src="bill-theme.js?v=20261022-compact-columns"></script>
   <script src="bill-layout.js?v=20261022-layout-menu"></script>
   <script src="bill-typography.js?v=20261022-font-controls"></script>
+  <script src="job-image-codec.js?v=20261022-job-images"></script>
+  <script src="job-images.js?v=20261022-job-images"></script>
   <script src="selected-payment.js?v=20261022-bill-bank-choice"></script>
   <script src="blank-invoice.js?v=20261021-item-size"></script>
   <script>
@@ -2539,7 +2541,7 @@
           <td><span class="pill ${record.category === "สติ๊กเกอร์" ? "sticker" : ""}">${escapeHtml(record.category)}</span></td>
           <td><span class="pill ${customerTypeClass(record)}">${escapeHtml(customerType(record))}</span></td>
           <td>${escapeHtml(customerName(record))}</td>
-          <td>${escapeHtml(record.name)}${record.reference?`<br><small class="job-reference">${escapeHtml(record.reference)}</small>`:""}${record.paymentMethod?`<br><small>ช่องทางล่าสุด: ${escapeHtml(record.paymentMethod)}${record.paymentMethodNote?" · "+escapeHtml(record.paymentMethodNote):""}</small>`:""}</td>
+          <td>${escapeHtml(record.name)}${typeof JobImages!=="undefined"?JobImages.link(record):""}${record.reference?`<br><small class="job-reference">${escapeHtml(record.reference)}</small>`:""}${record.paymentMethod?`<br><small>ช่องทางล่าสุด: ${escapeHtml(record.paymentMethod)}${record.paymentMethodNote?" · "+escapeHtml(record.paymentMethodNote):""}</small>`:""}</td>
           <td class="number">${baht(record.saleTotal)}</td>
           <td>
             <select class="payment-status-select ${paymentStatus(record) === "จ่ายแล้ว" ? "paid" : "unpaid"}" data-payment-status-id="${escapeHtml(record.id)}" aria-label="สถานะชำระเงิน ${escapeHtml(record.name)}">
@@ -2719,16 +2721,19 @@
         method: "POST",
         mode: "no-cors",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(typeof JobImages!=="undefined"?await JobImages.payload(payload):payload)
       });
-      // Read canonical references after the locked server save has completed.
+      let imageSyncError=null;
+      // Read canonical references and image links after the server save.
       try {
         const payload=await loadSheetPayload();
         const references=new Map((payload.records||[]).map(normalizeSheetRecord).filter(row=>row.reference).map(row=>[String(row.id),row.reference]));
         records.forEach(row=>{if(references.has(String(row.id)))row.reference=references.get(String(row.id));});
         if(references.has(String(record.id)))record.reference=references.get(String(record.id));
+        if(typeof JobImages!=="undefined")await JobImages.confirm(records,(payload.records||[]).map(normalizeSheetRecord),record);
         saveRecords();render();
-      } catch(error){console.warn('Reference refresh pending');}
+      } catch(error){imageSyncError=error;console.warn('Reference refresh pending');}
+      if(record.jobImage?.pending)throw imageSyncError||new Error('รูปยังรอซิงก์');
       updateSyncStatus("ซิงก์ล่าสุดแล้ว");
       return true;
     }
@@ -2955,6 +2960,7 @@
       const record = Array.isArray(row) ? {
         id: row[0],
         reference: row[29] || "",
+        jobImage: typeof JobImages!=="undefined"?JobImages.metadata(row[30]):null,
         date: row[1],
         category: row[2],
         customerType: row[3],
@@ -3011,6 +3017,7 @@
       return {
         id: record.id || crypto.randomUUID(),
         reference: String(record.reference || ""),
+        jobImage: typeof JobImages!=="undefined"?JobImages.metadata(record.jobImage):null,
         sheetName: SHEET_TAB_NAME,
         date: dateInputValue(record.date),
         category: record.category || "ไวนิล",
@@ -3057,7 +3064,7 @@
       try {
         const payload = await loadSheetPayload();
         const sheetRecords = (payload.records || []).map(normalizeSheetRecord).filter(record => record.id && record.name);
-        records = sheetRecords;
+        records = typeof JobImages!=="undefined"?JobImages.merge(sheetRecords,records):sheetRecords;
         selectedIds.clear();
         saveRecords();
         render();
@@ -3162,6 +3169,7 @@
       els.customerName.value = "";
       els.quantity.value = "1";
       els.discount.value = "0";
+      if(typeof JobImages!=="undefined")JobImages.reset();
       editingId = null;
       els.saveJob.textContent = "บันทึกรายการ";
       document.getElementById("saveJobAndBill").textContent = "บันทึกรายการและออกบิล";
@@ -3177,6 +3185,7 @@
       if (!record) return;
 
       editingId = record.id;
+      if(typeof JobImages!=="undefined")JobImages.edit(record);
       els.jobDate.value = record.date;
       els.category.value = record.category;
       els.customerType.value = customerType(record);
@@ -3320,6 +3329,7 @@
         updatedAt: editingId ? new Date().toISOString() : ""
       };
 
+      if(typeof JobImages!=="undefined")await JobImages.attach(record,existingRecord);
       if (editingId) {
         records = records.map(item => item.id === editingId ? record : item);
       } else {

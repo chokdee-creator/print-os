@@ -18,7 +18,7 @@ function jobReferenceReserve_(sheet,records){
 }
 function jobReferenceRows_(sheet){
   if(sheet.getLastRow()<2)return [];
-  var rows=sheet.getRange(2,1,sheet.getLastRow()-1,30).getValues(),models=[],indices=[];
+  var rows=sheet.getRange(2,1,sheet.getLastRow()-1,31).getValues(),models=[],indices=[];
   rows.forEach(function(row,index){if(!row[0]||!String(row[6]||'').trim())return;
     indices.push(index);models.push({id:row[0],date:jobReferenceDate_(row[1],row[23]),category:row[2],createdAt:row[23] instanceof Date?row[23].toISOString():String(row[23]||''),reference:String(row[29]||'')});
   });

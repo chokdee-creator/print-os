@@ -1,0 +1,21 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+let files=new Map(),writes=0;
+const folder={getFilesByName:name=>({hasNext:()=>files.has(name),next:()=>files.get(name)}),createFile:blob=>{writes++;const file={getUrl:()=> 'https://drive.google.com/file/d/private-image/view',getId:()=> 'private-image'};files.set(blob.name,file);return file;}};
+const ctx=vm.createContext({Utilities:{base64Decode:x=>Buffer.from(x,'base64'),newBlob:(bytes,type,name)=>({bytes,type,name})},getOrCreateFolder_:()=>folder,sanitizeFileNamePart_:x=>x,DEFAULT_SHEET_NAME:'Data Account'});
+vm.runInContext(fs.readFileSync('job-images-service.gs','utf8'),ctx);
+assert.equal(ctx.jobImageSave_({},'old-image'),'old-image');
+assert.equal(ctx.jobImageSave_({jobImage:null},'old-image'),'');
+const data={id:'job',jobImage:{name:'photo.webp',uploadKey:'image-12345678',width:500,height:400},jobImageDataUrl:'data:image/webp;base64,'+Buffer.from('test-binary').toString('base64')};
+const saved=JSON.parse(ctx.jobImageSave_(data,''));
+assert.equal(saved.pending,false);assert.equal(saved.bytes,11);assert.equal(saved.uploadKey,data.jobImage.uploadKey);
+ctx.jobImageSave_(data,'');assert.equal(writes,1,'retrying an upload reuses the same private Drive file');
+assert.throws(()=>ctx.jobImageSave_({...data,jobImageDataUrl:'data:image/webp;base64,'+Buffer.alloc(700*1024+1).toString('base64')},''),/700 KB/);
+assert.throws(()=>ctx.jobImageSave_({...data,jobImageDataUrl:'data:text/html;base64,eA=='},''));
+assert.equal(ctx.jobImageSave_({jobImage:data.jobImage},'old-image'),'old-image','ordinary edits preserve the canonical image');
+const I=require('../job-images.js');assert.equal(I.metadata('bad JSON'),null);
+const pending={name:'local.webp',uploadKey:'new-key',pending:true};
+assert.equal(I.merge([{id:'1',jobImage:saved}],[{id:'1',jobImage:pending}])[0].jobImage,pending,'loading old server metadata must preserve a pending local upload');
+assert.equal(I.merge([],[{id:'new-offline',jobImage:pending}])[0].id,'new-offline','refresh cannot drop a new job whose image is still awaiting sync');
+assert.ok(!fs.readFileSync('job-images-service.gs','utf8').includes('setSharing'),'job images must not become public links');
+for(const page of ['print-image-account.html','chokdee-print.html']){const html=fs.readFileSync(page,'utf8');assert.ok(html.includes('JobImages.attach(record,existingRecord)'));assert.ok(html.includes('await JobImages.payload('));assert.ok(html.includes('JobImages.metadata(row[30])'));}
+console.log('PASS: 700 KB server cap, rejected non-images, retry deduplication, private storage, ordinary edit preservation, pending upload preservation and both shop integrations.');

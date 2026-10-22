@@ -37,7 +37,7 @@ function doPost(e) {
     : [];
   const reference=jobReferenceReserve_(sheet,[{id:data.id,date:jobReferenceDate_(data.date,data.createdAt),category:data.category,createdAt:data.createdAt,reference:String(existingValues[29]||'')}])[0];
   const row = buildRow_(data, existingValues);
-  row.push(reference);
+  row.push(reference,jobImageSave_(data,existingValues[30]));
 
   if (rowIndex) {
     sheet.getRange(rowIndex, 1, 1, row.length).setValues([row]);
@@ -197,7 +197,8 @@ function getSheet_(sheetName) {
     "ช่องทางชำระเงินล่าสุด",
     "ประวัติรับชำระ",
     "หมายเหตุช่องทางชำระ",
-    "เลขอ้างอิง"
+    "เลขอ้างอิง",
+    "รูปงาน"
   ];
 
   if (!sheet) {
@@ -485,7 +486,7 @@ function jobReferenceReserve_(sheet,records){
 }
 function jobReferenceRows_(sheet){
   if(sheet.getLastRow()<2)return [];
-  var rows=sheet.getRange(2,1,sheet.getLastRow()-1,30).getValues(),models=[],indices=[];
+  var rows=sheet.getRange(2,1,sheet.getLastRow()-1,31).getValues(),models=[],indices=[];
   rows.forEach(function(row,index){if(!row[0]||!String(row[6]||'').trim())return;
     indices.push(index);models.push({id:row[0],date:jobReferenceDate_(row[1],row[23]),category:row[2],createdAt:row[23] instanceof Date?row[23].toISOString():String(row[23]||''),reference:String(row[29]||'')});
   });
@@ -498,4 +499,20 @@ function migrateJobReferences(){
   orRequireOwner_();var lock=LockService.getScriptLock();lock.waitLock(30000);
   try{var result=['Data Account','Chokdee'].map(function(name){var sheet=getSheet_(name),rows=jobReferenceRows_(sheet);return {store:name,count:rows.filter(function(row){return !!row[29];}).length};});console.log(JSON.stringify(result));return result;}
   finally{lock.releaseLock();}
+}
+
+/* Store one compressed job reference image, privately, with retry deduplication. */
+function jobImageSave_(data,existing){
+  if(!Object.prototype.hasOwnProperty.call(data,'jobImage'))return String(existing||'');
+  var image=data.jobImage;
+  if(image===null)return '';
+  if(!image||typeof image!=='object')throw new Error('ข้อมูลรูปงานไม่ถูกต้อง');
+  if(!data.jobImageDataUrl)return String(existing||'');
+  var match=/^data:image\/(webp|jpeg|png);base64,([A-Za-z0-9+/=]+)$/.exec(String(data.jobImageDataUrl));
+  if(!match||!/^[a-zA-Z0-9-]{8,80}$/.test(String(image.uploadKey||'')))throw new Error('ชนิดรูปงานไม่ถูกต้อง');
+  var bytes=Utilities.base64Decode(match[2]);if(bytes.length>700*1024)throw new Error('รูปงานต้องไม่เกิน 700 KB หลังบีบอัด');
+  var folder=getOrCreateFolder_('Print Job Reference Images'),ext=match[1]==='jpeg'?'jpg':match[1];
+  var name=sanitizeFileNamePart_(data.sheetName||DEFAULT_SHEET_NAME)+'-'+sanitizeFileNamePart_(data.id)+'-'+image.uploadKey+'.'+ext;
+  var found=folder.getFilesByName(name),file=found.hasNext()?found.next():folder.createFile(Utilities.newBlob(bytes,'image/'+match[1],name));
+  return JSON.stringify({name:String(image.name||name).slice(0,200),type:'image/'+match[1],bytes:bytes.length,width:Number(image.width)||0,height:Number(image.height)||0,uploadKey:image.uploadKey,url:file.getUrl(),fileId:file.getId(),pending:false});
 }
