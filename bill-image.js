@@ -59,7 +59,7 @@ var BillImage=(function(){
     const preview=controls.querySelector('[data-preview-bill-image]');
     function clearPreview(){if(preview.hasAttribute('href'))URL.revokeObjectURL(preview.href);preview.removeAttribute('href');preview.hidden=true;}
     function showPreview(blob){clearPreview();preview.href=URL.createObjectURL(blob);preview.hidden=false;return preview.href;}
-    clearPreview();let sections=[],cached=new Map();select.replaceChildren();copy.disabled=true;download.disabled=true;
+    clearPreview();let sections=[],cached=new Map(),revision=0;select.replaceChildren();copy.disabled=true;download.disabled=true;
     frame.onload=()=>{
       sections=Array.from(frame.contentDocument.querySelectorAll('.document'));
       function compact(){sections.forEach(bill=>{
@@ -72,16 +72,17 @@ var BillImage=(function(){
       const caption=section=>section.querySelector('[data-bill-customer]')?.value||section.dataset.customerName||section.querySelector('.head p')?.textContent.split('ประเภทลูกค้า:')[0]||'บิล';
       sections.forEach((section,index)=>{const option=document.createElement('option');option.value=String(index);option.textContent=(index+1)+'. ลูกค้า: '+caption(section);select.append(option);});
       frame.contentDocument.addEventListener('input',()=>{
+        revision++;
         cached.clear();clearPreview();sections.forEach((section,index)=>{select.options[index].textContent=(index+1)+'. ลูกค้า: '+caption(section);});
         status.textContent='รายละเอียดบิลเปลี่ยนแล้ว กดคัดลอกรูปอีกครั้งเพื่อใช้ข้อมูลล่าสุด';
       });
-      frame.contentDocument.addEventListener('bill-layout-change',()=>{cached.clear();clearPreview();});
+      frame.contentDocument.addEventListener('bill-layout-change',()=>{revision++;cached.clear();clearPreview();});
       label.hidden=sections.length<2;copy.disabled=download.disabled=!sections.length;
     };
     function image(){
       const index=Number(select.value),section=sections[index];
       if(!section)return Promise.reject(new Error('กรุณารอให้บิลโหลดเสร็จก่อน'));
-      if(!cached.has(index))cached.set(index,render(section).catch(error=>{cached.delete(index);throw error;}));
+      if(!cached.has(index)){const version=revision;cached.set(index,render(section).then(blob=>{if(version!==revision)throw new Error('บิลหรือ QR เปลี่ยนระหว่างสร้างรูป กรุณากดคัดลอกอีกครั้ง');return blob;}).catch(error=>{cached.delete(index);throw error;}));}
       return cached.get(index);
     }
     select.onchange=()=>{clearPreview();status.textContent='เลือกบิลแล้ว กดคัดลอกหรือดาวน์โหลดรูป';};

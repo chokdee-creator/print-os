@@ -4,7 +4,7 @@ const record={kind:'bank',provider:'Test bank',accountName:'Test owner',number:'
 assert.equal(D.normalize([record])[0].qrDataUrl,maxImage);assert.equal(D.normalize([record,{...record,number:'second'}]).length,2);
 assert.throws(()=>D.normalize([{...record,qrDataUrl:'data:image/png;base64,'+Buffer.alloc(D.MAX_QR_BYTES+1).toString('base64')}]));
 assert.throws(()=>D.normalize([{...record,qrDataUrl:'data:image/png;base64,AAAA==='}]));
-const source=fs.readFileSync(path.join(__dirname,'../store-payment-channels.js'),'utf8').replace('return {init,manage,text,append,html,showQr,choose,mountPage,mountBill};','return {init,manage,text,append,html,showQr,choose,mountPage,mountBill,testRemember:remember};');
+const source=fs.readFileSync(path.join(__dirname,'../store-payment-channels.js'),'utf8').replace('return {init,manage,text,append,html,showQr,choose,mountPage,mountBill,refresh,subscribe};','return {init,manage,text,append,html,showQr,choose,mountPage,mountBill,refresh,subscribe,testRemember:remember};');
 (async()=>{
  const storage=new Map(),images=new Map();
  const localStorage={getItem:k=>storage.get(k)||null,setItem:(k,v)=>{if(v.length>5*1024*1024)throw Error('QuotaExceededError');storage.set(k,v);},removeItem:k=>storage.delete(k)};
@@ -12,7 +12,7 @@ const source=fs.readFileSync(path.join(__dirname,'../store-payment-channels.js')
  const make=(cacheAdapter,cloud)=>{const ctx=vm.createContext({PaymentChannelData:D,PaymentQrCache:cacheAdapter,SHEET_TAB_NAME:'',localStorage,document:{querySelectorAll:()=>[]},sendOutstandingOwnerAction:cloud,getSheetUrl:()=> 'https://example.test'});vm.runInContext(source,ctx);return ctx.StorePaymentChannels;};
  const accountKey=D.selectionKey(record,0),module=make(cache);await module.init();await module.testRemember([record],[accountKey]);
  const meta=storage.get('printPaymentChannels:shared');assert.ok(meta.length<5000);assert.equal(meta.includes(maxImage),false);assert.equal(images.get('shared').channels[0].qrDataUrl,maxImage);
- const restored=make(cache);await restored.init();assert.equal(restored.html([accountKey]).includes(maxImage),true);assert.equal((await restored.choose())[0],accountKey);
+ const restored=make(cache,async()=>({channels:[record],selectedKeys:[accountKey]}));await restored.init();assert.equal(restored.html([accountKey]).includes(maxImage),true);assert.equal((await restored.choose())[0],accountKey);
  let cloudLoads=0;const fallback=make({read:async()=>null,write:async()=>false},async()=>{cloudLoads++;return{channels:[record],selectedKeys:[accountKey]};});await fallback.init();assert.equal((await fallback.choose())[0],accountKey);assert.equal(cloudLoads,1);assert.ok(fallback.html([accountKey]).includes(maxImage));
  const legacy=[{...record,number:'updated-by-an-older-tab',qrDataUrl:'data:image/png;base64,AAAA'}];storage.set('printPaymentChannels:printImage',JSON.stringify(legacy));storage.set('printPaymentChannels:printImage:useAccounts',JSON.stringify([D.selectionKey(legacy[0],0)]));const legacyView=make(cache,async()=>({channels:[record],selectedKeys:[accountKey]}));await legacyView.init();assert.ok(!legacyView.html().includes('updated-by-an-older-tab'));assert.equal((await legacyView.choose())[0],accountKey);
  const C=require('../payment-qr-cache.js');assert.equal(await C.read('printImage'),null);assert.equal(await C.write('printImage',{}),false);

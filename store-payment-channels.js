@@ -4,9 +4,17 @@ var StorePaymentChannels=(function(){
   const key=()=> 'printPaymentChannels:shared';
   let channels=[];let refreshPicker=()=>{},refreshAccountPage=()=>{};
   let ready=Promise.resolve(),missingQr=false;
+  const listeners=new Set();let cloudRefresh=null,stateRevision=0;
+  function subscribe(callback){listeners.add(callback);return ()=>listeners.delete(callback);}
+  function notify(){listeners.forEach(callback=>{try{callback();}catch(error){console.warn('Payment preview refresh failed',error);}});}
+  function refresh(){
+    if(!cloudRefresh)cloudRefresh=sendOutstandingOwnerAction('getPaymentChannels',{store:store()},getSheetUrl()).then(async result=>{await remember(result.channels,result.selectedKeys);return result;}).finally(()=>{cloudRefresh=null;});
+    return cloudRefresh;
+  }
   function cacheMetadata(){try{const raw=localStorage.getItem(key());if(!raw)return {channels:[],modifiedAt:0};const saved=JSON.parse(raw);return Array.isArray(saved)?{channels:saved,modifiedAt:0,legacy:true}:saved;}catch(e){return {channels:[],modifiedAt:0};}}
   function cached(){try{return PaymentChannelData.normalize(cacheMetadata().channels||[]);}catch(e){return [];}}
   async function hydrate(){
+    const revision=++stateRevision;
     if(!localStorage.getItem(key())){
       const entries=[];let incomplete=false;
       for(const id of ['printImage','chokdee']){
@@ -22,19 +30,22 @@ var StorePaymentChannels=(function(){
       }
       const merged=PaymentChannelData.mergeSettings(entries);channels=merged.channels;missingQr=incomplete;
       if(!incomplete)await remember(channels,merged.selectedKeys);
-      refreshPicker();refreshAccountPage();return;
+      refreshPicker();refreshAccountPage();notify();return;
     }
-    const meta=cacheMetadata();channels=cached();missingQr=(meta.channels||[]).some(r=>r.qrCached&&!r.qrDataUrl);
-    try{const saved=typeof PaymentQrCache==='undefined'?null:await PaymentQrCache.read('shared');if(saved&&!meta.legacy&&saved.modifiedAt>=(meta.modifiedAt||0)){channels=PaymentChannelData.normalize(saved.channels);missingQr=false;}}catch(e){}
-    refreshPicker();refreshAccountPage();
+    const meta=cacheMetadata();let next=cached(),incomplete=(meta.channels||[]).some(r=>r.qrCached&&!r.qrDataUrl);
+    try{const saved=typeof PaymentQrCache==='undefined'?null:await PaymentQrCache.read('shared');if(saved&&!meta.legacy&&saved.modifiedAt>=(meta.modifiedAt||0)){next=PaymentChannelData.normalize(saved.channels);incomplete=false;}}catch(e){}
+    if(revision!==stateRevision)return;
+    channels=next;missingQr=incomplete;
+    refreshPicker();refreshAccountPage();notify();
   }
   async function remember(items,selectedKeys){
+    ++stateRevision;
     const valid=PaymentChannelData.normalize(items),modifiedAt=Date.now();
     try{if(typeof PaymentQrCache!=='undefined')await PaymentQrCache.write('shared',{channels:valid,modifiedAt});}catch(e){/* Google remains the saved source if the browser cache is full. */}
     try{localStorage.setItem(key(),JSON.stringify({channels:valid.map(r=>({...r,qrCached:!!r.qrDataUrl,qrDataUrl:''})),modifiedAt}));}catch(e){/* Image data stays in IndexedDB and Google, never a full localStorage copy. */}
     channels=valid;missingQr=false;
     try{if(Array.isArray(selectedKeys))localStorage.setItem(key()+':useAccounts',JSON.stringify(selectedKeys));else if(selectedKeys===null)localStorage.removeItem(key()+':useAccounts');}catch(e){}
-    refreshPicker();refreshAccountPage();
+    refreshPicker();refreshAccountPage();notify();
   }
   const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   function text(keys){return PaymentChannelData.text(PaymentChannelData.select(channels,keys));}
@@ -99,7 +110,8 @@ var StorePaymentChannels=(function(){
   let choosing=false;
   async function choose(actionLabel='ใช้บัญชีที่เลือก',options={}){
     await ready;await hydrate();
-    if(missingQr){const result=await sendOutstandingOwnerAction('getPaymentChannels',{store:store()},getSheetUrl());await remember(result.channels,result.selectedKeys);}
+    // Always read the saved source before reusing cached selections or QR images.
+    await refresh();
     try{const saved=JSON.parse(localStorage.getItem(key()+':useAccounts')||'null');if(!options.force&&Array.isArray(saved)){PaymentChannelData.select(channels,saved);return Promise.resolve(saved);}}catch(e){/* Re-open selection if accounts changed. */}
     if(choosing)return Promise.reject(new Error('กรุณาเลือกบัญชีในหน้าต่างที่เปิดไว้ก่อน'));
     choosing=true;
@@ -206,6 +218,8 @@ var StorePaymentChannels=(function(){
       catch(e){status.textContent=e.message;}finally{button.disabled=false;}
     };
     payment.querySelector('[data-bill-bank-manage]').onclick=()=>{openAccounts();document.getElementById('paymentAccountsDialog').addEventListener('close',()=>{hydrate().then(render);},{once:true});};
+    const unsubscribe=subscribe(()=>{if(doc.defaultView?.frameElement?.contentDocument===doc)render();else unsubscribe();});
+    doc.defaultView.addEventListener('pagehide',unsubscribe,{once:true});
     ready.then(()=>hydrate()).then(render).catch(e=>{status.textContent=e.message;});
     return {focus(){picker.scrollIntoView({behavior:'smooth',block:'center'});picker.querySelector('input,button')?.focus({preventScroll:true});}};
   }
@@ -224,5 +238,5 @@ var StorePaymentChannels=(function(){
   }
   function init(){channels=cached();ready=hydrate();document.querySelectorAll('[data-manage-payment-channels]').forEach(button=>button.addEventListener('click',manage));document.querySelectorAll('#paymentChannelsNav').forEach(button=>button.addEventListener('click',openAccounts));return ready;}
   if(typeof window!=='undefined')window.addEventListener('storage',event=>{if(event.key===key()||event.key===key()+':useAccounts')hydrate();});
-  return {init,manage,text,append,html,showQr,choose,mountPage,mountBill};
+  return {init,manage,text,append,html,showQr,choose,mountPage,mountBill,refresh,subscribe};
 })();

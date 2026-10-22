@@ -79,6 +79,27 @@ function showSelectedPaymentDocument(html, onSend, documentTitle, options={}) {
   dialog.setAttribute('aria-label',title);const frame=dialog.querySelector('iframe');frame.title=title;frame.srcdoc=html;
   const send=dialog.querySelector('[data-send-selected-bill]'),status=dialog.querySelector('[role="status"]');
   let paymentKeys=Array.isArray(options.paymentKeys)?options.paymentKeys.slice():null;
+  let accountMarkup='',accountsValid=true,sending=false,sent=false;
+  dialog._paymentUnsubscribe?.();
+  function applyAccounts(force=false){
+    if(paymentKeys===null)return;
+    try{
+      const content=StorePaymentChannels.html(paymentKeys)||'<p class="empty-payment">ไม่แนบบัญชีรับชำระในบิลนี้</p>';
+      accountsValid=true;
+      if(!force&&content===accountMarkup)return;
+      const panels=frame.contentDocument?.querySelectorAll('.payment-details[data-receiving="true"]');if(!panels?.length)return;
+      panels.forEach(panel=>{const handles=Array.from(panel.querySelectorAll(':scope > .bill-layout-handle'));panel.innerHTML='<h2 class="gold-heading">ช่องทางการชำระเงิน</h2>'+content;panel.append(...handles);});
+      accountMarkup=content;
+      frame.contentDocument.dispatchEvent(new frame.contentWindow.Event('input',{bubbles:true}));
+      frame.contentDocument.dispatchEvent(new frame.contentWindow.Event('bill-layout-change'));
+      send.disabled=sent||sending;
+    }catch(error){accountsValid=false;send.disabled=true;status.textContent='บัญชีรับชำระเปลี่ยนแล้ว กรุณากดเลือกบัญชีรับชำระอีกครั้ง';}
+  }
+  if(paymentKeys!==null&&typeof StorePaymentChannels.subscribe==='function'){
+    const unsubscribe=StorePaymentChannels.subscribe(()=>applyAccounts());dialog._paymentUnsubscribe=unsubscribe;
+    dialog.addEventListener('close',unsubscribe,{once:true});
+    frame.addEventListener('load',()=>applyAccounts(true),{once:true});
+  }
   let bank=dialog.querySelector('[data-bill-payment]');
   if(!bank){bank=document.createElement('button');bank.type='button';bank.className='btn secondary';bank.dataset.billPayment='';bank.textContent='เลือกบัญชีรับชำระ';send.parentElement.insertBefore(bank,status);}
   bank.hidden=paymentKeys===null;bank.disabled=false;
@@ -86,11 +107,8 @@ function showSelectedPaymentDocument(html, onSend, documentTitle, options={}) {
     bank.disabled=true;
     try{
       const next=await StorePaymentChannels.choose('ใช้บัญชีในบิลนี้',{force:true,initialKeys:paymentKeys});if(next===null)return;
-      const content=StorePaymentChannels.html(next)||'<p class="empty-payment">ไม่แนบบัญชีรับชำระในบิลนี้</p>';
-      frame.contentDocument.querySelectorAll('.payment-details[data-receiving="true"]').forEach(panel=>{panel.innerHTML='<h2 class="gold-heading">ช่องทางการชำระเงิน</h2>'+content;});
       paymentKeys=next.slice();
-      frame.contentDocument.dispatchEvent(new frame.contentWindow.Event('input',{bubbles:true}));
-      frame.contentDocument.dispatchEvent(new frame.contentWindow.Event('bill-layout-change'));
+      applyAccounts(true);
       status.textContent='เปลี่ยนบัญชีในบิลแล้ว '+paymentKeys.length+' บัญชี · ใช้บัญชีนี้เมื่อส่งยอด';
     }catch(error){status.textContent=error.message;}finally{bank.disabled=false;}
   };
@@ -101,10 +119,10 @@ function showSelectedPaymentDocument(html, onSend, documentTitle, options={}) {
   if(typeof BillTypography!=='undefined')BillTypography.mount(frame,send.parentElement,status);
   send.hidden=!onSend;send.disabled=false;send.textContent='ส่งยอดเข้า LINE';status.textContent='';
   send.onclick=onSend?async()=>{
-    if(send.disabled)return;send.disabled=true;bank.disabled=true;status.textContent='กำลังส่งยอดของรายการในบิลเข้า LINE…';
-    try{const result=await onSend(paymentKeys===null?undefined:paymentKeys.slice());status.textContent='ส่งยอดชำระเข้า LINE ของ '+result.recipientName+' แล้ว';send.textContent='ส่งยอดแล้ว';}
+    if(send.disabled)return;sending=true;send.disabled=true;bank.disabled=true;status.textContent='กำลังส่งยอดของรายการในบิลเข้า LINE…';
+    try{if(paymentKeys!==null)await StorePaymentChannels.refresh();if(!accountsValid)throw new Error('กรุณาเลือกบัญชีรับชำระที่ยังเปิดใช้งาน');const result=await onSend(paymentKeys===null?undefined:paymentKeys.slice());sent=true;status.textContent='ส่งยอดชำระเข้า LINE ของ '+result.recipientName+' แล้ว';send.textContent='ส่งยอดแล้ว';}
     catch(e){status.textContent=e.message;send.disabled=false;}
-    finally{bank.disabled=false;}
+    finally{sending=false;bank.disabled=false;send.disabled=sent||!accountsValid;}
   }:null;
   if(!dialog.open)dialog.showModal();
 }

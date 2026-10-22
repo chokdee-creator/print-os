@@ -39,7 +39,7 @@ console.log('PASS: payment/QR validation, shared receiving accounts, legacy pres
 
 (async()=>{
  const savedSettings=new Map([['printPaymentChannels:shared',JSON.stringify(settings)],['printPaymentChannels:shared:useAccounts',JSON.stringify([D.selectionKey(settings[0],0)])]]);
- const chooser=vm.createContext({PaymentChannelData:D,SHEET_TAB_NAME:'',localStorage:{getItem:k=>savedSettings.get(k)||null},document:{querySelectorAll:()=>[]}});
+ const chooser=vm.createContext({PaymentChannelData:D,SHEET_TAB_NAME:'',getSheetUrl:()=>'',sendOutstandingOwnerAction:async()=>({channels:JSON.parse(savedSettings.get('printPaymentChannels:shared')),selectedKeys:JSON.parse(savedSettings.get('printPaymentChannels:shared:useAccounts'))}),localStorage:{getItem:k=>savedSettings.get(k)||null},document:{querySelectorAll:()=>[]}});
  vm.runInContext(fs.readFileSync(path.join(repo,'store-payment-channels.js'),'utf8'),chooser);chooser.StorePaymentChannels.init();
  assert.equal((await chooser.StorePaymentChannels.choose())[0],D.selectionKey(settings[0],0));
  const changed=[{...settings[0],number:'updated-account'}];savedSettings.set('printPaymentChannels:shared',JSON.stringify(changed));savedSettings.set('printPaymentChannels:shared:useAccounts',JSON.stringify([D.selectionKey(changed[0],0)]));
