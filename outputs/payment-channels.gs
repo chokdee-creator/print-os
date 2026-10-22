@@ -1,11 +1,13 @@
 /** Receiving accounts are shared by both shops. Legacy files remain as migration backups. */
+var orPaymentMemo_;
 function orPaymentEntry_(){
+  if(orPaymentMemo_)return orPaymentMemo_;
   const existing=orReadDelivery_('payment-channels:shared');
-  if(existing)return existing;
+  if(existing)return orPaymentMemo_=existing;
   const merged=PaymentChannelData.mergeSettings(['printImage','chokdee'].map(id=>orReadDelivery_('payment-channels:'+id)));
   const entry={channels:merged.channels,selectedKeys:merged.selectedKeys,updatedAt:new Date().toISOString(),migratedFrom:['printImage','chokdee']};
   orWriteDelivery_('payment-channels:shared',entry);
-  return entry;
+  return orPaymentMemo_=entry;
 }
 function orPaymentChannels_(store){
   orStore_(store);
@@ -13,6 +15,8 @@ function orPaymentChannels_(store){
 }
 function orPaymentChannelAction_(data){
   const store=orStore_(data.store),key='payment-channels:shared',entry=orPaymentEntry_();
+  if(data.action==='getPaymentChannels'&&data.revision&&data.revision===entry.updatedAt)return {ok:true,notModified:true,revision:entry.updatedAt,store:store.id,shared:true};
+  let revision=entry.updatedAt||'';
   let channels=PaymentChannelData.normalize(entry.channels||[]),selectedKeys=Array.isArray(entry.selectedKeys)?entry.selectedKeys:null;
   if(data.action==='savePaymentChannels'){
     if(data.selectionOnly){
@@ -23,9 +27,10 @@ function orPaymentChannelAction_(data){
       channels=PaymentChannelData.normalize(data.channels);
       if(selectedKeys){const valid=new Set(channels.map((r,i)=>r.enabled?PaymentChannelData.selectionKey(r,i):null));selectedKeys=selectedKeys.filter(key=>valid.has(key));}
     }
-    orWriteDelivery_(key,{channels:channels,selectedKeys:selectedKeys,updatedAt:new Date().toISOString()});
+    revision=new Date().toISOString();
+    const saved={channels:channels,selectedKeys:selectedKeys,updatedAt:revision};orWriteDelivery_(key,saved);orPaymentMemo_=saved;
   }
-  return {ok:true,channels:channels,selectedKeys:selectedKeys,store:store.id,shared:true};
+  return {ok:true,channels:channels,selectedKeys:selectedKeys,revision:revision,store:store.id,shared:true};
 }
 function preparePaymentChannelsSetup(){
   orRequireOwner_();

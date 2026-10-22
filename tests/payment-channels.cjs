@@ -50,8 +50,9 @@ console.log('PASS: payment/QR validation, shared receiving accounts, legacy pres
 // Merge legacy catalogs without losing QR images or duplicating an account.
 const merged=D.mergeSettings([{channels:settings,selectedKeys:[D.selectionKey(settings[0],0)]},{channels:[{...settings[0],qrDataUrl:''},accounts[1]],selectedKeys:[D.selectionKey(accounts[1],1)]}]);
 assert.equal(merged.channels.length,2);assert.equal(merged.channels[0].qrDataUrl,qr);assert.equal(merged.selectedKeys.length,2);
+c.orPaymentMemo_=undefined;
 const oldPrint={channels:settings,selectedKeys:[D.selectionKey(settings[0],0)]},oldChokdee={channels:[accounts[1]],selectedKeys:[D.selectionKey(accounts[1],0)]};
-files.clear();files.set('payment-channels:printImage',oldPrint);files.set('payment-channels:chokdee',oldChokdee);
+files.clear();c.orPaymentMemo_=undefined;files.set('payment-channels:printImage',oldPrint);files.set('payment-channels:chokdee',oldChokdee);
 assert.equal(c.orPaymentChannelAction_({action:'getPaymentChannels',store:'printImage'}).channels.length,2);
 assert.equal(c.orPaymentChannelAction_({action:'getPaymentChannels',store:'chokdee'}).channels.length,2);
 assert.equal(files.get('payment-channels:printImage'),oldPrint);assert.equal(files.get('payment-channels:chokdee'),oldChokdee);

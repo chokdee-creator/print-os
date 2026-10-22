@@ -12,6 +12,10 @@ function outstandingOwnerRequest(data) {
   if(orProperties_().getProperty('PRINT_REPORT_STORE_CONFIRMED')!=='true') throw new Error('Store not confirmed');
   const lock=LockService.getScriptLock();lock.waitLock(30000);
   try {
+    if(data.action==='previewSend'&&Object.prototype.hasOwnProperty.call(data,'paymentRevision')){
+      const entry=orPaymentEntry_();
+      if(String(data.paymentRevision||'')!==String(entry.updatedAt||''))return {...orPaymentChannelAction_({action:'getPaymentChannels',store:data.store}),paymentChannelsChanged:true};
+    }
     if(['getPaymentChannels','savePaymentChannels'].includes(data.action)) return orPaymentChannelAction_(data);
     if(['recipients','addRecipient','removeRecipient'].includes(data.action)) return orRecipientAction_(data);
     return orAction_(data,data.id);

@@ -120,7 +120,7 @@ function showSelectedPaymentDocument(html, onSend, documentTitle, options={}) {
   send.hidden=!onSend;send.disabled=false;send.textContent='ส่งยอดเข้า LINE';status.textContent='';
   send.onclick=onSend?async()=>{
     if(send.disabled)return;sending=true;send.disabled=true;bank.disabled=true;status.textContent='กำลังส่งยอดของรายการในบิลเข้า LINE…';
-    try{if(paymentKeys!==null)await StorePaymentChannels.refresh();if(!accountsValid)throw new Error('กรุณาเลือกบัญชีรับชำระที่ยังเปิดใช้งาน');const result=await onSend(paymentKeys===null?undefined:paymentKeys.slice());sent=true;status.textContent='ส่งยอดชำระเข้า LINE ของ '+result.recipientName+' แล้ว';send.textContent='ส่งยอดแล้ว';}
+    try{if(!accountsValid)throw new Error('กรุณาเลือกบัญชีรับชำระที่ยังเปิดใช้งาน');const result=await onSend(paymentKeys===null?undefined:paymentKeys.slice(),paymentKeys===null?undefined:StorePaymentChannels.revision());if(result.paymentChannelsChanged){await StorePaymentChannels.accept(result);applyAccounts(true);status.textContent='บัญชีหรือ QR มีการอัปเดตแล้ว กรุณาตรวจบิลแล้วกดส่งอีกครั้ง';return;}sent=true;status.textContent='ส่งยอดชำระเข้า LINE ของ '+result.recipientName+' แล้ว';send.textContent='ส่งยอดแล้ว';}
     catch(e){status.textContent=e.message;send.disabled=false;}
     finally{sending=false;bank.disabled=false;send.disabled=sent||!accountsValid;}
   }:null;

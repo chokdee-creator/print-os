@@ -4,7 +4,7 @@ const record={kind:'bank',provider:'Test bank',accountName:'Test owner',number:'
 assert.equal(D.normalize([record])[0].qrDataUrl,maxImage);assert.equal(D.normalize([record,{...record,number:'second'}]).length,2);
 assert.throws(()=>D.normalize([{...record,qrDataUrl:'data:image/png;base64,'+Buffer.alloc(D.MAX_QR_BYTES+1).toString('base64')}]));
 assert.throws(()=>D.normalize([{...record,qrDataUrl:'data:image/png;base64,AAAA==='}]));
-const source=fs.readFileSync(path.join(__dirname,'../store-payment-channels.js'),'utf8').replace('return {init,manage,text,append,html,showQr,choose,mountPage,mountBill,refresh,subscribe};','return {init,manage,text,append,html,showQr,choose,mountPage,mountBill,refresh,subscribe,testRemember:remember};');
+const source=fs.readFileSync(path.join(__dirname,'../store-payment-channels.js'),'utf8').replace('return {init,manage,text,append,html,showQr,choose,mountPage,mountBill,refresh,subscribe,accept,revision:()=>paymentRevision};','return {init,manage,text,append,html,showQr,choose,mountPage,mountBill,refresh,subscribe,accept,revision:()=>paymentRevision,testRemember:remember};');
 (async()=>{
  const storage=new Map(),images=new Map();
  const localStorage={getItem:k=>storage.get(k)||null,setItem:(k,v)=>{if(v.length>5*1024*1024)throw Error('QuotaExceededError');storage.set(k,v);},removeItem:k=>storage.delete(k)};

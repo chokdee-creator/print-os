@@ -4,11 +4,14 @@ var StorePaymentChannels=(function(){
   const key=()=> 'printPaymentChannels:shared';
   let channels=[];let refreshPicker=()=>{},refreshAccountPage=()=>{};
   let ready=Promise.resolve(),missingQr=false;
-  const listeners=new Set();let cloudRefresh=null,stateRevision=0;
+  const listeners=new Set();let cloudRefresh=null,stateRevision=0,verifiedAt=0,paymentRevision='';
   function subscribe(callback){listeners.add(callback);return ()=>listeners.delete(callback);}
   function notify(){listeners.forEach(callback=>{try{callback();}catch(error){console.warn('Payment preview refresh failed',error);}});}
-  function refresh(){
-    if(!cloudRefresh)cloudRefresh=sendOutstandingOwnerAction('getPaymentChannels',{store:store()},getSheetUrl()).then(async result=>{await remember(result.channels,result.selectedKeys);return result;}).finally(()=>{cloudRefresh=null;});
+  function markVerified(revision){paymentRevision=revision;verifiedAt=Date.now();try{const meta=cacheMetadata();localStorage.setItem(key(),JSON.stringify({...meta,sourceRevision:revision,verifiedAt}));}catch(error){}}
+  async function accept(result){if(result.notModified){markVerified(result.revision);return;}await remember(result.channels,result.selectedKeys,result.revision);}
+  function refresh(options={}){
+    if(!options.force&&!missingQr&&verifiedAt&&Date.now()-verifiedAt<60000)return Promise.resolve({ok:true,cached:true,revision:paymentRevision});
+    if(!cloudRefresh)cloudRefresh=sendOutstandingOwnerAction('getPaymentChannels',{store:store(),revision:missingQr?undefined:paymentRevision||undefined},getSheetUrl()).then(async result=>{await accept(result);return result;}).finally(()=>{cloudRefresh=null;});
     return cloudRefresh;
   }
   function cacheMetadata(){try{const raw=localStorage.getItem(key());if(!raw)return {channels:[],modifiedAt:0};const saved=JSON.parse(raw);return Array.isArray(saved)?{channels:saved,modifiedAt:0,legacy:true}:saved;}catch(e){return {channels:[],modifiedAt:0};}}
@@ -35,15 +38,15 @@ var StorePaymentChannels=(function(){
     const meta=cacheMetadata();let next=cached(),incomplete=(meta.channels||[]).some(r=>r.qrCached&&!r.qrDataUrl);
     try{const saved=typeof PaymentQrCache==='undefined'?null:await PaymentQrCache.read('shared');if(saved&&!meta.legacy&&saved.modifiedAt>=(meta.modifiedAt||0)){next=PaymentChannelData.normalize(saved.channels);incomplete=false;}}catch(e){}
     if(revision!==stateRevision)return;
-    channels=next;missingQr=incomplete;
+    channels=next;missingQr=incomplete;if(meta.sourceRevision){paymentRevision=meta.sourceRevision;verifiedAt=Number(meta.verifiedAt)||0;}
     refreshPicker();refreshAccountPage();notify();
   }
-  async function remember(items,selectedKeys){
+  async function remember(items,selectedKeys,revision){
     ++stateRevision;
     const valid=PaymentChannelData.normalize(items),modifiedAt=Date.now();
     try{if(typeof PaymentQrCache!=='undefined')await PaymentQrCache.write('shared',{channels:valid,modifiedAt});}catch(e){/* Google remains the saved source if the browser cache is full. */}
-    try{localStorage.setItem(key(),JSON.stringify({channels:valid.map(r=>({...r,qrCached:!!r.qrDataUrl,qrDataUrl:''})),modifiedAt}));}catch(e){/* Image data stays in IndexedDB and Google, never a full localStorage copy. */}
-    channels=valid;missingQr=false;
+    try{localStorage.setItem(key(),JSON.stringify({channels:valid.map(r=>({...r,qrCached:!!r.qrDataUrl,qrDataUrl:''})),modifiedAt,sourceRevision:revision||paymentRevision,verifiedAt:typeof revision==='string'?Date.now():verifiedAt}));}catch(e){/* Image data stays in IndexedDB and Google, never a full localStorage copy. */}
+    channels=valid;missingQr=false;if(typeof revision==='string'){paymentRevision=revision;verifiedAt=Date.now();}
     try{if(Array.isArray(selectedKeys))localStorage.setItem(key()+':useAccounts',JSON.stringify(selectedKeys));else if(selectedKeys===null)localStorage.removeItem(key()+':useAccounts');}catch(e){}
     refreshPicker();refreshAccountPage();notify();
   }
@@ -90,14 +93,14 @@ var StorePaymentChannels=(function(){
       function render(){list.replaceChildren();channels.forEach(add);if(!channels.length)add();}
       dialog.querySelector('[data-add-payment]').addEventListener('click',()=>add());
       dialog.querySelector('[data-load-payment]').addEventListener('click',async()=>{
-        try{dialog.querySelector('[data-save-payment]').disabled=true;list.inert=true;dialog.querySelector('[data-add-payment]').disabled=true;status('กำลังโหลดข้อมูลของร้าน…');const result=await sendOutstandingOwnerAction('getPaymentChannels',{store:store()},getSheetUrl());await remember(result.channels,result.selectedKeys);render();status('โหลดข้อมูลของร้านแล้ว '+channels.length+' ช่องทาง');}catch(e){status(e.message);}finally{dialog.querySelector('[data-save-payment]').disabled=false;list.inert=false;dialog.querySelector('[data-add-payment]').disabled=false;}
+        try{dialog.querySelector('[data-save-payment]').disabled=true;list.inert=true;dialog.querySelector('[data-add-payment]').disabled=true;status('กำลังโหลดข้อมูลของร้าน…');const result=await sendOutstandingOwnerAction('getPaymentChannels',{store:store()},getSheetUrl());await remember(result.channels,result.selectedKeys,result.revision);render();status('โหลดข้อมูลของร้านแล้ว '+channels.length+' ช่องทาง');}catch(e){status(e.message);}finally{dialog.querySelector('[data-save-payment]').disabled=false;list.inert=false;dialog.querySelector('[data-add-payment]').disabled=false;}
       });
       dialog.querySelector('[data-save-payment]').addEventListener('click',async()=>{
         const button=dialog.querySelector('[data-save-payment]');
         try{
           const items=Array.from(list.children).map(card=>{const item={qrDataUrl:card.qrDataUrl};card.querySelectorAll('[data-field]').forEach(el=>item[el.dataset.field]=el.type==='checkbox'?el.checked:el.value);return item;});
           const valid=PaymentChannelData.normalize(items);button.disabled=true;status('กำลังบันทึกข้อมูลและรูป QR ของร้าน…');
-          const result=await sendOutstandingOwnerAction('savePaymentChannels',{store:store(),channels:valid},getSheetUrl());await remember(result.channels,result.selectedKeys);status('บันทึกบน Google แล้ว '+channels.length+' ช่องทาง พร้อมใช้ในข้อความแจ้งยอดและเอกสาร');
+          const result=await sendOutstandingOwnerAction('savePaymentChannels',{store:store(),channels:valid},getSheetUrl());await remember(result.channels,result.selectedKeys,result.revision);status('บันทึกบน Google แล้ว '+channels.length+' ช่องทาง พร้อมใช้ในข้อความแจ้งยอดและเอกสาร');
         }catch(e){status(e.message);}finally{button.disabled=false;}
       });
       dialog.querySelector('[data-close-payment]').addEventListener('click',()=>dialog.close());
@@ -148,7 +151,7 @@ var StorePaymentChannels=(function(){
       dialog.addEventListener('cancel',event=>{event.preventDefault();finish(null);});
       dialog.querySelector('[data-pick-load]').addEventListener('click',async()=>{
         const button=dialog.querySelector('[data-pick-load]'),proceed=dialog.querySelector('[data-pick-continue]');
-        try{button.disabled=true;proceed.disabled=true;status('กำลังโหลดบัญชีของร้าน…');const result=await sendOutstandingOwnerAction('getPaymentChannels',{store:store()},getSheetUrl());await remember(result.channels,result.selectedKeys);status('โหลดแล้ว '+channels.filter(r=>r.enabled).length+' บัญชี เลือกบัญชีที่จะส่งได้เลย');}catch(e){status(e.message);}finally{button.disabled=false;proceed.disabled=false;}
+        try{button.disabled=true;proceed.disabled=true;status('กำลังโหลดบัญชีของร้าน…');const result=await sendOutstandingOwnerAction('getPaymentChannels',{store:store()},getSheetUrl());await remember(result.channels,result.selectedKeys,result.revision);status('โหลดแล้ว '+channels.filter(r=>r.enabled).length+' บัญชี เลือกบัญชีที่จะส่งได้เลย');}catch(e){status(e.message);}finally{button.disabled=false;proceed.disabled=false;}
       });
       dialog.querySelector('[data-pick-manage]').addEventListener('click',manage);
       refreshPicker=render;document.body.append(dialog);render();dialog.showModal();
@@ -180,10 +183,10 @@ var StorePaymentChannels=(function(){
     function update(){root.querySelector('[data-page-save]').textContent='บันทึกบัญชีที่เลือก ('+chosen.size+')';status(dirty?'มีการเปลี่ยนแปลง กดบันทึกบัญชีที่เลือกก่อนกลับไปส่งยอด':'เลือกไว้ '+chosen.size+' บัญชี · ข้อความและใบแจ้งยอดจะใช้บัญชีที่บันทึกเลือกไว้');}
     root.querySelector('[data-page-edit]').addEventListener('click',manage);
     root.querySelector('[data-page-load]').addEventListener('click',async()=>{
-      const button=root.querySelector('[data-page-load]');try{button.disabled=true;status('กำลังโหลดข้อมูลบัญชีของร้าน…');const result=await sendOutstandingOwnerAction('getPaymentChannels',{store:store()},getSheetUrl());await remember(result.channels,result.selectedKeys);resetChoice();dirty=false;render();}catch(e){status(e.message);}finally{button.disabled=false;}
+      const button=root.querySelector('[data-page-load]');try{button.disabled=true;status('กำลังโหลดข้อมูลบัญชีของร้าน…');const result=await sendOutstandingOwnerAction('getPaymentChannels',{store:store()},getSheetUrl());await remember(result.channels,result.selectedKeys,result.revision);resetChoice();dirty=false;render();}catch(e){status(e.message);}finally{button.disabled=false;}
     });
     root.querySelector('[data-page-save]').addEventListener('click',async()=>{
-      const button=root.querySelector('[data-page-save]');try{const selectedKeys=[...chosen];PaymentChannelData.select(channels,selectedKeys);button.disabled=true;status('กำลังบันทึกบัญชีที่เลือก…');const result=await sendOutstandingOwnerAction('savePaymentChannels',{store:store(),selectionOnly:true,selectedKeys},getSheetUrl());await remember(result.channels,result.selectedKeys);resetChoice();dirty=false;render();status('บันทึกแล้ว '+chosen.size+' บัญชี กลับไปส่งยอดได้เลย');}catch(e){status(e.message);}finally{button.disabled=false;}
+      const button=root.querySelector('[data-page-save]');try{const selectedKeys=[...chosen];PaymentChannelData.select(channels,selectedKeys);button.disabled=true;status('กำลังบันทึกบัญชีที่เลือก…');const result=await sendOutstandingOwnerAction('savePaymentChannels',{store:store(),selectionOnly:true,selectedKeys},getSheetUrl());await remember(result.channels,result.selectedKeys,result.revision);resetChoice();dirty=false;render();status('บันทึกแล้ว '+chosen.size+' บัญชี กลับไปส่งยอดได้เลย');}catch(e){status(e.message);}finally{button.disabled=false;}
     });
     refreshAccountPage=()=>{if(!dirty)resetChoice();render();};render();
   }
@@ -214,7 +217,7 @@ var StorePaymentChannels=(function(){
     }
     payment.querySelector('[data-bill-bank-load]').onclick=async event=>{
       const button=event.currentTarget;button.disabled=true;status.textContent='กำลังโหลดบัญชีของร้าน…';
-      try{const result=await sendOutstandingOwnerAction('getPaymentChannels',{store:store()},getSheetUrl());await remember(result.channels,result.selectedKeys);render();}
+      try{const result=await sendOutstandingOwnerAction('getPaymentChannels',{store:store()},getSheetUrl());await remember(result.channels,result.selectedKeys,result.revision);render();}
       catch(e){status.textContent=e.message;}finally{button.disabled=false;}
     };
     payment.querySelector('[data-bill-bank-manage]').onclick=()=>{openAccounts();document.getElementById('paymentAccountsDialog').addEventListener('close',()=>{hydrate().then(render);},{once:true});};
@@ -238,5 +241,5 @@ var StorePaymentChannels=(function(){
   }
   function init(){channels=cached();ready=hydrate();document.querySelectorAll('[data-manage-payment-channels]').forEach(button=>button.addEventListener('click',manage));document.querySelectorAll('#paymentChannelsNav').forEach(button=>button.addEventListener('click',openAccounts));return ready;}
   if(typeof window!=='undefined')window.addEventListener('storage',event=>{if(event.key===key()||event.key===key()+':useAccounts')hydrate();});
-  return {init,manage,text,append,html,showQr,choose,mountPage,mountBill,refresh,subscribe};
+  return {init,manage,text,append,html,showQr,choose,mountPage,mountBill,refresh,subscribe,accept,revision:()=>paymentRevision};
 })();
