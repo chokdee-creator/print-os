@@ -3722,7 +3722,7 @@
       if(jobSaveInProgress)return;
       const issueBill=event.submitter?.id === "saveJobAndBill";
       const billButton=document.getElementById("saveJobAndBill");
-      jobSaveInProgress=true;els.saveJob.disabled=true;billButton.disabled=true;
+      jobSaveInProgress=true;els.form.inert=true;els.saveJob.disabled=true;billButton.disabled=true;
       try {
       const calc = calcFromInputs();
       const wasEditing = Boolean(editingId);
@@ -3769,7 +3769,7 @@
       };
 
       if(typeof JobImages!=="undefined")await JobImages.attach(record,existingRecord);
-      if (editingId) {
+      if (wasEditing) {
         records = records.map(item => item.id === editingId ? record : item);
       } else {
         records.push(record);
@@ -3789,7 +3789,7 @@
       }
       if(issueBill)await openSavedJobBill(record);
       }catch(error){toast("บันทึกไม่สำเร็จ: "+error.message);}
-      finally{jobSaveInProgress=false;els.saveJob.disabled=false;billButton.disabled=false;}
+      finally{jobSaveInProgress=false;els.form.inert=false;els.saveJob.disabled=false;billButton.disabled=false;}
     });
 
     async function saveCustomerPayment(customerTypeValue, customerNameValue) {
