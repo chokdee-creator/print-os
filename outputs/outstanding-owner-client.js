@@ -1,10 +1,10 @@
 /* Authenticate with the existing Google session, never with credentials in the page. */
-function sendOutstandingOwnerAction(action, extra, endpoint) {
+function sendOutstandingOwnerAction(action, extra, endpoint, existingPopup) {
   const id=crypto.randomUUID().replace(/-/g,'');
   const request={...extra,action,id};
   if(action==='remove') request.idToRemove=extra.id;
   const url=new URL(endpoint);url.searchParams.set('action','outstandingOwner');url.searchParams.set('request',id);
-  const popup=window.open(url.href,'printOutstandingOwner','popup,width=560,height=460');
+  const popup=existingPopup||window.open(url.href,'printOutstandingOwner','popup,width=560,height=460');
   if(!popup) return Promise.reject(new Error('กรุณาอนุญาตหน้าต่างป๊อปอัปของเว็บนี้ แล้วกดส่งอีกครั้ง'));
   return new Promise((resolve,reject)=>{
     const trusted=new Set([popup]),submitted=new Set();

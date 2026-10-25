@@ -5,6 +5,6 @@ var AccountSlips=(function(){
   async function prepare(file){if(!file||!['image/jpeg','image/png','image/webp'].includes(file.type))throw new Error('เลือกสลิปเป็นรูป JPG, PNG หรือ WebP');const result=await JobImageCodec.compress(file);return {id:crypto.randomUUID(),name:file.name,type:result.blob.type,size:result.blob.size,blob:result.blob};}
   const read=id=>transact('readonly',store=>store.get(id));
   const put=slip=>transact('readwrite',store=>store.put(slip));
-  async function dataUrl(id){const item=await read(id);if(!item)throw new Error('ไม่พบไฟล์สลิปในอุปกรณ์นี้ กรุณาแนบสลิปใหม่ก่อนสำรอง');return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(new Error('อ่านสลิปไม่สำเร็จ'));reader.readAsDataURL(item.blob);});}
+  async function dataUrl(id){let item=await read(id);if(!item&&typeof AccountsCloud!=='undefined'&&AccountsCloud.isReady())item=await AccountsCloud.slip({id});if(!item)throw new Error('ไม่พบไฟล์สลิปในอุปกรณ์นี้ กรุณาแนบสลิปใหม่ก่อนสำรอง');return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(new Error('อ่านสลิปไม่สำเร็จ'));reader.readAsDataURL(item.blob);});}
   const remove=id=>transact('readwrite',store=>store.delete(id));return {prepare,read,put,dataUrl,remove};
 })();

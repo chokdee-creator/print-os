@@ -8,7 +8,7 @@ function orRequireOwner_() {
 }
 function outstandingOwnerRequest(data) {
   orRequireOwner_();
-  if(!data || !/^[a-zA-Z0-9_-]{20,100}$/.test(data.id || '') || !['previewSend','save','list','remove','recipients','addRecipient','removeRecipient','getPaymentChannels','savePaymentChannels'].includes(data.action)) throw new Error('คำขอไม่ถูกต้อง');
+  if(!data || !/^[a-zA-Z0-9_-]{20,100}$/.test(data.id || '') || !['previewSend','save','list','remove','recipients','addRecipient','removeRecipient','getPaymentChannels','savePaymentChannels','ledgerGet','ledgerSave','ledgerSlipGet'].includes(data.action)) throw new Error('คำขอไม่ถูกต้อง');
   if(orProperties_().getProperty('PRINT_REPORT_STORE_CONFIRMED')!=='true') throw new Error('Store not confirmed');
   const lock=LockService.getScriptLock();lock.waitLock(30000);
   try {
@@ -16,6 +16,7 @@ function outstandingOwnerRequest(data) {
       const entry=orPaymentEntry_();
       if(String(data.paymentRevision||'')!==String(entry.updatedAt||''))return {...orPaymentChannelAction_({action:'getPaymentChannels',store:data.store}),paymentChannelsChanged:true};
     }
+    if(['ledgerGet','ledgerSave','ledgerSlipGet'].includes(data.action))return ledgerAction_(data);
     if(['getPaymentChannels','savePaymentChannels'].includes(data.action)) return orPaymentChannelAction_(data);
     if(['recipients','addRecipient','removeRecipient'].includes(data.action)) return orRecipientAction_(data);
     return orAction_(data,data.id);
