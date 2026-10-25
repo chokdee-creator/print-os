@@ -9,3 +9,5 @@
 
 /* Receipt amount reader */
 .slip-read{margin-top:12px;padding:12px 14px;background:#edf4e9;border:1px solid #d6e5d0;border-radius:12px;color:#315c48;font-size:13px;line-height:1.6}.slip-read p{margin:0}.slip-read button{border:1px solid #bfd3b9;border-radius:8px;background:#fff;color:#315c48;padding:6px 10px;font:inherit;cursor:pointer}.slip-read button:hover{background:#e2eddb}.slip-read button:focus-visible{outline:2px solid #416854;outline-offset:2px}.slip-read-choices{display:flex;flex-wrap:wrap;gap:7px}.slip-read-choices:not(:empty),#slipReadCancel:not([hidden]){margin-top:8px}
+
+.slip-identity-status:not(:empty){margin-top:7px;padding-top:7px;border-top:1px solid #d6e5d0;font-size:12px;color:#516a59}

@@ -8,7 +8,8 @@ function ledgerValidate_(input){
     if(!b||b.id!=='book-'+(i+1)||typeof b.name!=='string'||!b.name.trim()||b.name.length>50||!Array.isArray(b.entries)||b.entries.length>10000)throw new Error('ข้อมูลสมุดบัญชีไม่ถูกต้อง');
     return {id:b.id,name:b.name.trim(),entries:b.entries.map(e=>{
       if(!e||!/^[a-zA-Z0-9_-]{8,100}$/.test(e.id||'')||ids.has(e.id)||!['income','expense'].includes(e.type)||!/^\d{4}-\d{2}-\d{2}$/.test(e.date||'')||isNaN(Date.parse(e.date))||new Date(e.date).toISOString().slice(0,10)!==e.date||typeof e.name!=='string'||!e.name.trim()||e.name.length>160||typeof e.note!=='string'||e.note.length>500||!Number.isSafeInteger(e.amount)||e.amount<=0||e.amount>99999999999)throw new Error('ข้อมูลรายการไม่ถูกต้อง');ids.add(e.id);
-      const r={id:e.id,name:e.name.trim(),amount:e.amount,type:e.type,date:e.date,note:e.note,createdAt:String(e.createdAt||'').slice(0,40)};
+      if(e.recipient!==undefined&&(typeof e.recipient!=='string'||e.recipient.length>160))throw new Error('ชื่อบัญชีผู้รับไม่ถูกต้อง');
+      const r={recipient:(e.recipient||'').trim(),id:e.id,name:e.name.trim(),amount:e.amount,type:e.type,date:e.date,note:e.note,createdAt:String(e.createdAt||'').slice(0,40)};
       if(e.slip){const s=e.slip;if(!/^[a-zA-Z0-9_-]{8,100}$/.test(s.id||'')||slips.has(s.id)||typeof s.name!=='string'||s.name.length>250)throw new Error('ข้อมูลสลิปไม่ถูกต้อง');slips.add(s.id);r.slip={id:s.id,name:s.name};}return r;
     })};
   })};

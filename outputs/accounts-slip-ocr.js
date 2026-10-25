@@ -3,6 +3,31 @@ var AccountSlipOCR=(function(){
   'use strict';
   const assetBase=typeof document==='undefined'?'':new URL('vendor/receipt-ocr/',document.currentScript.src).href;
   let library;
+  function parties(lines){
+    const recipientLabel=/^(?:ชื่อบัญชีผู้รับ|ชื่อผู้รับ|บัญชีผู้รับ|ผู้รับเงิน|ผู้รับ|โอนให้|โอนไปยัง|ไปยัง|ถึง|to\b|recipient\b|beneficiary\b)\s*[:：\-]?\s*/i;
+    const senderLabel=/^(?:ชื่อบัญชีผู้โอน|ชื่อผู้โอน|ผู้โอนเงิน|ผู้โอน|จาก|from\b|sender\b)\s*[:：\-]?\s*/i;
+    const stop=/จำนวนเงิน|ยอดเงิน|ยอดโอน|ค่าธรรมเนียม|วันที่|อ้างอิง|หมายเลขรายการ|amount|fee|reference|transaction/i;
+    const nonName=/ธนาคาร|กสิกร|ไทยพาณิชย์|กรุงไทย|กรุงเทพ|กรุงศรี|ทหารไทย|ธนชาต|ออมสิน|พร้อมเพย์|promptpay|bank|kbank|scb|krungthai|ttb|account|เลขบัญชี|เลขที่บัญชี|ชื่อบัญชี$|สำเร็จ|successful/i;
+    function find(label,opposite){
+      const names=[];
+      lines.forEach((line,index)=>{
+        if(!label.test(line))return;
+        for(let offset=0;offset<5&&index+offset<lines.length;offset++){
+          let candidate=offset?lines[index+offset]:line.replace(label,'');
+          if(offset&&(opposite.test(candidate)||stop.test(candidate)))break;
+          candidate=candidate.replace(/^(?:ชื่อบัญชี|ชื่อ)\s*[:：]?\s*/,'').trim();
+          if(!candidate||nonName.test(candidate)||/[0-9๐-๙]/.test(candidate)||candidate.length>160)continue;
+          if((candidate.match(/[a-zA-Zก-๙]/g)||[]).length<4)continue;
+          names.push(candidate);break;
+        }
+      });
+      const unique=[...new Set(names)];return unique.length===1?unique[0]:null;
+    }
+    const text=lines.join('\n');
+    const incoming=/ได้รับเงิน|รับเงินสำเร็จ|รับโอนเงิน|เงินเข้าบัญชี|money received|payment received|received from/i.test(text);
+    const outgoing=/โอนเงินสำเร็จ|โอนสำเร็จ|ชำระเงินสำเร็จ|จ่ายเงินสำเร็จ|transfer successful|successful transfer|payment successful|paid to/i.test(text);
+    return {recipient:find(recipientLabel,senderLabel),sender:find(senderLabel,recipientLabel),type:incoming===outgoing?null:incoming?'income':'expense'};
+  }
   function parse(text){
     const lines=String(text).replace(/ํา/g,'ำ').replace(/[๐-๙]/g,c=>String(c.charCodeAt(0)-3664)).split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
     const positive=/จำนวนเงิน|ยอดโอน|ยอดเงินโอน|ยอดชำระ|ยอดเงิน|จำนวนที่โอน|amount|transfer\s*amount|payment\s*amount|grand\s*total|total/i;
@@ -31,7 +56,7 @@ var AccountSlipOCR=(function(){
     });
     const unique=[...new Set(candidates.sort((a,b)=>b.score-a.score).map(c=>c.amount))];
     const best=candidates[0],ties=best?new Set(candidates.filter(c=>c.score>=best.score-10).map(c=>c.amount)):new Set();
-    return {amount:ties.size===1?best.amount:null,candidates:unique.slice(0,6)};
+    return {amount:ties.size===1?best.amount:null,candidates:unique.slice(0,6),...parties(lines)};
   }
   function load(){
     if(typeof Tesseract!=='undefined')return Promise.resolve();
@@ -60,7 +85,7 @@ var AccountSlipOCR=(function(){
       if(signal?.aborted)aborted();
       const parsed=parse(result.data.text);
       // Weak recognition is offered for manual choice rather than silently applied.
-      if(result.data.confidence<40)parsed.amount=null;
+      if(result.data.confidence<40){parsed.amount=null;parsed.recipient=null;parsed.sender=null;parsed.type=null;}
       return parsed;
     })();
     const cancelled=new Promise((_,reject)=>{
