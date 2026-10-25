@@ -4,9 +4,16 @@ var AccountSlipOCR=(function(){
   const assetBase=typeof document==='undefined'?'':new URL('vendor/receipt-ocr/',document.currentScript.src).href;
   let library;
   const Names=typeof AccountSlipNames!=='undefined'?AccountSlipNames:typeof require==='function'?require('./accounts-slip-names.js'):null;
+  function transactionType(lines){
+    const status=lines.map(line=>line.replace(/\s/g,'').toLowerCase());
+    const failed=/ไม่สำเร็จ|ยกเลิก|ล้มเหลว|รอดำเนินการ|unsuccessful|failed|cancelled|canceled|pending/;
+    if(status.some(line=>failed.test(line)))return null;
+    const incoming=status.some(line=>/ได้รับเงิน|รับเงินสำเร็จ|รับโอนเงิน|เงินเข้าบัญชี|moneyreceived|paymentreceived|receivedfrom/.test(line));
+    const outgoing=status.some(line=>/โอนเงินสำเร็จ|โอนสำเร็จ|ชำระเงินสำเร็จ|จ่ายเงินสำเร็จ|จ่ายบิลสำเร็จ|จ่ายบิลเรียบร้อย|ชำระบิลสำเร็จ|ทำรายการจ่ายบิลสำเร็จ|transfersuccessful|successfultransfer|paymentsuccessful|paymentcompleted|billpaid|paidto/.test(line));
+    return incoming===outgoing?null:incoming?'income':'expense';
+  }
   function parties(lines,tsv){
-    const text=lines.join('\n'),incoming=/ได้รับเงิน|รับเงินสำเร็จ|รับโอนเงิน|เงินเข้าบัญชี|money received|payment received|received from/i.test(text),outgoing=/โอนเงินสำเร็จ|โอนสำเร็จ|ชำระเงินสำเร็จ|จ่ายเงินสำเร็จ|transfer successful|successful transfer|payment successful|paid to/i.test(text);
-    return {...Names.extract(text,tsv),type:incoming===outgoing?null:incoming?'income':'expense'};
+    return {...Names.extract(lines.join('\n'),tsv),type:transactionType(lines)};
   }
   function parse(text,tsv){
     const lines=String(text).replace(/ํา/g,'ำ').replace(/[๐-๙]/g,c=>String(c.charCodeAt(0)-3664)).split(/\r?\n/).map(s=>s.trim()).filter(Boolean);

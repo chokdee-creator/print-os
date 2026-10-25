@@ -29,6 +29,12 @@ assert.equal(parse('โอนเงินสำเร็จ\nได้รับ�
 assert.equal(parse('จำนวนเงิน 100.00 บาท').type,null);
 assert.equal(parse('ไปยัง\nธนาคารไทยพาณิชย์\n1234567890\nจำนวนเงิน 100.00 บาท').recipient,null);
 assert.equal(parse('To: Jane Green\nTo: Jane Brown').recipient,null);
+assert.equal(parse('จ่ายบิลสำเร็จ\nจาก\nร้าน ตัวอย่าง\nไปยัง\nPayment to ShopeeFood\nจำนวนเงิน 50.00 บาท\nค่าธรรมเนียม 0.00 บาท').type,'expense');
+assert.equal(parse('จ่าย บิล สําเร็จ').type,'expense');
+assert.equal(parse('Bill payment successful').type,'expense');
+assert.equal(parse('จ่ายบิลไม่สำเร็จ').type,null);
+assert.equal(parse('จ่ายบิลสำเร็จ\nยกเลิกรายการ').type,null);
+assert.equal(parse('ได้รับเงิน 50.00 บาท').type,'income');
 console.log('PASS receipt amount parsing: labels, Thai digits, fees, balances, ambiguity and invalid values');
 // Exercise the actual UI controller with delayed recognition, without saving records.
 const vm=require('node:vm'),fs=require('node:fs');
@@ -49,5 +55,6 @@ function harness(){
  h=harness();task=h.start();h.pending[0].resolve({amount:10000,candidates:[10000],recipient:'Jane Green',type:'expense'});await task;assert.equal(h.$('entryRecipient').value,'Jane Green');assert.equal(h.$('entryType').value,'expense');
  h=harness();task=h.start();h.$('entryRecipient').value='My correction';h.$('entryRecipient').input();vm.runInContext('typeRevision++',h.ctx);h.pending[0].resolve({amount:10000,candidates:[10000],recipient:'Jane Green',type:'expense'});await task;assert.equal(h.$('entryRecipient').value,'My correction');assert.equal(h.$('entryType').value,'');
  h=harness();task=h.start();h.pending[0].resolve({amount:null,candidates:[],recipient:null,nameCandidates:['นาย สมชาย ใจดี']});await task;assert.equal(h.$('entryRecipient').value,'');assert.equal(h.$('slipReadChoices').children.length,1);h.$('slipReadChoices').children[0].onclick();assert.equal(h.$('entryRecipient').value,'นาย สมชาย ใจดี');
+ h=harness();vm.runInContext('editing={id:"existing"}',h.ctx);task=h.start();h.pending[0].resolve({amount:5000,candidates:[5000],type:'expense'});await task;assert.equal(h.$('entryType').value,'expense','explicit re-read must also classify an existing entry');
  console.log('PASS OCR UI: automatic amount, manual edits preserved, explicit replacement, cancellation and stale upload protection');
 })().catch(error=>{console.error(error);process.exitCode=1;});

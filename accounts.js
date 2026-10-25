@@ -45,7 +45,7 @@ $('entryRecipient').addEventListener('input',()=>{++recipientRevision;});
 $('slipReadCancel').onclick=()=>{clearSlipRead();$('slipRead').hidden=false;$('slipReadStatus').textContent='หยุดอ่านแล้ว · กรอกยอดเงินเองได้เลย';};
 async function readSlipAmount(blob,version){
   clearSlipRead();const controller=new AbortController();ocrController=controller;
-  const revision=amountRevision,initial=$('entryAmount').value,recipientStart=recipientRevision,recipientInitial=$('entryRecipient').value,typeStart=typeRevision,wasEditing=!!editing;
+  const revision=amountRevision,initial=$('entryAmount').value,recipientStart=recipientRevision,recipientInitial=$('entryRecipient').value,typeStart=typeRevision;
   $('slipRead').hidden=false;$('slipReadCancel').hidden=false;$('slipReadStatus').textContent='กำลังเตรียมตัวอ่านสลิป… ครั้งแรกอาจใช้เวลาสักครู่';
   try{
     const result=await AccountSlipOCR.read(blob,{signal:controller.signal,onProgress:percent=>{if(version===slipVersion&&!controller.signal.aborted)$('slipReadStatus').textContent=percent===null?'กำลังเตรียมตัวอ่านสลิป…':'กำลังอ่านชื่อและยอดเงินจากสลิป '+percent+'%';}});
@@ -65,7 +65,7 @@ async function readSlipAmount(blob,version){
       for(const candidate of result.nameCandidates||[]){const button=el('button','','โอนให้: '+candidate);button.type='button';button.onclick=()=>{if(version!==slipVersion)return;$('entryRecipient').value=candidate;++recipientRevision;button.remove();$('slipIdentityStatus').textContent='เลือกผู้รับ: '+candidate+' · ตรวจสอบกับสลิปก่อนบันทึก';};$('slipReadChoices').appendChild(button);}
     }
     if(result.sender)identity.unshift('ผู้โอน: '+result.sender);
-    if(result.type&&typeStart===typeRevision&&!wasEditing){setType(result.type);identity.push('เลือก'+(result.type==='income'?'รายรับ':'รายจ่าย')+'ตามข้อความในสลิป · ตรวจสอบก่อนบันทึก');}
+    if(result.type&&typeStart===typeRevision){setType(result.type);identity.push('เลือก'+(result.type==='income'?'รายรับ':'รายจ่าย')+'ตามข้อความในสลิป · ตรวจสอบก่อนบันทึก');}
     else if(!result.type)identity.push('ระบุรายรับ–รายจ่ายไม่ได้ · กรุณาเลือกเอง');
     $('slipIdentityStatus').textContent=identity.join(' · ');
   }catch(error){if(version===slipVersion&&!controller.signal.aborted)$('slipReadStatus').textContent='อ่านยอดไม่สำเร็จ · กรอกยอดเองได้ สลิปยังแนบอยู่';}
