@@ -8,8 +8,9 @@ function orRequireOwner_() {
 }
 function outstandingOwnerRequest(data) {
   orRequireOwner_();
-  if(!data || !/^[a-zA-Z0-9_-]{20,100}$/.test(data.id || '') || !['previewSend','save','list','remove','recipients','addRecipient','removeRecipient','getPaymentChannels','savePaymentChannels','ledgerGet','ledgerSave','ledgerSlipGet','ledgerDeviceEnroll'].includes(data.action)) throw new Error('คำขอไม่ถูกต้อง');
+  if(!data || !/^[a-zA-Z0-9_-]{20,100}$/.test(data.id || '') || !['previewSend','save','list','remove','recipients','addRecipient','removeRecipient','getPaymentChannels','savePaymentChannels','ledgerGet','ledgerSave','ledgerSlipGet','ledgerDeviceEnroll','ledgerLoginStart'].includes(data.action)) throw new Error('คำขอไม่ถูกต้อง');
   if(orProperties_().getProperty('PRINT_REPORT_STORE_CONFIRMED')!=='true') throw new Error('Store not confirmed');
+  if(data.action==='ledgerLoginStart')return ledgerLoginSession(data);
   const lock=LockService.getScriptLock();lock.waitLock(30000);
   try {
     if(data.action==='previewSend'&&Object.prototype.hasOwnProperty.call(data,'paymentRevision')){
