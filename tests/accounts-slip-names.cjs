@@ -1,0 +1,25 @@
+const assert=require('node:assert/strict'),{extract}=require('../accounts-slip-names.js'),{merge}=require('../accounts-slip-ocr.js');
+assert.equal(extract('ชื่อบัญชีผู้รับเงิน\nนาย สมชาย ใจดี').recipient,'นาย สมชาย ใจดี');
+assert.equal(extract('บัญชีปลายทาง\nนาย\nสมชาย\nใจดี\nจำนวนเงิน 500 บาท').recipient,'นาย สมชาย ใจดี');
+assert.equal(extract('ผู้รับ\nนางสาว\nสมหญิง\nใจดี').recipient,'นางสาว สมหญิง ใจดี');
+assert.equal(extract('ผู้รับ\nนาง ส า ว\nปลายทาง ทดสอบ').recipient,'นางสาว ปลายทาง ทดสอบ');
+assert.equal(extract('ผู้รับ\nนางสาว\nเลขบัญชี 12345').recipient,null);
+assert.equal(extract('ผ ู ้ ร ั บ : นาย สมชาย ใจดี').recipient,'นาย สมชาย ใจดี');
+assert.equal(extract('จาก\nธนาคารกรุงไทย\n1234567890\nนาย สมชาย ใจดี\nไปยัง\nพร้อมเพย์\nน.ส. สมหญิง ใจดี').recipient,'น.ส. สมหญิง ใจดี');
+assert.equal(extract('ผู้รับ\nนาย สมชาย กรุงเทพ').recipient,'นาย สมชาย กรุงเทพ','a surname must not be mistaken for a bank');
+assert.equal(extract('ไปยัง\nธน า ค า ร ก ร ุ ง ไท ย\nนางสาว ปลายทาง ทดสอบ').recipient,'นางสาว ปลายทาง ทดสอบ');
+assert.equal(extract('นาย สมชาย ใจดี\nนาย สมคิด ทดสอบ').recipient,null,'unlabelled names must not be assigned arbitrarily');
+assert.equal(extract('นาย สมชาย ใจดี\nนาย สมคิด ทดสอบ').nameCandidates.length,2);
+const rows=['level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext'];
+function word(line,n,x,y,text,confidence=90){rows.push([5,1,1,1,line,n,x,y,text.length*10,30,confidence,text].join('\t'));}
+word(1,1,50,100,'จาก');word(1,2,550,100,'ไปยัง');
+word(2,1,50,150,'นาย');word(2,2,95,150,'สมชาย');word(2,3,165,150,'ใจดี');
+word(2,4,550,150,'นางสาว');word(2,5,625,150,'สมหญิง');word(2,6,705,150,'ทดสอบ');
+const result=extract('จาก ไปยัง\nนาย สมชาย ใจดี นางสาว สมหญิง ทดสอบ',rows.join('\n'));
+assert.equal(result.recipient,'นางสาว สมหญิง ทดสอบ');assert.equal(result.sender,'นาย สมชาย ใจดี');assert.equal(result.spatialRecipient,true);
+const empty={amount:null,type:null,recipient:null,sender:null,candidates:[],nameCandidates:[]};
+assert.equal(merge({...empty,recipient:'นาย สมชาย ใจดี'}, {...empty,recipient:'นาย สมคิด ทดสอบ'}).recipient,null,'conflicting OCR passes require manual confirmation');
+assert.equal(merge({...empty,recipient:'นาย สมชาย ใจดี',spatialRecipient:true}, {...empty,recipient:'นาย สมคิด ทดสอบ'}).recipient,'นาย สมชาย ใจดี');
+assert.equal(extract('ผู้รับ\nนางสาว ปลา ยท าง ท ด ส อ บ').recipient,'นางสาว ปลายทางทดสอบ');
+assert.equal(extract('ผู้รับ\nธนาคารกรุงไทย\nกรุณาตรวจสอบรายละเอียด').recipient,null);
+console.log('PASS slip names: expanded labels, split names, bank lines, unlabelled choices, two columns and conflicting OCR passes');

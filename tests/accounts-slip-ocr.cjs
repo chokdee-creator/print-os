@@ -48,5 +48,6 @@ function harness(){
  h=harness();task=h.start();vm.runInContext('slipVersion=2',h.ctx);h.pending[0].resolve({amount:12345,candidates:[12345]});await task;assert.equal(h.$('entryAmount').value,'','stale slip cannot change a new entry');
  h=harness();task=h.start();h.pending[0].resolve({amount:10000,candidates:[10000],recipient:'Jane Green',type:'expense'});await task;assert.equal(h.$('entryRecipient').value,'Jane Green');assert.equal(h.$('entryType').value,'expense');
  h=harness();task=h.start();h.$('entryRecipient').value='My correction';h.$('entryRecipient').input();vm.runInContext('typeRevision++',h.ctx);h.pending[0].resolve({amount:10000,candidates:[10000],recipient:'Jane Green',type:'expense'});await task;assert.equal(h.$('entryRecipient').value,'My correction');assert.equal(h.$('entryType').value,'');
+ h=harness();task=h.start();h.pending[0].resolve({amount:null,candidates:[],recipient:null,nameCandidates:['นาย สมชาย ใจดี']});await task;assert.equal(h.$('entryRecipient').value,'');assert.equal(h.$('slipReadChoices').children.length,1);h.$('slipReadChoices').children[0].onclick();assert.equal(h.$('entryRecipient').value,'นาย สมชาย ใจดี');
  console.log('PASS OCR UI: automatic amount, manual edits preserved, explicit replacement, cancellation and stale upload protection');
 })().catch(error=>{console.error(error);process.exitCode=1;});

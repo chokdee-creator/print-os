@@ -3,32 +3,12 @@ var AccountSlipOCR=(function(){
   'use strict';
   const assetBase=typeof document==='undefined'?'':new URL('vendor/receipt-ocr/',document.currentScript.src).href;
   let library;
-  function parties(lines){
-    const recipientLabel=/^(?:ชื่อบัญชีผู้รับ|ชื่อผู้รับ|บัญชีผู้รับ|ผู้รับเงิน|ผู้รับ|โอนให้|โอนไปยัง|ไปยัง|ถึง|to\b|recipient\b|beneficiary\b)\s*[:：\-]?\s*/i;
-    const senderLabel=/^(?:ชื่อบัญชีผู้โอน|ชื่อผู้โอน|ผู้โอนเงิน|ผู้โอน|จาก|from\b|sender\b)\s*[:：\-]?\s*/i;
-    const stop=/จำนวนเงิน|ยอดเงิน|ยอดโอน|ค่าธรรมเนียม|วันที่|อ้างอิง|หมายเลขรายการ|amount|fee|reference|transaction/i;
-    const nonName=/ธนาคาร|กสิกร|ไทยพาณิชย์|กรุงไทย|กรุงเทพ|กรุงศรี|ทหารไทย|ธนชาต|ออมสิน|พร้อมเพย์|promptpay|bank|kbank|scb|krungthai|ttb|account|เลขบัญชี|เลขที่บัญชี|ชื่อบัญชี$|สำเร็จ|successful/i;
-    function find(label,opposite){
-      const names=[];
-      lines.forEach((line,index)=>{
-        if(!label.test(line))return;
-        for(let offset=0;offset<5&&index+offset<lines.length;offset++){
-          let candidate=offset?lines[index+offset]:line.replace(label,'');
-          if(offset&&(opposite.test(candidate)||stop.test(candidate)))break;
-          candidate=candidate.replace(/^(?:ชื่อบัญชี|ชื่อ)\s*[:：]?\s*/,'').trim();
-          if(!candidate||nonName.test(candidate)||/[0-9๐-๙]/.test(candidate)||candidate.length>160)continue;
-          if((candidate.match(/[a-zA-Zก-๙]/g)||[]).length<4)continue;
-          names.push(candidate);break;
-        }
-      });
-      const unique=[...new Set(names)];return unique.length===1?unique[0]:null;
-    }
-    const text=lines.join('\n');
-    const incoming=/ได้รับเงิน|รับเงินสำเร็จ|รับโอนเงิน|เงินเข้าบัญชี|money received|payment received|received from/i.test(text);
-    const outgoing=/โอนเงินสำเร็จ|โอนสำเร็จ|ชำระเงินสำเร็จ|จ่ายเงินสำเร็จ|transfer successful|successful transfer|payment successful|paid to/i.test(text);
-    return {recipient:find(recipientLabel,senderLabel),sender:find(senderLabel,recipientLabel),type:incoming===outgoing?null:incoming?'income':'expense'};
+  const Names=typeof AccountSlipNames!=='undefined'?AccountSlipNames:typeof require==='function'?require('./accounts-slip-names.js'):null;
+  function parties(lines,tsv){
+    const text=lines.join('\n'),incoming=/ได้รับเงิน|รับเงินสำเร็จ|รับโอนเงิน|เงินเข้าบัญชี|money received|payment received|received from/i.test(text),outgoing=/โอนเงินสำเร็จ|โอนสำเร็จ|ชำระเงินสำเร็จ|จ่ายเงินสำเร็จ|transfer successful|successful transfer|payment successful|paid to/i.test(text);
+    return {...Names.extract(text,tsv),type:incoming===outgoing?null:incoming?'income':'expense'};
   }
-  function parse(text){
+  function parse(text,tsv){
     const lines=String(text).replace(/ํา/g,'ำ').replace(/[๐-๙]/g,c=>String(c.charCodeAt(0)-3664)).split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
     const positive=/จำนวนเงิน|ยอดโอน|ยอดเงินโอน|ยอดชำระ|ยอดเงิน|จำนวนที่โอน|amount|transfer\s*amount|payment\s*amount|grand\s*total|total/i;
     const excluded=/ค่าธรรมเนียม|ยอดคงเหลือ|คงเหลือ|เลขบัญชี|เลขที่บัญชี|หมายเลข|อ้างอิง|เลขที่รายการ|วันที่|เวลา|fee|balance|account|reference|transaction\s*(id|no)|date|time|vat|tax|subtotal|ส่วนลด|discount/i;
@@ -56,7 +36,7 @@ var AccountSlipOCR=(function(){
     });
     const unique=[...new Set(candidates.sort((a,b)=>b.score-a.score).map(c=>c.amount))];
     const best=candidates[0],ties=best?new Set(candidates.filter(c=>c.score>=best.score-10).map(c=>c.amount)):new Set();
-    return {amount:ties.size===1?best.amount:null,candidates:unique.slice(0,6),...parties(lines)};
+    return {amount:ties.size===1?best.amount:null,candidates:unique.slice(0,6),...parties(lines,tsv)};
   }
   function load(){
     if(typeof Tesseract!=='undefined')return Promise.resolve();
@@ -68,6 +48,28 @@ var AccountSlipOCR=(function(){
       document.head.appendChild(script);
     });
     return library;
+  }
+  async function prepareImage(blob){
+    const image=await createImageBitmap(blob);
+    try{
+      const scale=Math.min(Math.max(1,1400/image.width),3200/Math.max(image.width,image.height),Math.sqrt(6000000/(image.width*image.height)));
+      const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(image.width*scale));canvas.height=Math.max(1,Math.round(image.height*scale));
+      const context=canvas.getContext('2d',{willReadFrequently:true});context.fillStyle='#fff';context.fillRect(0,0,canvas.width,canvas.height);context.drawImage(image,0,0,canvas.width,canvas.height);
+      const pixels=context.getImageData(0,0,canvas.width,canvas.height);for(let n=0;n<pixels.data.length;n+=4){const grey=.299*pixels.data[n]+.587*pixels.data[n+1]+.114*pixels.data[n+2],value=Math.max(0,Math.min(255,(grey-128)*1.12+128));pixels.data[n]=pixels.data[n+1]=pixels.data[n+2]=value;}context.putImageData(pixels,0,0);
+      return await new Promise((resolve,reject)=>canvas.toBlob(result=>result?resolve(result):reject(Error('เตรียมภาพไม่สำเร็จ')),'image/png'));
+    }finally{image.close();}
+  }
+  function interpreted(data){
+    const parsed=parse(data.text,data.tsv);
+    if(data.confidence<40){parsed.amount=null;parsed.type=null;if(!parsed.spatialRecipient)parsed.recipient=null;if(!parsed.spatialSender)parsed.sender=null;}
+    return parsed;
+  }
+  function merge(first,second){
+    const combined={...first,candidates:[...new Set([...first.candidates,...second.candidates])].slice(0,6),nameCandidates:[...new Set([...first.nameCandidates,...second.nameCandidates])].slice(0,4)};
+    for(const key of ['amount','type','recipient','sender']){const flag=key==='recipient'?'spatialRecipient':key==='sender'?'spatialSender':null;
+      if(flag&&first[key]&&second[key]&&first[key].replace(/\s/g,'')===second[key].replace(/\s/g,'')){combined[key]=first.needsNameRetry&&!second.needsNameRetry?second[key]:first[key];continue;}
+      combined[key]=first[key]&&second[key]&&first[key]!==second[key]?(flag&&first[flag]&&!second[flag]?first[key]:flag&&second[flag]&&!first[flag]?second[key]:null):first[key]||second[key];}
+    combined.nameCandidates=combined.nameCandidates.filter(n=>n!==combined.sender);return combined;
   }
   async function read(blob,{signal,onProgress=()=>{}}={}){
     let worker,timer,stop,finished=false;
@@ -81,12 +83,14 @@ var AccountSlipOCR=(function(){
       });
       if(finished||signal?.aborted){worker.terminate();aborted();}
       await worker.setParameters({tessedit_pageseg_mode:'3',user_defined_dpi:'300'});
-      const result=await worker.recognize(blob);
+      let image;try{image=await prepareImage(blob);}catch(error){image=blob;}if(signal?.aborted)aborted();
+      const result=await worker.recognize(image,{}, {text:true,tsv:true});
       if(signal?.aborted)aborted();
-      const parsed=parse(result.data.text);
-      // Weak recognition is offered for manual choice rather than silently applied.
-      if(result.data.confidence<40){parsed.amount=null;parsed.recipient=null;parsed.sender=null;parsed.type=null;}
-      return parsed;
+      const parsed=interpreted(result.data);
+      if(parsed.recipient&&parsed.sender&&!parsed.needsNameRetry)return parsed;
+      await worker.setParameters({tessedit_pageseg_mode:'11'});
+      const retry=await worker.recognize(image,{}, {text:true,tsv:true});if(signal?.aborted)aborted();
+      return merge(parsed,interpreted(retry.data));
     })();
     const cancelled=new Promise((_,reject)=>{
       stop=()=>{worker?.terminate();reject(new DOMException('Cancelled','AbortError'));};
@@ -96,6 +100,6 @@ var AccountSlipOCR=(function(){
     try{return await Promise.race([work,cancelled]);}
     finally{finished=true;clearTimeout(timer);signal?.removeEventListener('abort',stop);worker?.terminate();}
   }
-  return {parse,read};
+  return {parse,read,merge};
 })();
 if(typeof module!=='undefined')module.exports=AccountSlipOCR;
