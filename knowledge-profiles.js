@@ -1,7 +1,7 @@
 /* Local workspaces, not authenticated accounts. Keep Win's original key intact. */
 var KnowledgeProfiles=(()=>{
   const preferenceKey='print-os-knowledge-active-profile';
-  const profiles={win:{name:'วิน',key:'print-os-knowledge-v1',theme:'knowledge.css',color:'#121017'},mana:{name:'มานา',key:'print-os-knowledge-mana-v1',theme:'knowledge-mana.css',color:'#153e3a'}};
+  const profiles={win:{name:'วิน',key:'print-os-knowledge-v1',theme:'knowledge.css',color:'#121017'},mana:{name:'มานา',key:'print-os-knowledge-mana-v1',theme:'knowledge-mana.css',color:'#ffdf00'}};
   function get(id){if(!Object.hasOwn(profiles,id))throw Error('ไม่พบผู้ใช้ที่เลือก');return profiles[id];}
   function active(storage){try{const id=storage.getItem(preferenceKey);return Object.hasOwn(profiles,id)?id:'win';}catch{return 'win';}}
   function select(storage,id){get(id);storage.setItem(preferenceKey,id);}
