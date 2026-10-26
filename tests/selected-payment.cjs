@@ -13,3 +13,9 @@ assert.throws(()=>P.documents([{...row,sale:NaN}]));
 console.log('PASS: separate customers, partial payments, exact totals, unpaid document, HTML escaping and invalid amounts');
 
 assert.ok(html.includes('data-document-kind="receipt"'));assert.ok(P.html([{...row,paid:0}],'today').includes('data-document-kind="invoice"'));
+const explicitReceipt=P.html([{...row,paid:0}],'today','ร้านโชคดีการพิมพ์','',{kind:'receipt'});
+assert.ok(explicitReceipt.includes('<h2>ใบเสร็จรับเงิน</h2>'));
+assert.ok(explicitReceipt.includes('data-document-kind="receipt"'));
+const explicitInvoice=P.html([{...row,paid:100}],'today','ร้านโชคดีการพิมพ์','',{kind:'invoice'});
+assert.ok(explicitInvoice.includes('<h2>ใบแจ้งยอดชำระ</h2>'));
+assert.ok(explicitInvoice.includes('data-document-kind="invoice"'));

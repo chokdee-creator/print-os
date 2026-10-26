@@ -34,7 +34,7 @@ var SelectedPayment = (function () {
     return `<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${invoice?'ใบแจ้งยอดชำระ':'ใบเสร็จ / ยอดชำระ'} ${escape(storeName)}</title><style>${theme.css}</style></head><body>
       <div class="tools"><button type="button" onclick="window.print()">พิมพ์ / บันทึก PDF</button><span>แยกเอกสารตามลูกค้า ${docs.length} ราย · แก้ไขข้อมูลติดต่อและรายละเอียดได้เฉพาะบิลนี้</span></div>
       ${docs.map(doc=>{
-        const heading=invoice?'ใบแจ้งยอดชำระ':doc.paid>0?'ใบเสร็จรับเงิน':'ใบแจ้งยอดชำระ';
+        const heading=invoice?'ใบแจ้งยอดชำระ':options.kind==='receipt'||doc.paid>0?'ใบเสร็จรับเงิน':'ใบแจ้งยอดชำระ';
         return `<main class="sheet document" data-store-name="${escape(storeName)}" data-document-kind="${heading==='ใบเสร็จรับเงิน'?'receipt':'invoice'}" data-customer-name="${escape(doc.customerName)}">
         <header class="header-art"><img src="${theme.headerArt}" alt="หัวบิล โชคดีการพิมพ์"></header>
         <section class="head-grid head"><div class="company"><label>ที่อยู่ ${notes('1/11 ถ.สฤทฎิ์ยุทธศิลป์ ต.หน้าเมือง อ.เมือง จ.ปราจีนบุรี 25000')}</label><div class="inline"><label>โทร ${field('091-040-2986','เบอร์โทรร้าน')}</label><label>LINE ${field('@chokdeeprint','LINE ของร้าน')}</label></div><label>เลขประจำตัวผู้เสียภาษี ${field('','กรอกเมื่อต้องการแสดง')}</label></div>
@@ -132,7 +132,7 @@ async function printSelectedReceipt() {
     const rows=selectedPaymentRows(selectedRecords());
     SelectedPayment.documents(rows);
     const paymentKeys=rows.some(r=>r.sale>r.paid)?await StorePaymentChannels.choose('เปิดเอกสารด้วยบัญชีที่เลือก'):[];if(paymentKeys===null)return;
-    const html=SelectedPayment.html(rows,new Intl.DateTimeFormat('th-TH',{timeZone:'Asia/Bangkok',dateStyle:'long'}).format(new Date()),SHEET_TAB_NAME==='Chokdee'?'ร้านโชคดีการพิมพ์':'ร้านปริ้นอิมเมจ',StorePaymentChannels.html(paymentKeys));
+    const html=SelectedPayment.html(rows,new Intl.DateTimeFormat('th-TH',{timeZone:'Asia/Bangkok',dateStyle:'long'}).format(new Date()),SHEET_TAB_NAME==='Chokdee'?'ร้านโชคดีการพิมพ์':'ร้านปริ้นอิมเมจ',StorePaymentChannels.html(paymentKeys),{kind:'receipt'});
     showSelectedPaymentDocument(html,undefined,undefined,rows.some(r=>r.sale>r.paid)?{paymentKeys}:{});
   }catch(e){toast(e.message);}
 }
