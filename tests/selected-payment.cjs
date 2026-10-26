@@ -7,7 +7,9 @@ const html=P.html([row],'20 ตุลาคม 2569');
 assert.ok(html.includes('&lt;img'));assert.ok(!html.includes('<img src=x'));assert.ok(html.includes('ใบเสร็จรับเงิน'));assert.ok(html.includes('40.00'));assert.ok(html.includes('60.00'));
 assert.ok(P.html([{...row,paid:0}],'today').includes('ใบแจ้งยอดชำระ'));
 const chokdee=P.html([row],'today','ร้านโชคดีการพิมพ์');
-assert.ok(chokdee.includes('<h1>ร้านโชคดีการพิมพ์</h1>'));assert.ok(!chokdee.includes('ร้านปริ้นอิมเมจ'));
+assert.ok(chokdee.includes('data-store-name="ร้านโชคดีการพิมพ์"'));assert.ok(!chokdee.includes('ร้านปริ้นอิมเมจ'));
 assert.throws(()=>P.documents([]));assert.throws(()=>P.documents([{...row,paid:101}]));
 assert.throws(()=>P.documents([{...row,sale:NaN}]));
 console.log('PASS: separate customers, partial payments, exact totals, unpaid document, HTML escaping and invalid amounts');
+
+assert.ok(html.includes('data-document-kind="receipt"'));assert.ok(P.html([{...row,paid:0}],'today').includes('data-document-kind="invoice"'));

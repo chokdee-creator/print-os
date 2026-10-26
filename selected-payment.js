@@ -35,7 +35,7 @@ var SelectedPayment = (function () {
       <div class="tools"><button type="button" onclick="window.print()">พิมพ์ / บันทึก PDF</button><span>แยกเอกสารตามลูกค้า ${docs.length} ราย · แก้ไขข้อมูลติดต่อและรายละเอียดได้เฉพาะบิลนี้</span></div>
       ${docs.map(doc=>{
         const heading=invoice?'ใบแจ้งยอดชำระ':doc.paid>0?'ใบเสร็จรับเงิน':'ใบแจ้งยอดชำระ';
-        return `<main class="sheet document" data-customer-name="${escape(doc.customerName)}">
+        return `<main class="sheet document" data-store-name="${escape(storeName)}" data-document-kind="${heading==='ใบเสร็จรับเงิน'?'receipt':'invoice'}" data-customer-name="${escape(doc.customerName)}">
         <header class="header-art"><img src="${theme.headerArt}" alt="หัวบิล โชคดีการพิมพ์"></header>
         <section class="head-grid head"><div class="company"><label>ที่อยู่ ${notes('1/11 ถ.สฤทฎิ์ยุทธศิลป์ ต.หน้าเมือง อ.เมือง จ.ปราจีนบุรี 25000')}</label><div class="inline"><label>โทร ${field('091-040-2986','เบอร์โทรร้าน')}</label><label>LINE ${field('@chokdeeprint','LINE ของร้าน')}</label></div><label>เลขประจำตัวผู้เสียภาษี ${field('','กรอกเมื่อต้องการแสดง')}</label></div>
         <div class="document-title"><div class="gold-heading large"><h2>${heading}</h2><small>${heading==='ใบเสร็จรับเงิน'?'RECEIPT':'INVOICE'}</small></div><label>เลขที่ ${field('','เลขที่เอกสาร')}</label><label>วันที่ ${field(date)}</label><label>อ้างอิง ${field('','เลขอ้างอิง')}</label></div></section>
@@ -117,6 +117,7 @@ function showSelectedPaymentDocument(html, onSend, documentTitle, options={}) {
   BillImage.mount(frame,send.parentElement,status);
   if(typeof BillLayout!=='undefined')BillLayout.mount(frame,send.parentElement,status);
   if(typeof BillTypography!=='undefined')BillTypography.mount(frame,send.parentElement,status);
+  if(typeof BillSlip!=='undefined')BillSlip.mount(frame,send.parentElement,status);
   send.hidden=!onSend;send.disabled=false;send.textContent='ส่งยอดเข้า LINE';status.textContent='';
   send.onclick=onSend?async()=>{
     if(send.disabled)return;sending=true;send.disabled=true;bank.disabled=true;status.textContent='กำลังส่งยอดของรายการในบิลเข้า LINE…';

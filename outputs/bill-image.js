@@ -24,6 +24,16 @@ var BillImage=(function(){
         markEmptyFields(bill);
         bill.querySelectorAll('[data-bill-empty]').forEach(node=>node.remove());
         bill.querySelectorAll('input').forEach(field=>field.removeAttribute('placeholder'));
+        // Narrow receipt inputs are shorter than the canvas renderer's input
+        // baseline. Render their values as wrapping text to avoid clipped names.
+        if(bill.classList?.contains('bill-format-slip'))bill.querySelectorAll('input').forEach(field=>{
+          const text=clonedDoc.createElement('span'),font=clonedDoc.defaultView.getComputedStyle(field);
+          let value=field.value||'';
+          if(field.hasAttribute('data-price')&&Number.isFinite(Number(value)))value=Number(value).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
+          if(field.getAttribute('aria-label')==='ยอดรับชำระแล้ว'&&Number.isFinite(Number(value)))value=Number(value).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})+' บาท';
+          text.textContent=value;text.style.cssText='display:block;width:100%;min-width:0;white-space:pre-wrap;overflow-wrap:anywhere;border:0;padding:0;margin:0';
+          ['fontSize','fontFamily','fontWeight','fontStyle','lineHeight','textAlign','color'].forEach(key=>text.style[key]=font[key]);field.replaceWith(text);
+        });
         bill.style.setProperty('min-height','0','important');
         if(!bill.classList?.contains('bill-layout-canvas'))bill.style.setProperty('height','auto','important');
         bill.style.setProperty('box-shadow','none','important');
