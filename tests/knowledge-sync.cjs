@@ -1,0 +1,17 @@
+const assert=require('node:assert/strict'),fs=require('fs'),vm=require('vm'),K=require('../knowledge.js'),S=require('../knowledge-sync.js');
+const base=K.defaults(),entry=K.entry({id:'note-original',title:'ต้นฉบับ',note:'ข้อความเดิม'},base.categories);base.entries=[entry];
+const local=structuredClone(base),remote=structuredClone(base);local.entries[0].note='แก้จากมือถือ';remote.entries[0].note='แก้จากคอม';
+const conflict=S.rebase(base,local,remote,()=> 'copy-from-phone');assert.equal(conflict.conflicts,1);assert.equal(conflict.data.entries.length,2);assert.equal(conflict.data.entries.find(e=>e.id===entry.id).note,'แก้จากคอม');assert.equal(conflict.data.entries.find(e=>e.id==='copy-from-phone').note,'แก้จากมือถือ');
+const independent=structuredClone(base);independent.entries.push({...entry,id:'remote-note',title:'อีกเครื่อง'});assert.equal(S.rebase(base,local,independent,()=> 'unused').conflicts,0);assert.equal(S.rebase(base,local,independent,()=> 'unused').data.entries.length,2);
+const deleted=structuredClone(base);deleted.entries=[];assert.equal(S.rebase(base,deleted,remote,()=> 'unused').data.entries.length,1);
+const files=new Map();let writes=0,n=0;const context={console,Utilities:{getUuid:()=> 'revision-'+(++n)},orReadDelivery_:key=>files.has(key)?structuredClone(files.get(key)):null,orWriteDelivery_:(key,value)=>{writes++;files.set(key,structuredClone(value));}};vm.createContext(context);vm.runInContext(fs.readFileSync('knowledge-service.gs','utf8'),context);
+const get=profile=>context.knowledgeAction_({command:'knowledgeGet',profile}).knowledge;
+const patch=(profile,changes,operationId='operation-12345678901234567890')=>context.knowledgeAction_({command:'knowledgePatch',profile,changes,operationId});
+assert.equal(get('win').entries.length,0);assert.equal(get('mana').entries.length,0);
+const start=JSON.parse(JSON.stringify(get('win'))),first=structuredClone(start);first.entries=[entry];
+assert.equal(patch('win',S.diff(start,first)).knowledge.entries.length,1);assert.equal(get('mana').entries.length,0);assert.equal(patch('win',S.diff(start,first)).knowledge.entries.length,1);
+const second=structuredClone(first);second.entries.push({...entry,id:'different-device',title:'งานอีกเครื่อง'});assert.equal(patch('win',S.diff(first,second),'operation-second-123456789').knowledge.entries.length,2);
+const edit=structuredClone(first);edit.entries[0].note='แก้ล่าสุด';patch('win',S.diff(first,edit),'operation-third-1234567890');const writeBeforeConflict=writes;
+assert.equal(patch('win',S.diff(first,local),'operation-fourth-123456789').conflict,true);assert.equal(writes,writeBeforeConflict);
+assert.throws(()=>get('unknown'));const invalid=structuredClone(second);invalid.entries.push({...entry,id:'unsafe-link',url:'javascript:alert(1)'});assert.throws(()=>patch('mana',S.diff(start,invalid),'operation-invalid-1234567'));assert.equal(get('mana').entries.length,0);
+console.log('PASS: Google workspaces isolated, atomic changes, independent edits merge, same-entry conflicts retain both, retries idempotent and unsafe data rejected');

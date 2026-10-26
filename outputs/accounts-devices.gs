@@ -24,7 +24,8 @@ function ledgerDeviceBridge_(data){
     if(!data||data.action!=='ledgerDevice')throw new Error('คำขอไม่ถูกต้อง');lock.waitLock(30000);acquired=true;
     let result;if(data.command==='pairRedeem')result=ledgerRedeem_(data);else{
       const device=data.loginToken?ledgerLoginAuth_(data.loginToken):ledgerDeviceAuth_(data.deviceToken);
-      if(['ledgerGet','ledgerSave','ledgerSlipGet'].includes(data.command))result=ledgerAction_({...data,action:data.command});
+      if(['knowledgeGet','knowledgePatch'].includes(data.command))result=knowledgeAction_(data);
+      else if(['ledgerGet','ledgerSave','ledgerSlipGet'].includes(data.command))result=ledgerAction_({...data,action:data.command});
       else if(data.command==='pairCreate')result=ledgerPairCode_(device);
       else if(data.command==='deviceList')result={ok:true,currentDevice:device.id,devices:ledgerDeviceRecords_().filter(d=>!d.revokedAt).map(d=>({id:d.id,label:d.label,createdAt:d.createdAt,lastSeen:d.lastSeen,current:d.id===device.id}))};
       else if(data.command==='deviceRevoke'){

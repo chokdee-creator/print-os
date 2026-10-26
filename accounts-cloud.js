@@ -40,5 +40,6 @@ var AccountsCloud=(function(){
   }
   async function loginGoogle(){const token=newToken(),result=await sendOutstandingOwnerAction('ledgerLoginStart',{loginToken:token},endpoint);keepLogin(token,result);return result;}
 
-  return {load,save,accept,wasConnected,slip,pair,enrollOwner,loginGoogle,mode:()=>login()?'login':device()?'device':'none',loginLabel:()=>login()?.label||'',hasDevice:()=>!!device(),label:()=>device()?.label||'',listDevices:()=>request('deviceList'),createPairCode:()=>request('pairCreate'),revokeDevice:id=>request('deviceRevoke',{deviceId:id}),forget,stage:data=>{revision=data.revision||'';ready=true;},disconnect:()=>{ready=false;},isReady:()=>ready};
+  async function knowledgeRequest(command,extra){if(!login()){if(device())probeLogin().catch(()=>{});else await probeLogin();}return request(command,extra);}
+  return {knowledgeGet:profile=>knowledgeRequest('knowledgeGet',{profile}),knowledgePatch:(profile,changes,operationId)=>knowledgeRequest('knowledgePatch',{profile,changes,operationId}),load,save,accept,wasConnected,slip,pair,enrollOwner,loginGoogle,mode:()=>login()?'login':device()?'device':'none',loginLabel:()=>login()?.label||'',hasDevice:()=>!!device(),label:()=>device()?.label||'',listDevices:()=>request('deviceList'),createPairCode:()=>request('pairCreate'),revokeDevice:id=>request('deviceRevoke',{deviceId:id}),forget,stage:data=>{revision=data.revision||'';ready=true;},disconnect:()=>{ready=false;},isReady:()=>ready};
 })();
