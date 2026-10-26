@@ -19,3 +19,10 @@ assert.equal(I.merge([],[{id:'new-offline',jobImage:pending}])[0].id,'new-offlin
 assert.ok(!fs.readFileSync('job-images-service.gs','utf8').includes('setSharing'),'job images must not become public links');
 for(const page of ['print-image-account.html','chokdee-print.html']){const html=fs.readFileSync(page,'utf8');assert.ok(html.includes('JobImages.attach(record,existingRecord)'));assert.ok(html.includes('await JobImages.payload('));assert.ok(html.includes('JobImages.metadata(row[30])'));}
 console.log('PASS: 700 KB server cap, rejected non-images, retry deduplication, private storage, ordinary edit preservation, pending upload preservation and both shop integrations.');
+
+assert.equal(I.previewUrl({fileId:'private-image'}),'https://drive.google.com/file/d/private-image/preview');
+assert.equal(I.previewUrl({url:'https://drive.google.com/file/d/private-image/view?usp=sharing'}),'https://drive.google.com/file/d/private-image/preview');
+assert.equal(I.previewUrl({url:'https://evil.example/file/d/private-image/view'}),null);
+assert.equal(I.previewUrl({fileId:'<script>'}),null);
+assert.ok(!fs.readFileSync('job-images.js','utf8').includes('window.open('),'image clicks must stay in the current page');
+console.log('PASS: private preview URL validation and no new-tab image navigation');

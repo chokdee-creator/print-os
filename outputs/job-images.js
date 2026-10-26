@@ -28,16 +28,30 @@ var JobImages=(function(){
   }
   function merge(remote,local){const pending=new Map(local.filter(row=>row.jobImage?.pending).map(row=>[String(row.id),row.jobImage])),ids=new Set(remote.map(row=>String(row.id)));return remote.map(row=>pending.has(String(row.id))&&pending.get(String(row.id)).uploadKey!==row.jobImage?.uploadKey?{...row,jobImage:pending.get(String(row.id))}:row).concat(local.filter(row=>row.jobImage?.pending&&!ids.has(String(row.id))));}
   function link(record){return metadata(record.jobImage)?'<br><button type="button" class="job-image-link" data-job-image="'+escape(record.id)+'">▧ รูปงาน'+(record.jobImage.pending?' · รอซิงก์':'')+'</button>':'';}
+  function previewUrl(item){
+    let fileId=String(item.fileId||'');
+    if(!fileId){try{const url=new URL(item.url);if(url.protocol!=='https:'||url.hostname!=='drive.google.com')return null;fileId=/^\/file\/d\/([A-Za-z0-9_-]+)(?:\/|$)/.exec(url.pathname)?.[1]||'';}catch{return null;}}
+    return /^[A-Za-z0-9_-]{10,160}$/.test(fileId)?'https://drive.google.com/file/d/'+fileId+'/preview':null;
+  }
   async function open(item,id){
+    item=metadata(item);if(!item)return;
+    document.querySelector('.job-image-preview')?.close();
+    const dialog=document.createElement('dialog');dialog.className='job-image-preview';dialog.setAttribute('aria-label','รูปงาน '+item.name);
+    const header=document.createElement('header'),title=document.createElement('strong');title.textContent=item.name;
+    const close=document.createElement('button');close.type='button';close.textContent='ปิด';close.setAttribute('aria-label','ปิดรูปงาน');close.className='btn secondary';close.onclick=()=>dialog.close();header.append(title,close);
+    const body=document.createElement('div');body.className='job-image-preview-body';const status=document.createElement('p');status.setAttribute('role','status');status.textContent='กำลังโหลดรูปงาน…';body.append(status);dialog.append(header,body);document.body.append(dialog);
+    let objectUrl=null,frame=null;
+    dialog.onclick=event=>{if(event.target===dialog)dialog.close();};dialog.onclose=()=>{if(objectUrl)URL.revokeObjectURL(objectUrl);if(frame)frame.src='about:blank';dialog.remove();};dialog.showModal();
     try{
-      let blob=stage?.blob;
-      if(id){const saved=await cache('get',id);blob=saved?.uploadKey===item.uploadKey?saved.blob:null;}
-      if(!blob&&/^https:\/\/drive\.google\.com\//.test(item.url||'')){window.open(item.url,'_blank','noopener');return;}
-      if(!blob)throw new Error('ไม่พบรูปในเครื่อง กรุณารอซิงก์หรือแนบใหม่');
-      const dialog=document.createElement('dialog'),url=URL.createObjectURL(blob);dialog.className='job-image-preview';
-      const close=document.createElement('button');close.type='button';close.textContent='ปิด';close.className='btn secondary';close.onclick=()=>dialog.close();
-      const image=document.createElement('img');image.src=url;image.alt=item.name;dialog.append(close,image);document.body.append(dialog);dialog.onclick=event=>{if(event.target===dialog)dialog.close();};dialog.onclose=()=>{URL.revokeObjectURL(url);dialog.remove();};dialog.showModal();
-    }catch(error){if(typeof toast==='function')toast(error.message);}
+      let blob=id?null:stage?.blob;
+      if(id){try{const saved=await cache('get',id);blob=saved?.uploadKey===item.uploadKey?saved.blob:null;}catch{ /* Synced images can still use their private Drive preview. */ }}
+      if(!dialog.open)return;
+      if(blob){const image=document.createElement('img');objectUrl=URL.createObjectURL(blob);image.alt=item.name;image.onload=()=>{status.hidden=true;};image.onerror=()=>{status.hidden=false;status.textContent='โหลดรูปไม่สำเร็จ กรุณาปิดแล้วลองอีกครั้ง';};image.src=objectUrl;body.append(image);}
+      else{
+        const url=previewUrl(item);if(!url)throw Error('ไม่พบรูปในเครื่อง กรุณารอซิงก์หรือแนบใหม่');
+        frame=document.createElement('iframe');frame.className='job-image-frame';frame.title='รูปงาน '+item.name;frame.referrerPolicy='no-referrer';frame.setAttribute('sandbox','allow-scripts allow-same-origin allow-forms');frame.onload=()=>{status.hidden=true;};frame.src=url;body.append(frame);
+      }
+    }catch(error){if(dialog.open)status.textContent=error.message;}
   }
   function mount(){
     const form=document.getElementById('jobForm');if(!form)return;
@@ -48,6 +62,6 @@ var JobImages=(function(){
     document.addEventListener('click',event=>{const button=event.target.closest('[data-job-image]');if(!button)return;const record=records.find(row=>String(row.id)===button.dataset.jobImage);if(record)open(record.jobImage,record.id);});reset();
   }
   if(typeof document!=='undefined')document.addEventListener('DOMContentLoaded',mount);
-  return {metadata,attach,payload,confirm,merge,link,reset,edit};
+  return {metadata,attach,payload,confirm,merge,link,reset,edit,previewUrl};
 })();
 if(typeof module!=='undefined'&&module.exports)module.exports=JobImages;
