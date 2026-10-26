@@ -1,0 +1,12 @@
+const assert=require('node:assert/strict'),P=require('../knowledge-profiles.js'),K=require('../knowledge.js');
+const values=new Map(),storage={getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v)};
+const original=K.defaults();original.entries.push(K.entry({title:'ข้อมูลเดิมของวิน',note:'ต้องยังอยู่ครบ'},original.categories));
+const raw=JSON.stringify(original);storage.setItem('print-os-knowledge-v1',raw);
+assert.equal(P.active(storage),'win');assert.equal(P.read(storage,'win'),raw);assert.equal(P.read(storage,'mana'),null);
+const mana=K.defaults();mana.entries.push(K.entry({title:'โน้ตของมานา',note:'แยกออกจากวิน'},mana.categories));P.select(storage,'mana');P.write(storage,'mana',mana);
+assert.equal(P.active(storage),'mana');assert.equal(P.read(storage,'win'),raw);assert.equal(JSON.parse(P.read(storage,'mana')).entries[0].title,'โน้ตของมานา');
+P.select(storage,'win');assert.equal(P.active(storage),'win');assert.equal(P.get('mana').theme,'knowledge-mana.css');
+assert.throws(()=>P.get('__proto__'));assert.throws(()=>P.checkBackup(P.backup(original,'win'),'mana'));
+assert.doesNotThrow(()=>P.checkBackup(original,'mana'));assert.doesNotThrow(()=>P.checkBackup(P.backup(mana,'mana'),'mana'));
+assert.equal(P.backup(mana,'mana').profile,'mana');assert.equal(mana.profile,undefined);
+console.log('PASS: existing data stays with Win, separate Mana storage, remembered user, independent themes and backup ownership');
