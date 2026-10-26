@@ -29,7 +29,7 @@ var BillSlip=(function(){
 .sheet.document.bill-format-slip .items tr{display:grid;grid-template-columns:minmax(0,1fr) 56px 58px;gap:0;border:0;border-radius:0;padding:0;margin:0;background:none}
 .sheet.document.bill-format-slip .items thead{border-top:1px solid #555;border-bottom:1px solid #555}
 .sheet.document.bill-format-slip .items th,.sheet.document.bill-format-slip .items td{display:block;border:0;background:none;height:auto;min-height:0;margin:0;padding:3px 1px;font-size:10px;line-height:1.4;overflow-wrap:anywhere;text-align:left}
-.sheet.document.bill-format-slip .items th:nth-child(1),.sheet.document.bill-format-slip .items td:nth-child(1),.sheet.document.bill-format-slip .items th:nth-child(3),.sheet.document.bill-format-slip .items td:nth-child(3),.sheet.document.bill-format-slip .items th:nth-child(4){display:none}
+.sheet.document.bill-format-slip .items th:nth-child(1),.sheet.document.bill-format-slip .items td:nth-child(1),.sheet.document.bill-format-slip .items th:nth-child(3),.sheet.document.bill-format-slip .items td:nth-child(3),.sheet.document.bill-format-slip .items th:nth-child(4){display:none!important}
 .sheet.document.bill-format-slip .items th:nth-child(2){grid-column:1;text-align:center;width:auto}
 .sheet.document.bill-format-slip .items th:nth-child(5){grid-column:2;width:auto;text-align:right}
 .sheet.document.bill-format-slip .items th:nth-child(5){font-size:9px;white-space:nowrap}
@@ -38,6 +38,7 @@ var BillSlip=(function(){
 .sheet.document.bill-format-slip .items td:nth-child(4){grid-area:1/1;width:24px;z-index:1;text-align:left;align-self:start}
 .sheet.document.bill-format-slip .items td:nth-child(5){grid-area:1/2;text-align:right;white-space:normal}
 .sheet.document.bill-format-slip .items td:nth-child(6){grid-area:1/3;text-align:right;white-space:normal}
+.sheet.document.bill-format-slip .items td.amount{text-align:right!important}
 .sheet.document.bill-format-slip .items td::before{content:none!important}
 .sheet.document.bill-format-slip .items input{font-size:10px;text-align:inherit;padding:0}
 .sheet.document.bill-format-slip input[type=number]{appearance:textfield;-moz-appearance:textfield}
