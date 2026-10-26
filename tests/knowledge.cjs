@@ -17,3 +17,15 @@ assert.equal(merged.data.categories.find(c=>c.id===merged.data.entries[1].catego
 assert.throws(()=>K.validate({...imported,entries:[item,item]}));assert.throws(()=>K.validate({version:99,categories:[],entries:[]}));
 assert.equal(K.entry({...item,category:'deleted'},state.categories).category,'');
 console.log('PASS: knowledge validation, URL safety, video hosts, tags, category mapping, non-destructive backup merge and deduplication');
+const note=K.entry({title:'พรอมต์พร้อมสรุป PDF',note:'เก็บความรู้โดยไม่ต้องมีลิงก์',category:'design'},state.categories);
+assert.equal(note.url,'');assert.equal(note.type,'note');
+assert.equal(K.entry({...item,url:'',type:'video'},state.categories).type,'note');
+assert.equal(K.entry({...note,url:'https://example.com/guide'},state.categories).type,'link');
+assert.equal(K.entry({...note,url:'https://youtu.be/dQw4w9WgXcQ'},state.categories).type,'video');
+const notesBackup={version:1,categories:state.categories,entries:[note,{...note,id:'another-note',title:'โน้ตอีกเรื่อง'}]};
+const notesRestored=K.merge(K.defaults(),notesBackup);
+assert.equal(notesRestored.added,2);
+assert.equal(K.merge(notesRestored.data,notesBackup).added,0);
+assert.equal(K.validate(notesRestored.data).entries[0].note,note.note);
+assert.throws(()=>K.entry({...note,url:'invalid-address'},state.categories));
+console.log('PASS: note-only save, video without link becomes note, distinct notes survive backup and duplicate notes are skipped');
