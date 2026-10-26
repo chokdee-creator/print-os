@@ -15,3 +15,11 @@ const edit=structuredClone(first);edit.entries[0].note='แก้ล่าสุ
 assert.equal(patch('win',S.diff(first,local),'operation-fourth-123456789').conflict,true);assert.equal(writes,writeBeforeConflict);
 assert.throws(()=>get('unknown'));const invalid=structuredClone(second);invalid.entries.push({...entry,id:'unsafe-link',url:'javascript:alert(1)'});assert.throws(()=>patch('mana',S.diff(start,invalid),'operation-invalid-1234567'));assert.equal(get('mana').entries.length,0);
 console.log('PASS: Google workspaces isolated, atomic changes, independent edits merge, same-entry conflicts retain both, retries idempotent and unsafe data rejected');
+const old=K.defaults(),online=K.defaults();
+old.entries=[K.entry({id:'old-favorite',title:'คู่มือ',url:'https://example.com/guide',note:'ข้อความจากคอม',favorite:true,category:'printing'},old.categories)];
+online.entries=[K.entry({...old.entries[0],id:'online-guide',note:'ข้อความบน Google',favorite:false},online.categories)];
+let legacyId=0;const combined=S.mergeLegacy(online,old,()=> 'legacy-copy-'+(++legacyId));
+assert.equal(combined.data.entries.length,2);assert.ok(combined.data.entries.some(e=>e.note==='ข้อความจากคอม'&&e.favorite));assert.ok(combined.data.entries.some(e=>e.note==='ข้อความบน Google'));
+assert.equal(S.mergeLegacy(combined.data,old,()=> 'legacy-copy-'+(++legacyId)).added,0);
+const favorites=S.mergeLegacy({...online,entries:[{...old.entries[0],id:'other-id',favorite:false}]},old,()=> 'copy');assert.equal(favorites.data.entries.length,1);assert.equal(favorites.data.entries[0].favorite,true);
+console.log('PASS: legacy import preserves differing notes on the same URL, original favorites, and is safe to repeat');
