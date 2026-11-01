@@ -17,6 +17,16 @@ var SelectedPayment = (function () {
     });
     return [...groups.values()];
   }
+  function documentDate(rows, fallback='') {
+    const dates=[...new Set(rows.map(row=>String(row.date||'').trim()).filter(value=>{
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;
+      const day=new Date(value+'T12:00:00Z');
+      return !Number.isNaN(day.getTime())&&day.toISOString().slice(0,10)===value;
+    }))].sort();
+    if(!dates.length)return fallback;
+    const format=value=>new Intl.DateTimeFormat('th-TH',{timeZone:'Asia/Bangkok',dateStyle:'long'}).format(new Date(value+'T12:00:00Z'));
+    return dates.length===1?format(dates[0]):format(dates[0])+' – '+format(dates[dates.length-1]);
+  }
   function html(rows, date, storeName='ร้านปริ้นอิมเมจ', paymentHtml='', options={}) {
     const docs=documents(rows),invoice=options.kind==='invoice';
     const theme=typeof InvoiceTheme!=='undefined'?InvoiceTheme:typeof require==='function'?require('./bill-theme.js'):null;
@@ -38,7 +48,7 @@ var SelectedPayment = (function () {
         return `<main class="sheet document" data-store-name="${escape(storeName)}" data-document-kind="${heading==='ใบเสร็จรับเงิน'?'receipt':'invoice'}" data-customer-name="${escape(doc.customerName)}">
         <header class="header-art"><img src="${theme.headerArt}" alt="หัวบิล โชคดีการพิมพ์"></header>
         <section class="head-grid head"><div class="company"><label>ที่อยู่ ${notes('1/11 ถ.สฤทฎิ์ยุทธศิลป์ ต.หน้าเมือง อ.เมือง จ.ปราจีนบุรี 25000')}</label><div class="inline"><label>โทร ${field('091-040-2986','เบอร์โทรร้าน')}</label><label>LINE ${field('@chokdeeprint','LINE ของร้าน')}</label></div><label>เลขประจำตัวผู้เสียภาษี ${field('','กรอกเมื่อต้องการแสดง')}</label></div>
-        <div class="document-title"><div class="gold-heading large"><h2>${heading}</h2><small>${heading==='ใบเสร็จรับเงิน'?'RECEIPT':'INVOICE'}</small></div><label>เลขที่ ${field('','เลขที่เอกสาร')}</label><label>วันที่ ${field(date)}</label><label>อ้างอิง ${field('','เลขอ้างอิง')}</label></div></section>
+        <div class="document-title"><div class="gold-heading large"><h2>${heading}</h2><small>${heading==='ใบเสร็จรับเงิน'?'RECEIPT':'INVOICE'}</small></div><label>เลขที่ ${field('','เลขที่เอกสาร')}</label><label>วันที่ <input data-bill-date value="${escape(documentDate(doc.rows,date))}"></label><label>อ้างอิง ${field('','เลขอ้างอิง')}</label></div></section>
         <section class="panel"><h2 class="gold-heading">ข้อมูลลูกค้า</h2><p class="customer-caption">ประเภทลูกค้า: ${escape(doc.customerType)}</p><div class="customer-grid"><label>ชื่อลูกค้า <input data-bill-customer value="${escape(customerLabel(doc))}" placeholder="ชื่อ/บริษัท"></label><label>เบอร์โทร ${field('','โทรศัพท์ลูกค้า')}</label><label class="span2">ที่อยู่ ${notes('')}</label><label class="span2">พนักงานขาย ${field('','ชื่อพนักงานขาย')}</label></div></section>
         <section class="items"><table><thead><tr><th>ลำดับ</th><th>รายการ</th><th>ขนาด</th><th>จำนวน</th><th>ราคา/หน่วย</th><th>รวมเงิน</th></tr></thead><tbody>${doc.rows.map((r,i)=>`<tr><td>${i+1}</td><td class="description">${escape(r.name)}<small class="bill-item-date">วันที่งาน: ${escape(r.date)}</small><small class="bill-item-reference">อ้างอิง: ${escape(r.reference||"รอเลขอ้างอิง")}</small>${r.paymentMethod?`<br><small>ช่องทางล่าสุด: ${escape(r.paymentMethod)} ${escape(r.paymentMethodNote||'')}</small>`:''}${(r.paymentHistory||[]).map(h=>`<br><small>รับชำระ ${escape(h.method)} ${amount(Math.round(h.amount*100))} บาท · ${escape(new Intl.DateTimeFormat('th-TH',{timeZone:'Asia/Bangkok',dateStyle:'short',timeStyle:'short'}).format(new Date(h.date)))}</small>`).join('')}</td><td class="bill-item-size">${size(r)}</td><td>${escape(qty(r))}</td><td class="amount">${amount(r.sale/qty(r))}</td><td class="amount">${amount(r.sale)}</td></tr>`).join('')}</tbody></table></section>
         <div class="bottom-grid bill-summary-grid"><section class="panel totals"><div><span>ยอดขายรวม</span><output>${amount(doc.sale)} บาท</output></div><div><span>รับชำระแล้ว</span><output>${amount(doc.paid)} บาท</output></div><div class="balance"><span>ยอดที่ต้องชำระ</span><output>${amount(doc.balance)} บาท</output></div></section>
@@ -47,7 +57,7 @@ var SelectedPayment = (function () {
         <p class="note">${invoice?'บิลนี้แสดงเฉพาะรายการค้างชำระที่เลือก และยอดค้างหลังหักเงินที่รับชำระแล้ว เอกสารนี้ไม่ใช่ใบเสร็จรับเงิน':doc.paid>0?'ใบเสร็จนี้แสดงเฉพาะยอดรับชำระที่บันทึกไว้แล้วของรายการที่เลือก วันที่พิมพ์ไม่ใช่วันที่รับเงิน':'เอกสารแจ้งยอดนี้ยังไม่ใช่หลักฐานการรับเงิน เนื่องจากรายการที่เลือกยังไม่มีการรับชำระ'}<br>การพิมพ์ไม่เปลี่ยนสถานะชำระเงินในระบบ และไม่บวกภาษีหรือค่าบริการเพิ่ม</p></main>`;
       }).join('')}</body></html>`;
   }
-  return {documents,html};
+  return {documents,documentDate,html};
 })();
 function selectedPaymentRows(rows) {
   return rows.map(r=>({id:r.id,reference:r.reference,name:r.name,date:r.date,customerType:customerType(r),customerName:customerName(r),sale:Number(r.saleTotal)||0,quantity:r.quantity,width:r.width,length:r.length,size:r.size,paid:paidAmount(r),paymentMethod:r.paymentMethod,paymentMethodNote:r.paymentMethodNote,paymentHistory:PaymentChannelData.readHistory(r.paymentHistory)}));

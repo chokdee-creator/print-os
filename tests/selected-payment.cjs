@@ -19,3 +19,15 @@ assert.ok(explicitReceipt.includes('data-document-kind="receipt"'));
 const explicitInvoice=P.html([{...row,paid:100}],'today','ร้านโชคดีการพิมพ์','',{kind:'invoice'});
 assert.ok(explicitInvoice.includes('<h2>ใบแจ้งยอดชำระ</h2>'));
 assert.ok(explicitInvoice.includes('data-document-kind="invoice"'));
+const dateField=markup=>markup.match(/data-bill-date value="([^"]*)"/)[1];
+for(const kind of ['invoice','receipt']) {
+  assert.equal(dateField(P.html([row],'1 พฤศจิกายน 2569','ร้านโชคดีการพิมพ์','',{kind})),'20 ตุลาคม 2569');
+}
+assert.equal(P.documentDate([row,{...row,date:'2026-10-22'}]),'20 ตุลาคม 2569 – 22 ตุลาคม 2569');
+assert.equal(P.documentDate([{...row,date:'2026-10-22'},row,row]),'20 ตุลาคม 2569 – 22 ตุลาคม 2569');
+assert.equal(P.documentDate([{date:'2026-02-30'},{date:''}],'fallback'),'fallback');
+assert.equal(P.documentDate([{date:'2026-12-31'}]),'31 ธันวาคม 2569');
+assert.equal(P.documentDate([{date:'2027-01-01'}]),'1 มกราคม 2570');
+const separateDates=P.html([row,{...row,customerName:'บี',date:'2026-10-25'}],'1 พฤศจิกายน 2569');
+assert.deepEqual([...separateDates.matchAll(/data-bill-date value="([^"]*)"/g)].map(m=>m[1]),['20 ตุลาคม 2569','25 ตุลาคม 2569']);
+console.log('PASS: selected job dates for invoices and receipts, multiple dates, customer groups and year boundaries');
