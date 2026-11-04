@@ -1,0 +1,10 @@
+const assert=require('node:assert/strict'),R=require('../study-results.js');
+const state={version:1,profile:{credits:129},courses:[{id:'a',code:'TEST1001',name:'Existing name',credits:3,grade:'',term:'',planTerm:'4/1',slot:'1A',room:'Keep room'}]};
+const file={kind:'study-results',version:1,results:[{code:'TEST1001',credits:3,term:'1/2564',grade:'C'},{code:'TEST1001',credits:3,term:'2/2565',grade:'D'},{code:'TEST1002',credits:3,term:'2/2568',grade:'A'}]};
+const merged=R.merge(state,file);
+assert.equal(merged.courses,2);assert.equal(merged.results,3);assert.equal(merged.state.courses.length,2);
+const c=merged.state.courses[0];assert.equal(c.grade,'D');assert.equal(c.term,'2/2565');assert.equal(c.history.length,2);assert.equal(c.name,'Existing name');assert.equal(c.slot,'1A');assert.equal(c.room,'Keep room');assert.equal(c.planTerm,'4/1');
+assert.equal(merged.state.courses.reduce((n,c)=>n+c.credits,0),6);assert.deepEqual(R.merge(merged.state,file).state,merged.state);assert.equal(state.courses[0].grade,'');
+const newer=R.merge({...state,courses:[{...state.courses[0],grade:'B',term:'1/2569'}]},file);assert.equal(newer.state.courses[0].grade,'B');assert.equal(newer.state.courses[0].history.length,3);
+assert.throws(()=>R.merge(state,{...file,results:[{code:'TEST1001',term:'9/2568',grade:'A',credits:3}]}));assert.throws(()=>R.attempts([{term:'1/2569',grade:'<script>',credits:3}]));
+console.log('PASS: transcript merge, repeated attempts, latest term, one earned-credit total, idempotence, field preservation and malformed files');
