@@ -19,14 +19,15 @@ function validate(raw){
  });
  return {version:1,curriculumVersion:Number.isSafeInteger(raw.curriculumVersion)?raw.curriculumVersion:0,profile:{name:text(p.name,100),student:text(p.student,40),year:p.year,credits:p.credits},courses};
 }
-let saved=defaults(),storageError='';
+let saved=defaults(),storageError='',catalogUpdateMessage='';
 try{const raw=localStorage.getItem(key);if(raw)saved=validate(JSON.parse(raw));}catch(e){storageError='เปิดข้อมูลที่บันทึกไว้ไม่ได้ กรุณานำเข้าไฟล์สำรอง';}
 if(!storageError){
  const migration=StudyCurriculum.apply(saved);
  if(migration.changed){
+  catalogUpdateMessage='เพิ่มรายวิชาใหม่ '+migration.added+' วิชา · พบเดิม '+migration.matched+' วิชา (ไม่เพิ่มซ้ำ)';
   try{
    const old=localStorage.getItem(key);
-   if(old&&!localStorage.getItem(key+':before-curriculum-v1'))localStorage.setItem(key+':before-curriculum-v1',old);
+   const backupKey=key+':before-curriculum-v'+StudyCurriculum.version;if(old&&!localStorage.getItem(backupKey))localStorage.setItem(backupKey,old);
    localStorage.setItem(key,JSON.stringify(migration.state));
   }catch(e){storageError='แสดงรายวิชาจากแผนแล้ว แต่บันทึกไม่สำเร็จ กรุณาดาวน์โหลดไฟล์สำรอง';}
   saved=migration.state;
@@ -86,5 +87,5 @@ $('demoButton').onclick=()=>{selectedCourses.clear();selectMode=false;lastDelete
 $('exportData').onclick=()=>{const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='my-study'+(demo?'-example':'')+'-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('ดาวน์โหลดไฟล์สำรองแล้ว');};$('importData').onclick=()=>$('importFile').click();$('importFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>5*1024*1024)throw Error('ไฟล์มีขนาดใหญ่เกิน 5 MB');const data=JSON.parse(await file.text());if(data.kind==='study-results'){const merged=StudyResults.merge(state,data);const next=validate(merged.state);if(!demo)localStorage.setItem(key+':before-results-'+Date.now(),JSON.stringify(state));if(persist(next)){$('settingsDialog').close();view='passed';render();toast('บันทึกผลการเรียน '+merged.results+' รายการ · '+merged.courses+' วิชา');}return;}const next=validate(data);if(!confirm('นำเข้าข้อมูล '+next.courses.length+' วิชาแทนข้อมูลปัจจุบัน'+(demo?'ในโหมดตัวอย่าง':'บนอุปกรณ์นี้')+'? กรุณาสำรองข้อมูลเดิมก่อน'))return;if(persist(next)){$('settingsDialog').close();render();toast('นำเข้าข้อมูลแล้ว');}}catch(err){toast('นำเข้าไม่สำเร็จ: '+err.message);}finally{e.target.value='';}};
 window.addEventListener('storage',e=>{if(e.key!==key||demo||$('courseDialog').open||$('settingsDialog').open)return;try{saved=e.newValue?validate(JSON.parse(e.newValue)):defaults();state=structuredClone(saved);render(false);toast('อัปเดตข้อมูลจากแท็บอื่นแล้ว');}catch(err){toast('อ่านข้อมูลจากแท็บอื่นไม่สำเร็จ');}});
 const mobileMedia=matchMedia('(max-width:760px)');const syncSidebar=()=>{$('sidebar').inert=mobileMedia.matches?!document.body.classList.contains('menu-open'):document.body.classList.contains('sidebar-collapsed');if(!mobileMedia.matches){$('scrim').hidden=true;document.body.classList.remove('menu-open');}};mobileMedia.addEventListener('change',syncSidebar);syncSidebar();
-render();if(storageError)toast(storageError);
+render();if(storageError)toast(storageError);else if(catalogUpdateMessage&&!demo)toast(catalogUpdateMessage);
 })();
