@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#14171e">
+<meta name="description" content="ปฏิทินวันฉายและสมุดติดตามซีรีส์ หนัง อนิเมะ และมังงะ">
+<title>WatchFlow | PRINT OS</title>
+<link rel="stylesheet" href="watchflow.css?v=20261110">
+<script type="module" src="watchflow.mjs?v=20261110"></script>
+</head>
+<body>
+<a class="skip" href="#main">ข้ามไปเนื้อหา</a>
+<aside class="rail">
+  <a class="brand" href="#dashboard"><span class="mark" aria-hidden="true">▶</span><span>Watch<span class="accent">Flow</span><small>RELEASE TRACKER</small></span></a>
+  <nav id="navigation" aria-label="เมนู WatchFlow">
+    <a href="#dashboard" data-icon="home">ภาพรวม</a>
+    <a href="#calendar" data-icon="calendar">ปฏิทิน</a>
+    <a href="#watchlist" data-icon="bookmark">รายการของฉัน</a>
+    <a href="#discover" data-icon="search">ค้นหา</a>
+    <a href="#notifications" data-icon="bell">แจ้งเตือน<span id="navUnread" hidden></span></a>
+    <a href="#settings" data-icon="settings">ตั้งค่า</a>
+  </nav>
+  <a class="back" href="index.html"><span aria-hidden="true">←</span> กลับเว็บร้าน <strong>PRINT OS</strong></a>
+</aside>
+<div class="shell">
+  <header class="top">
+    <a class="mobile-brand" href="#dashboard"><span class="mark" aria-hidden="true">▶</span> WatchFlow</a>
+    <span class="workspace">พื้นที่ส่วนตัว <span>/</span> <strong id="crumb">ภาพรวม</strong></span>
+    <form id="globalSearch" role="search"><input type="search" name="q" aria-label="ค้นหาชื่อเรื่อง" placeholder="ค้นหาชื่อเรื่อง…"><button type="submit" data-icon="search" aria-label="ค้นหา"></button></form>
+    <a href="#notifications" class="icon-button" data-icon="bell" aria-label="แจ้งเตือน"></a>
+    <a href="#settings" class="profile" aria-label="ตั้งค่าโปรไฟล์">W</a>
+  </header>
+  <main id="main" tabindex="-1">
+    <div id="demoBanner" class="notice" hidden><span>โหมดตัวอย่าง · ชื่อเรื่องและวันเผยแพร่เป็นข้อมูลสมมติ</span><button data-action="exit-demo">กลับข้อมูลของฉัน</button></div>
+    <div id="storageBanner" class="notice" hidden>เบราว์เซอร์เก็บข้อมูลไม่ได้ การเปลี่ยนแปลงอาจหายเมื่อปิดหน้า</div>
+    <div id="view"></div>
+  </main>
+  <footer class="footer"><span>WatchFlow · PRINT OS</span><span>ข้อมูลซีรีส์จาก <a href="https://www.tvmaze.com/" target="_blank" rel="noopener">TVmaze</a> · อนิเมะและมังงะจาก <a href="https://kitsu.app/" target="_blank" rel="noopener">Kitsu</a></span></footer>
+</div>
+<dialog id="dialog" aria-labelledby="dialogTitle"></dialog>
+<div id="toast" class="toast" role="status"></div>
+<noscript>กรุณาเปิด JavaScript เพื่อใช้ WatchFlow</noscript>
+</body>
+</html>
