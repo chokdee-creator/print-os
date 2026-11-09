@@ -1,4 +1,4 @@
-/** Revocable bearer devices, scoped ONLY to the three notebooks and their slips. */
+/** Revocable bearer devices, scoped to notebooks, knowledge workspaces and WatchFlow. */
 function ledgerHash_(value){return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256,String(value),Utilities.Charset.UTF_8).map(n=>('0'+((n+256)%256).toString(16)).slice(-2)).join('');}
 function ledgerDeviceKey_(hash){return 'PRINT_NOTEBOOK_DEVICE_'+hash;}
 function ledgerDeviceLabel_(label){if(typeof label!=='string'||!label.trim()||label.length>60)throw new Error('กรุณาตั้งชื่ออุปกรณ์ไม่เกิน 60 ตัวอักษร');return label.trim();}
@@ -25,6 +25,7 @@ function ledgerDeviceBridge_(data){
     let result;if(data.command==='pairRedeem')result=ledgerRedeem_(data);else{
       const device=data.loginToken?ledgerLoginAuth_(data.loginToken):ledgerDeviceAuth_(data.deviceToken);
       if(['knowledgeGet','knowledgePatch'].includes(data.command))result=knowledgeAction_(data);
+      else if(['watchflowGet','watchflowSave'].includes(data.command))result=watchflowAction_(data);
       else if(['ledgerGet','ledgerSave','ledgerSlipGet'].includes(data.command))result=ledgerAction_({...data,action:data.command});
       else if(data.command==='pairCreate')result=ledgerPairCode_(device);
       else if(data.command==='deviceList')result={ok:true,currentDevice:device.id,devices:ledgerDeviceRecords_().filter(d=>!d.revokedAt).map(d=>({id:d.id,label:d.label,createdAt:d.createdAt,lastSeen:d.lastSeen,current:d.id===device.id}))};

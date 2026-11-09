@@ -31,3 +31,7 @@ dialog{width:min(560px,calc(100% - 26px));max-height:calc(100dvh - 28px);border:
   .calendar-filters .switch{grid-column:1/-1}
   .calendar-filters select,.discovery-filters select{width:100%}
 }
+.cloud-status{display:flex;align-items:center;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;margin:0 0 17px;padding:10px 13px;border:1px solid var(--line);border-radius:9px;background:var(--panel)}
+.cloud-status strong{color:var(--accent);font-size:13px}
+.cloud-status p{margin:1px 0 0;color:var(--muted);font-size:12px}
+.cloud-status button,.cloud-status .button{font-size:12px;min-height:36px}

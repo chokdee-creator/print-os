@@ -1,3 +1,5 @@
+import {syncWatchflow} from './watchflow-sync.mjs?v=google1';
+
 const TYPES={series:'ซีรีส์',anime:'อนิเมะ',film:'ภาพยนตร์',manga:'มังงะ / การ์ตูน'};
 const STATUS={active:'กำลังดู / อ่าน',planned:'วางแผนไว้',done:'จบแล้ว',hold:'พักไว้',dropped:'เลิกติดตาม'};
 const CERT={confirmed:'ยืนยันแล้ว',estimated:'คาดการณ์',tba:'ยังไม่ประกาศ'};
@@ -103,15 +105,76 @@ function demoData(){
 let state=blank(), demo=false, storageError=false, page='dashboard', date='', calendarMode='month';
 let filters={type:'',certainty:'',platform:'',territory:'',all:false}, listFilter={type:'',status:'',q:'',sort:'recent'};
 let results=[], discoveryFilters={}, searchQuery='', searchType='series', searchState='', searchController, syncing=false, toastTimer, dialogReturn;
-let view, modal;
-function save(){
+let view, modal, cloudBase=null, cloudBusy=false, cloudTimer, cloudPending=false, cloudChanged=false;
+function persist(){
   if(demo)return;
-  try{localStorage.setItem(KEY,JSON.stringify(state));}
-  catch{storageError=true;document.getElementById('storageBanner').hidden=false;}
+  try{localStorage.setItem(KEY,JSON.stringify({...state,cloudBase}));storageError=false;}
+  catch{storageError=true;}
+  document.getElementById('storageBanner').hidden=!storageError;
+}
+function readSnapshot(){
+  const raw=localStorage.getItem(KEY);
+  if(!raw)return null;
+  const saved=JSON.parse(raw);
+  return {state:restore(saved),base:saved.cloudBase?restore(saved.cloudBase):null};
 }
 function load(){
-  try{const raw=localStorage.getItem(KEY);return raw?restore(JSON.parse(raw)):blank();}
-  catch{storageError=true;return blank();}
+  try{const saved=readSnapshot();cloudBase=saved?.base||null;return saved?.state||blank();}
+  catch{storageError=true;cloudBase=null;return blank();}
+}
+function cloudStatus(label,detail='',pair=false){
+  document.getElementById('cloudLabel').textContent=label;
+  document.getElementById('cloudDetail').textContent=detail;
+  document.getElementById('cloudPair').hidden=!pair;
+  document.getElementById('cloudRefresh').disabled=cloudBusy;
+}
+function queueCloud(delay=650){
+  clearTimeout(cloudTimer);
+  cloudTimer=setTimeout(()=>refreshCloud(),delay);
+}
+function save(){
+  if(demo)return;
+  persist();
+  cloudPending=true;
+  if(!cloudBusy)cloudStatus('บันทึกในเครื่องแล้ว','กำลังรอซิงก์ขึ้น Google Drive');
+  queueCloud();
+}
+function cloudSnapshot(){
+  if(demo)return null;
+  if(!storageError){try{const saved=readSnapshot();if(saved)return saved;}catch{}}
+  return {state:structuredClone(state),base:cloudBase};
+}
+async function refreshCloud(){
+  if(demo||cloudBusy||(modal.open&&!cloudPending))return;
+  if(!navigator.onLine){cloudStatus('ออฟไลน์ · เก็บข้อมูลในเครื่อง','จะซิงก์เมื่อกลับมาออนไลน์');return;}
+  cloudBusy=true;
+  cloudStatus('กำลังซิงก์ Google Drive…');
+  let retry=false, applied=false;
+  try{
+    retry=await syncWatchflow({
+      client:window.AccountsCloud,snapshot:cloudSnapshot,normalize:restore,empty:blank(),
+      apply(next,base){
+        if(demo)return;
+        const changed=JSON.stringify(state)!==JSON.stringify(next);
+        state=next;cloudBase=base;persist();applied=true;
+        if(changed){
+          if(modal.open||view.querySelector('form')?.contains(document.activeElement)){cloudChanged=true;updateBadge();}
+          else render();
+        }
+      }
+    });
+    if(applied){
+      cloudPending=Boolean(retry);
+      cloudStatus(retry?'กำลังซิงก์การแก้ไขล่าสุด…':'ซิงก์กับ Google แล้ว',retry?'':'เปิด WatchFlow บนอุปกรณ์ที่จับคู่ไว้เพื่อดูข้อมูลชุดเดียวกัน');
+    }
+  }catch(error){
+    cloudStatus(error.needsPair?'ใช้สิทธิ์จากหน้าบัญชี':'ยังซิงก์กับ Google ไม่สำเร็จ',
+      error.needsPair?'จับคู่อุปกรณ์นี้ครั้งเดียวในหน้าบัญชี แล้วกลับมาที่ WatchFlow':'ข้อมูลที่แก้ไขจะรอซิงก์เมื่อเชื่อมต่อได้อีกครั้ง',Boolean(error.needsPair));
+  }finally{
+    cloudBusy=false;
+    document.getElementById('cloudRefresh').disabled=false;
+    if(retry||(!applied&&!demo&&cloudPending&&window.AccountsCloud?.mode()!=='none'))queueCloud(retry?300:45000);
+  }
 }
 function toast(message){
   const box=document.getElementById('toast');
@@ -212,9 +275,9 @@ function inbox(){
 const REMINDERS={off:'ปิด',day:'ก่อนวันเผยแพร่ 1 วัน',release:'วันเผยแพร่',both:'ทั้งสองช่วง'};
 function settings(){
   const s=state.settings;
-  return heading('ตั้งค่า','โปรไฟล์และข้อมูล WatchFlow ในเบราว์เซอร์นี้', '<a class="button" href="index.html">← กลับเว็บร้าน</a>')+
+  return heading('ตั้งค่า','โปรไฟล์และข้อมูล WatchFlow', '<a class="button" href="index.html">← กลับเว็บร้าน</a>')+
   '<section class="panel settings"><h2>โปรไฟล์และเวลา</h2><form id="settingsForm"><div class="form-grid"><label>ชื่อที่แสดง<input name="name" maxlength="45" value="'+esc(s.name)+'" placeholder="WatchFlow"></label><label>เขตเวลา<select name="zone">'+option(Object.fromEntries(ZONES.map(x=>[x,x])),s.zone)+'</select></label><label>รหัสประเทศที่ใช้กรอกกำหนดการ<input name="territory" maxlength="20" value="'+esc(s.territory)+'" placeholder="เช่น TH"></label><label>แจ้งเตือนเริ่มต้น<select name="reminder">'+option(REMINDERS,s.reminder)+'</select></label></div><p class="muted">ระบบแสดงการเตือนเมื่อเปิดหน้าเว็บ ตั้งค่าแยกตามเรื่องได้</p><button class="primary">บันทึกการตั้งค่า</button></form></section>'+
-  '<section class="panel settings"><h2>ข้อมูลของฉัน</h2><p class="muted">รายการและความคืบหน้าบันทึกในเบราว์เซอร์นี้ ใช้ไฟล์สำรองเพื่อย้ายไปเครื่องอื่น</p><div class="actions">'+button('export','ดาวน์โหลดข้อมูล')+button('import','นำเข้าข้อมูล')+button('clear','ล้างข้อมูล','','danger')+(!demo?button('demo','ลองข้อมูลตัวอย่าง','','ghost'):'')+'</div><input type="file" id="importFile" accept="application/json,.json" hidden></section>';
+  '<section class="panel settings"><h2>ข้อมูลของฉัน</h2><p class="muted">ซิงก์รายการและความคืบหน้าผ่าน Google Drive โดยใช้สิทธิ์จากหน้าบัญชี ดาวน์โหลดไฟล์สำรองได้ทุกเมื่อ</p><div class="actions">'+button('export','ดาวน์โหลดข้อมูล')+button('import','นำเข้าข้อมูล')+button('clear','ล้างข้อมูล','','danger')+(!demo?button('demo','ลองข้อมูลตัวอย่าง','','ghost'):'')+'</div><input type="file" id="importFile" accept="application/json,.json" hidden></section>';
 }
 const views={dashboard,calendar,watchlist,discover,notifications:inbox,settings};
 function updateBadge(){
@@ -224,6 +287,8 @@ function updateBadge(){
   badge.textContent=count>99?'99+':count;
 }
 function render(){
+  cloudChanged=false;
+  document.getElementById('cloudStatus').hidden=demo;
   document.getElementById('demoBanner').hidden=!demo;
   document.getElementById('storageBanner').hidden=!storageError;
   document.getElementById('crumb').textContent=PAGES[page];
@@ -429,12 +494,12 @@ function handleAction(target){
     }
     case 'read-all': dueAlerts(state,new Date()).forEach(n=>{state.read[n.id]=new Date().toISOString();});save();render();break;
     case 'demo': if(syncing)break;searchController?.abort();searchController=null;results=[];searchState='';demo=true;state=demoData();date=today();filters={type:'',certainty:'',platform:'',territory:'',all:false};if(page!=='dashboard')location.hash='dashboard';else render();break;
-    case 'exit-demo': searchController?.abort();searchController=null;results=[];searchState='';demo=false;state=load();date=today();filters={type:'',certainty:'',platform:'',territory:'',all:false};render();break;
+    case 'exit-demo': searchController?.abort();searchController=null;results=[];searchState='';demo=false;state=load();date=today();filters={type:'',certainty:'',platform:'',territory:'',all:false};render();queueCloud(0);break;
     case 'close': modal.close();break;
     case 'sync': syncAll();break;
     case 'export': exportData();break;
     case 'import': document.getElementById('importFile')?.click();break;
-    case 'clear': confirmDialog('ล้างข้อมูล WatchFlow?','รายการ กำหนดการ และความคืบหน้าในเบราว์เซอร์นี้จะถูกล้าง','confirm-clear','','ล้างข้อมูล');break;
+    case 'clear': confirmDialog('ล้างข้อมูล WatchFlow?','รายการ กำหนดการ และความคืบหน้าจะถูกล้าง และการล้างจะซิงก์ไปยังอุปกรณ์ที่เชื่อมไว้','confirm-clear','','ล้างข้อมูล');break;
     case 'confirm-clear': state=blank();date=today();save();modal.close();render();toast('ล้างข้อมูลแล้ว');break;
   }
 }
@@ -443,7 +508,7 @@ async function loadImport(file){
   if(file.size>12*1024*1024){toast('ไฟล์สำรองใหญ่เกิน 12 MB');return;}
   try{
     const data=restore(JSON.parse(await file.text()));
-    openDialog('นำเข้าข้อมูล','<p>ไฟล์มี '+data.titles.length+' เรื่อง และ '+data.events.length+' กำหนดการ การนำเข้าจะแทนข้อมูล WatchFlow ในเบราว์เซอร์นี้</p><div class="actions">'+button('close','ยกเลิก')+'<button type="button" class="primary" id="confirmImport">นำเข้าข้อมูล</button></div>');
+    openDialog('นำเข้าข้อมูล','<p>ไฟล์มี '+data.titles.length+' เรื่อง และ '+data.events.length+' กำหนดการ การนำเข้าจะแทนข้อมูล WatchFlow ที่แสดงอยู่ และการเปลี่ยนแปลงจะซิงก์ไปยังอุปกรณ์ที่เชื่อมไว้</p><div class="actions">'+button('close','ยกเลิก')+'<button type="button" class="primary" id="confirmImport">นำเข้าข้อมูล</button></div>');
     modal.querySelector('#confirmImport').onclick=()=>{state=data;date=today();save();modal.close();render();toast('นำเข้าข้อมูลแล้ว');};
   }catch(error){toast('นำเข้าไม่สำเร็จ · '+error.message);}
 }
@@ -515,13 +580,23 @@ function boot(){
     else return;
     if(k)[...document.querySelectorAll('[data-filter]')].find(field=>field.dataset.filter===k)?.focus({preventScroll:true});
   });
-  modal.addEventListener('close',()=>{if(dialogReturn?.isConnected)dialogReturn.focus();else document.getElementById('main').focus({preventScroll:true});});
+  modal.addEventListener('close',()=>{
+    if(cloudChanged&&!modal.open)render();
+    if(dialogReturn?.isConnected)dialogReturn.focus();else document.getElementById('main').focus({preventScroll:true});
+  });
+  document.getElementById('cloudRefresh').addEventListener('click',()=>refreshCloud());
+  window.addEventListener('online',()=>queueCloud(0));
+  window.addEventListener('focus',()=>queueCloud(150));
+  window.addEventListener('pageshow',()=>queueCloud(150));
   window.addEventListener('hashchange',()=>route(true));
   window.addEventListener('storage',event=>{
-    if(!demo&&event.key===KEY){state=load();if(!modal.open)render();else updateBadge();}
+    if(!demo&&event.key===KEY){state=load();if(!modal.open)render();else{cloudChanged=true;updateBadge();}}
+    if(event.key==='printOS:notebooks:device:v1')queueCloud(0);
   });
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)updateBadge();});
   setInterval(()=>{if(!document.hidden){updateBadge();if(page==='notifications'&&!modal.open&&!view.contains(document.activeElement))render();}},60000);
+  setInterval(()=>{if(!document.hidden)refreshCloud();},45000);
   route();
+  queueCloud(0);
 }
 if(typeof document!=='undefined')boot();

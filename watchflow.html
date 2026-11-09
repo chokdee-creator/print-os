@@ -6,8 +6,9 @@
 <meta name="theme-color" content="#14171e">
 <meta name="description" content="ปฏิทินวันฉายและสมุดติดตามซีรีส์ หนัง อนิเมะ และมังงะ">
 <title>WatchFlow | PRINT OS</title>
-<link rel="stylesheet" href="watchflow.css?v=20261110">
-<script type="module" src="watchflow.mjs?v=20261110"></script>
+<link rel="stylesheet" href="watchflow.css?v=google1">
+<script src="accounts-cloud.js?v=watchflow1" defer></script>
+<script type="module" src="watchflow.mjs?v=google1"></script>
 </head>
 <body>
 <a class="skip" href="#main">ข้ามไปเนื้อหา</a>
@@ -34,6 +35,7 @@
   <main id="main" tabindex="-1">
     <div id="demoBanner" class="notice" hidden><span>โหมดตัวอย่าง · ชื่อเรื่องและวันเผยแพร่เป็นข้อมูลสมมติ</span><button data-action="exit-demo">กลับข้อมูลของฉัน</button></div>
     <div id="storageBanner" class="notice" hidden>เบราว์เซอร์เก็บข้อมูลไม่ได้ การเปลี่ยนแปลงอาจหายเมื่อปิดหน้า</div>
+    <section id="cloudStatus" class="cloud-status" aria-label="ซิงก์ Google Drive"><div><strong id="cloudLabel" role="status">กำลังเชื่อม Google…</strong><p id="cloudDetail"></p></div><div class="actions"><a id="cloudPair" class="button ghost" href="accounts.html" hidden>เปิดหน้าบัญชีเพื่อจับคู่</a><button id="cloudRefresh" type="button">ซิงก์ตอนนี้</button></div></section>
     <div id="view"></div>
   </main>
   <footer class="footer"><span>WatchFlow · PRINT OS</span><span>ข้อมูลซีรีส์จาก <a href="https://www.tvmaze.com/" target="_blank" rel="noopener">TVmaze</a> · อนิเมะและมังงะจาก <a href="https://kitsu.app/" target="_blank" rel="noopener">Kitsu</a></span></footer>
