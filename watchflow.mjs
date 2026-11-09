@@ -41,20 +41,21 @@ export function localTimestamp(date,time,zone){
   return '';
 }
 export function eventDay(event,zone){return event.at?localDay(new Date(event.at),zone):event.date;}
-const WEEK_MS=7*86400000;
-function weeklyOccurrence(event,date){
+const DAY_MS=86400000;
+const repeatDays=event=>event.repeatFrequency==='daily'?1:7;
+function recurringOccurrence(event,date){
   const zone=event.repeatZone;
   if(!zone||!validDate(date))return null;
   const start=eventDay(event,zone);
-  const weeks=(Date.parse(date)-Date.parse(start))/WEEK_MS;
-  if(!Number.isInteger(weeks)||weeks<0)return null;
+  const offset=(Date.parse(date)-Date.parse(start))/(repeatDays(event)*DAY_MS);
+  if(!Number.isInteger(offset)||offset<0)return null;
   let at='';
   if(event.at){
     const time=dateParts(new Date(event.at),zone);
-    at=weeks===0?event.at:localTimestamp(date,time.hour+':'+time.minute,zone);
+    at=offset===0?event.at:localTimestamp(date,time.hour+':'+time.minute,zone);
     if(!at)return null;
   }
-  return {...event,date,at,occurrence:date,number:event.number?event.number+weeks:0};
+  return {...event,date,at,occurrence:date,number:event.number?event.number+offset:0};
 }
 export function eventsInRange(events,from,to,zone){
   const within=event=>{const date=eventDay(event,zone);return date>=from&&date<=to;};
@@ -63,10 +64,11 @@ export function eventsInRange(events,from,to,zone){
     const anchor=eventDay(event,event.repeatZone);
     // A timezone conversion can move a timed occurrence onto a neighboring date.
     const margin=event.at&&event.repeatZone!==zone?2:0;
-    const first=Math.max(0,Math.ceil((Date.parse(day(from,-margin))-Date.parse(anchor))/WEEK_MS));
+    const step=repeatDays(event),limit=day(to,margin);
+    const first=Math.max(0,Math.ceil((Date.parse(day(from,-margin))-Date.parse(anchor))/(step*DAY_MS)));
     const occurrences=[];
-    for(let date=day(anchor,first*7);date<=day(to,margin);date=day(date,7)){
-      const occurrence=weeklyOccurrence(event,date);
+    for(let date=day(anchor,first*step);date<=limit;date=day(date,step)){
+      const occurrence=recurringOccurrence(event,date);
       if(occurrence&&within(occurrence))occurrences.push(occurrence);
     }
     return occurrences;
@@ -74,7 +76,7 @@ export function eventsInRange(events,from,to,zone){
 }
 const occurrenceRef=e=>e.occurrence?e.id+'~'+e.occurrence:e.id;
 const occurrenceNumber=(e,t)=>e.occurrence&&e.number&&t.type!=='film'?(t.type==='manga'?'บทที่ ':'ตอนที่ ')+e.number:'';
-const weeklyLabel=e=>e.repeatZone?'ทุก'+fmtDay(eventDay(e,e.repeatZone),{weekday:'long'}):'';
+const repeatLabel=e=>e.repeatZone?(e.repeatFrequency==='daily'?'ทุกวัน':'ทุก'+fmtDay(eventDay(e,e.repeatZone),{weekday:'long'})):'';
 const blank=()=>({version:1,titles:[],events:[],read:{},settings:{name:'',zone:'Asia/Bangkok',territory:'',reminder:'off'}});
 const today=()=>localDay(new Date(),state.settings.zone);
 const matchTerritory=(territory,filter)=>!filter||territory.toUpperCase()===filter;
@@ -101,7 +103,7 @@ const progress=t=>t.type==='film'?'ภาพยนตร์':t.type==='manga'?'�
 const summary=t=>[t.year,t.genres,t.platform].filter(Boolean).join(' · ');
 const timeText=e=>[eventDay(e,state.settings.zone)&&fmtDay(eventDay(e,state.settings.zone)),displayTime(e)].filter(Boolean).join(' · ')||'ยังไม่ประกาศวัน';
 const cleanTitle=t=>({id:str(t.id,100),name:str(t.name,160),type:Object.hasOwn(TYPES,t.type)?t.type:'series',poster:link(t.poster),source:link(t.source),provider:['tvmaze','kitsu'].includes(t.provider)?t.provider:'',platform:str(t.platform,100),territory:str(t.territory,20).toUpperCase(),year:str(t.year,12),releaseStatus:str(t.releaseStatus,45),genres:str(t.genres,160),description:str(t.description,8000),status:Object.hasOwn(STATUS,t.status)?t.status:'',season:nonneg(t.season)||1,progress:nonneg(t.progress),note:str(t.note,1200),reminder:['default','off','day','release','both'].includes(t.reminder)?t.reminder:'default',updated:str(t.updated,35),synced:str(t.synced,35)});
-const cleanEvent=e=>({id:str(e.id,100),titleId:str(e.titleId,100),name:str(e.name,180),date:validDate(e.date)?e.date:'',at:typeof e.at==='string'&&e.at&&Number.isFinite(Date.parse(e.at))?new Date(e.at).toISOString():'',season:nonneg(e.season)||1,number:nonneg(e.number),kind:Object.hasOwn(RELEASE,e.kind)?e.kind:'original',certainty:Object.hasOwn(CERT,e.certainty)?e.certainty:'tba',platform:str(e.platform,100),territory:str(e.territory,20).toUpperCase(),source:link(e.source),automatic:e.automatic===true,repeatZone:!e.automatic&&e.certainty!=='tba'&&ZONES.includes(e.repeatZone)&&(validDate(e.date)||(typeof e.at==='string'&&e.at&&Number.isFinite(Date.parse(e.at))))?e.repeatZone:''});
+const cleanEvent=e=>({id:str(e.id,100),titleId:str(e.titleId,100),name:str(e.name,180),date:validDate(e.date)?e.date:'',at:typeof e.at==='string'&&e.at&&Number.isFinite(Date.parse(e.at))?new Date(e.at).toISOString():'',season:nonneg(e.season)||1,number:nonneg(e.number),kind:Object.hasOwn(RELEASE,e.kind)?e.kind:'original',certainty:Object.hasOwn(CERT,e.certainty)?e.certainty:'tba',platform:str(e.platform,100),territory:str(e.territory,20).toUpperCase(),source:link(e.source),automatic:e.automatic===true,repeatZone:!e.automatic&&e.certainty!=='tba'&&ZONES.includes(e.repeatZone)&&(validDate(e.date)||(typeof e.at==='string'&&e.at&&Number.isFinite(Date.parse(e.at))))?e.repeatZone:'',repeatFrequency:e.repeatFrequency==='daily'?'daily':'weekly'});
 export function restore(data){
   if(data?.version!==1||!Array.isArray(data.titles)||!Array.isArray(data.events))throw Error('ไฟล์ข้อมูล WatchFlow ไม่ถูกต้อง');
   if(data.titles.length>3000||data.events.length>25000)throw Error('ไฟล์มีรายการมากเกินไป');
@@ -223,7 +225,7 @@ function eventCard(e){
   const t=lookup(e.titleId);
   if(!t)return '';
   const watched=isWatched(t,e);
-  return '<article class="event '+t.type+'">'+poster(t)+'<div><div class="when">'+esc(timeText(e))+'</div><h3>'+esc(t.name)+'</h3><p>'+esc([e.name,occurrenceNumber(e,t),weeklyLabel(e),e.platform,e.territory].filter(Boolean).join(' · '))+'</p><div class="meta">'+cert(e)+(watched?'<span class="badge seen">✓ ดู / อ่านแล้ว</span>':'')+'</div></div><div class="event-action">'+button('event','รายละเอียด',occurrenceRef(e))+'</div></article>';
+  return '<article class="event '+t.type+'">'+poster(t)+'<div><div class="when">'+esc(timeText(e))+'</div><h3>'+esc(t.name)+'</h3><p>'+esc([e.name,occurrenceNumber(e,t),repeatLabel(e),e.platform,e.territory].filter(Boolean).join(' · '))+'</p><div class="meta">'+cert(e)+(watched?'<span class="badge seen">✓ ดู / อ่านแล้ว</span>':'')+'</div></div><div class="event-action">'+button('event','รายละเอียด',occurrenceRef(e))+'</div></article>';
 }
 const eventList=events=>'<div class="events">'+events.map(eventCard).join('')+'</div>';
 function mediaCard(t,discover=false){
@@ -380,12 +382,12 @@ function releaseForm(titleId,event){
   if(!state.titles.length){openDialog('เพิ่มกำหนดการ',empty('เพิ่มชื่อเรื่องก่อน','กำหนดการจะเชื่อมกับชื่อเรื่องที่คุณบันทึก',button('manual','＋ เพิ่มเรื่องเอง','','primary')));return;}
   const t=lookup(titleId);
   const zone=event?.repeatZone||state.settings.zone;
-  openDialog(event?.repeatZone?'แก้ไขกำหนดการทุกสัปดาห์':event?'แก้ไขกำหนดการ':'เพิ่มกำหนดการ','<form id="releaseForm" data-id="'+esc(event?.id||'')+'"><div class="form-grid">'+
+  openDialog(event?.repeatZone?'แก้ไขกำหนดการซ้ำ':event?'แก้ไขกำหนดการ':'เพิ่มกำหนดการ','<form id="releaseForm" data-id="'+esc(event?.id||'')+'"><div class="form-grid">'+
   select('titleId','ชื่อเรื่อง',Object.fromEntries(state.titles.map(t=>[t.id,t.name])),titleId,'wide')+
   field('name','รายละเอียดตอน / กำหนดการ',event?.name,'required maxlength="180" placeholder="เช่น ซีซัน 2 ตอนที่ 5"','wide')+
   select('kind','ประเภทกำหนดการ',RELEASE,event?.kind||(t?.type==='manga'?'chapter':t?.type==='film'?'cinema':'original'))+
   select('certainty','ความแน่นอน',CERT,event?.certainty||'estimated')+
-  select('repeat','การเกิดซ้ำ',{once:'ครั้งเดียว',weekly:'ทุกสัปดาห์'},event?.repeatZone?'weekly':'once','wide')+
+  select('repeat','การเกิดซ้ำ',{once:'ครั้งเดียว',daily:'ทุกวัน',weekly:'ทุกสัปดาห์'},event?.repeatZone?event.repeatFrequency:'once','wide')+
   field('date','วันที่เริ่ม',event?eventDay(event,zone):date,'type="date" min="1900-01-01" max="2199-12-31"')+
   field('time','เวลา ('+esc(zone)+')',event?displayTime(event,zone):'','type="time"')+
   field('season','ซีซัน',event?.season||t?.season||1,'type="number" min="1" max="9999" required')+
@@ -398,10 +400,10 @@ function releaseForm(titleId,event){
     const active=form.elements.certainty.value!=='tba';
     form.elements.date.disabled=!active;form.elements.date.required=active;
     form.elements.time.disabled=!active;form.elements.repeat.disabled=!active;
-    const weekly=active&&form.elements.repeat.value==='weekly';
+    const frequency=form.elements.repeat.value;
     const start=form.elements.date.value;
-    modal.querySelector('#repeatHint').textContent=weekly
-      ? (validDate(start)?'จะเกิดซ้ำทุก'+fmtDay(start,{weekday:'long'}):'ซ้ำตามวันในสัปดาห์ของวันที่เริ่ม')+' ถ้าระบุหมายเลขตอนเริ่มต้น ระบบจะนับเพิ่มสัปดาห์ละหนึ่งตอน'
+    modal.querySelector('#repeatHint').textContent=active&&frequency!=='once'
+      ? (frequency==='daily'?'จะเกิดซ้ำทุกวันตามเวลาที่ตั้งไว้ ถ้าระบุหมายเลขตอนเริ่มต้น ระบบจะนับเพิ่มวันละหนึ่งตอน':(validDate(start)?'จะเกิดซ้ำทุก'+fmtDay(start,{weekday:'long'}):'ซ้ำตามวันในสัปดาห์ของวันที่เริ่ม')+' ถ้าระบุหมายเลขตอนเริ่มต้น ระบบจะนับเพิ่มสัปดาห์ละหนึ่งตอน')
       : 'เลือก “ยังไม่ประกาศ” เมื่อยังไม่มีวันเผยแพร่';
   };
   form.elements.certainty.onchange=toggle;
@@ -413,7 +415,7 @@ function eventDetail(e){
   if(!e)return;
   const t=lookup(e.titleId);
   if(!t)return;
-  openDialog(esc(t.name),'<div class="detail-body">'+poster(t,'detail-poster')+badge(t.type)+' '+cert(e)+'<h3>'+esc(e.name)+'</h3><p>'+esc(timeText(e))+'</p><p class="muted">'+esc([occurrenceNumber(e,t),weeklyLabel(e),RELEASE[e.kind],e.platform,e.territory,e.automatic?'TVmaze':e.source?'อ้างอิงลิงก์ต้นทาง':'บันทึกด้วยตัวเอง'].filter(Boolean).join(' · '))+'</p>'+(e.source?'<a class="link" href="'+esc(e.source)+'" target="_blank" rel="noopener">ดูข้อมูลต้นทาง ↗</a>':'')+'</div><div class="actions">'+
+  openDialog(esc(t.name),'<div class="detail-body">'+poster(t,'detail-poster')+badge(t.type)+' '+cert(e)+'<h3>'+esc(e.name)+'</h3><p>'+esc(timeText(e))+'</p><p class="muted">'+esc([occurrenceNumber(e,t),repeatLabel(e),RELEASE[e.kind],e.platform,e.territory,e.automatic?'TVmaze':e.source?'อ้างอิงลิงก์ต้นทาง':'บันทึกด้วยตัวเอง'].filter(Boolean).join(' · '))+'</p>'+(e.source?'<a class="link" href="'+esc(e.source)+'" target="_blank" rel="noopener">ดูข้อมูลต้นทาง ↗</a>':'')+'</div><div class="actions">'+
   (followed(t)&&!isWatched(t,e)&&(t.type==='film'?!e.repeatZone:e.number>0)?button('watched',t.type==='manga'?'✓ อ่านถึงบทนี้':'✓ ดูแล้ว',occurrenceRef(e),'primary'):'')+
   button('title','เปิดชื่อเรื่อง',t.id)+(!e.automatic?button('edit-event',e.repeatZone?'แก้ไขทั้งชุด':'แก้ไข',e.id)+button('delete-event',e.repeatZone?'ลบทั้งชุด':'ลบกำหนดการ',e.id,'danger'):'')+'</div>');
 }
@@ -522,7 +524,7 @@ function handleAction(target){
   const e=()=>{
     const [key,date]=(id||'').split('~');
     const base=state.events.find(event=>event.id===key);
-    return base&&date?weeklyOccurrence(base,date):base;
+    return base&&date?recurringOccurrence(base,date):base;
   };
   switch(action){
     case 'manual': titleForm();break;
@@ -533,7 +535,7 @@ function handleAction(target){
     case 'event': eventDetail(e());break;
     case 'edit-event': if(e())releaseForm(e().titleId,e());break;
     case 'release-form': releaseForm(id);break;
-    case 'delete-event': if(e())confirmDialog('ลบกำหนดการ',e().repeatZone?'กำหนดการทุกสัปดาห์ในชุดนี้จะถูกนำออกจากปฏิทิน':'กำหนดการนี้จะถูกนำออกจากปฏิทิน','confirm-delete',id,'ลบกำหนดการ');break;
+    case 'delete-event': if(e())confirmDialog('ลบกำหนดการ',e().repeatZone?'กำหนดการทั้งหมดในชุดนี้จะถูกนำออกจากปฏิทิน':'กำหนดการนี้จะถูกนำออกจากปฏิทิน','confirm-delete',id,'ลบกำหนดการ');break;
     case 'confirm-delete': state.events=state.events.filter(e=>e.id!==id);save();modal.close();render();toast('ลบกำหนดการแล้ว');break;
     case 'watched': {
       const event=e(), title=event&&lookup(event.titleId);
@@ -612,8 +614,8 @@ function submit(event){
   const zone=prior?.repeatZone||state.settings.zone;
   const at=data.time?localTimestamp(data.date,data.time,zone):'';
   if(data.time&&!at){err.textContent='เวลานี้ใช้ไม่ได้ในเขตเวลาที่เลือก';return;}
-  const repeatZone=data.repeat==='weekly'&&data.certainty!=='tba'?zone:'';
-  const release=cleanEvent({...data,name,id:prior?.id||uid(),date:data.certainty==='tba'?'':data.date,at,repeatZone});
+  const repeatZone=['daily','weekly'].includes(data.repeat)&&data.certainty!=='tba'?zone:'';
+  const release=cleanEvent({...data,name,id:prior?.id||uid(),date:data.certainty==='tba'?'':data.date,at,repeatZone,repeatFrequency:data.repeat});
   if(state.events.some(e=>e.id!==release.id&&e.titleId===release.titleId&&e.name===release.name&&e.kind===release.kind&&e.date===release.date&&e.at===release.at)){err.textContent='มีกำหนดการเดียวกันแล้ว';return;}
   if(prior)state.events=state.events.map(e=>e.id===release.id?release:e);else state.events.push(release);
   if(page==='calendar'&&eventDay(release,state.settings.zone))date=eventDay(release,state.settings.zone);

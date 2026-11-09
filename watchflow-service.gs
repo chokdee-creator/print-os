@@ -56,7 +56,8 @@ function watchflowValidate_(data) {
       id:key,titleId,name,date:certainty==='tba'?'':date,at:certainty==='tba'?'':at,season:count(e.season)||1,
       number:count(e.number),kind:choice(e.kind,['original','thai','cinema','chapter','season']),certainty,
       platform:text(e.platform,100),territory:text(e.territory,20),source:url(e.source),automatic:e.automatic===true,
-      repeatZone:certainty==='tba'||e.automatic?'':choice(e.repeatZone??'',[''].concat(zones))
+      repeatZone:certainty==='tba'||e.automatic?'':choice(e.repeatZone??'',[''].concat(zones)),
+      repeatFrequency:choice(e.repeatFrequency??'weekly',['daily','weekly'])
     };
   });
   if (!data.read || typeof data.read !== 'object' || Array.isArray(data.read) || Object.keys(data.read).length > 5000) {
@@ -84,8 +85,13 @@ function watchflowAction_(request) {
   const incoming=request.watchflow;
   // Older tabs omit this field when saving unrelated changes.
   if(Array.isArray(incoming?.events)){
-    const rules=new Map((current.data?.events||[]).filter(e=>e.repeatZone).map(e=>[e.id,e.repeatZone]));
-    incoming.events=incoming.events.map(e=>e&&e.repeatZone===undefined&&rules.has(e.id)?{...e,repeatZone:rules.get(e.id)}:e);
+    const rules=new Map((current.data?.events||[]).filter(e=>e.repeatZone).map(e=>[e.id,e]));
+    incoming.events=incoming.events.map(event=>{
+      const prior=event&&rules.get(event.id);
+      if(!prior)return event;
+      const repeatZone=event.repeatZone??prior.repeatZone;
+      return {...event,repeatZone,repeatFrequency:event.repeatFrequency??prior.repeatFrequency};
+    });
   }
   const watchflow = {revision:Utilities.getUuid(),data:watchflowValidate_(incoming)};
   orWriteDelivery_(key,watchflow);

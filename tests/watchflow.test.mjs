@@ -60,3 +60,16 @@ test('weekly events expand from the selected weekday and keep their local time',
   const allDay={...data.events[0],at:''};
   assert.deepEqual(eventsInRange([allDay],'2026-11-01','2026-11-05','Asia/Bangkok').map(e=>e.date),['2026-11-03']);
 });
+test('daily schedules begin on the selected day and retain their time and reminders',()=>{
+  const zone='Asia/Bangkok';
+  const source={id:'daily',titleId:'series-a',name:'Daily show',date:'2026-11-10',
+    at:localTimestamp('2026-11-10','18:30',zone),repeatZone:zone,repeatFrequency:'daily',certainty:'confirmed'};
+  const data=restore({version:1,titles:[{id:'series-a',name:'Show',status:'active'}],events:[source],
+    settings:{zone,reminder:'release'}});
+  const days=eventsInRange(data.events,'2026-11-09','2026-11-12',zone);
+  assert.deepEqual(days.map(e=>e.occurrence),['2026-11-10','2026-11-11','2026-11-12']);
+  assert.ok(days.every(e=>e.at.endsWith('T11:30:00.000Z')));
+  assert.deepEqual(dueAlerts(data,new Date('2026-11-11T11:31:00Z')).map(e=>e.id),[
+    'daily|2026-11-11T11:30:00.000Z|release','daily|2026-11-10T11:30:00.000Z|release'
+  ]);
+});

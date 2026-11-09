@@ -70,6 +70,10 @@ test('authenticated bridge reads the same private document and rejects stale wri
   assert.equal(call('watchflowSave','paired-desktop',{revision:'revision-1',watchflow:scheduled}).watchflow.data.events[0].repeatZone,'Asia/Bangkok');
   const oldTab=clone(scheduled);delete oldTab.events[0].repeatZone;
   assert.equal(call('watchflowSave','paired-phone',{revision:'revision-1',watchflow:oldTab}).watchflow.data.events[0].repeatZone,'Asia/Bangkok');
+  scheduled.events[0].repeatFrequency='daily';
+  assert.equal(call('watchflowSave','paired-desktop',{revision:'revision-1',watchflow:scheduled}).watchflow.data.events[0].repeatFrequency,'daily');
+  const weeklyTab=clone(scheduled);delete weeklyTab.events[0].repeatFrequency;
+  assert.equal(call('watchflowSave','paired-phone',{revision:'revision-1',watchflow:weeklyTab}).watchflow.data.events[0].repeatFrequency,'daily');
   scheduled.events[0].repeatZone='';
   assert.equal(call('watchflowSave','paired-phone',{revision:'revision-1',watchflow:scheduled}).watchflow.data.events[0].repeatZone,'');
 });
