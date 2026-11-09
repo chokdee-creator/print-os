@@ -13,6 +13,30 @@ r=context.ledgerAction_({action:'ledgerSlipGet',slipId:'slip-12345678'});assert.
 const edited=JSON.parse(JSON.stringify(stored));edited.books[0].entries[0].name='แก้ชื่อ';edited.books[1].name='เล่มสอง';r=context.ledgerAction_({action:'ledgerSave',revision:rev,operationId:'edit-operation-123456789',notebooks:edited});assert.equal(r.notebooks.books[0].entries[0].slip.fileId,stored.books[0].entries[0].slip.fileId);assert.equal(files.size,1);assert.equal(r.notebooks.books[1].name,'เล่มสอง');assert.equal(r.notebooks.books[0].entries[0].recipient,'นางสาว ผู้รับ ทดสอบ');assert.throws(()=>context.ledgerValidate_({...stored,books:stored.books.map((b,i)=>i?b:{...b,entries:b.entries.map(e=>({...e,recipient:42}))})}));
 const invalid=JSON.parse(JSON.stringify(stored));invalid.books[0].entries[0].amount=-1;assert.throws(()=>context.ledgerAction_({action:'ledgerSave',revision:stored.revision,operationId:'invalid-operation-12345678',notebooks:invalid}));
 const auth=vm.createContext({Session:{getActiveUser:()=>({getEmail:()=>owner?'chokdeeprintings@gmail.com':'stranger@example.com'}),getEffectiveUser:()=>({getEmail:()=> 'chokdeeprintings@gmail.com'})},orProperties_:context.orProperties_,LockService:{getScriptLock:()=>({waitLock(){},releaseLock(){}})},ledgerAction_:context.ledgerAction_});vm.runInContext(fs.readFileSync('outstanding-owner.gs','utf8'),auth);assert.equal(auth.outstandingOwnerRequest({id:'request-1234567890123456',action:'ledgerGet'}).ok,true);owner=false;assert.throws(()=>auth.outstandingOwnerRequest({id:'request-1234567890123456',action:'ledgerGet'}));assert.throws(()=>auth.outstandingOwnerRequest({id:'request-1234567890123456',action:'ledgerSlipGet'}));
+const fourthBook = {id:'book-'+'a'.repeat(32),name:'  บัญชีใหม่  ',entries:[]};
+const originalBooks = JSON.parse(JSON.stringify(stored.books));
+const createRequest = {
+ action:'ledgerSave',revision:stored.revision,operationId:'create-notebook-123456789',
+ notebooks:{...stored,books:[...stored.books,fourthBook]}
+};
+const created = context.ledgerAction_(createRequest).notebooks;
+assert.deepEqual(JSON.parse(JSON.stringify(created.books.slice(0,3))),originalBooks);
+assert.equal(created.books[3].name,'บัญชีใหม่');
+assert.equal(context.ledgerAction_({action:'ledgerGet'}).notebooks.books[3].id,fourthBook.id);
+assert.equal(context.ledgerAction_(createRequest).notebooks.books.length,4);
+assert.throws(()=>context.ledgerValidate_({...stored,books:[...stored.books,fourthBook]}));
+assert.throws(()=>context.ledgerAction_({
+ action:'ledgerSave',revision:stored.revision,operationId:'missing-notebook-123456789',
+ notebooks:{...stored,books:stored.books.slice(0,3)}
+}),/ไม่ครบ/);
+const withEntry = JSON.parse(JSON.stringify(created));
+withEntry.books[3].entries.push({...originalBooks[0].entries[0],id:'new-notebook-entry',slip:undefined});
+const updated = context.ledgerAction_({
+ action:'ledgerSave',revision:created.revision,operationId:'new-book-entry-123456789',notebooks:withEntry
+}).notebooks;
+assert.equal(updated.books[3].entries[0].id,'new-notebook-entry');
+assert.equal(files.size,1);
+
 console.log('PASS: private Google notebooks + receipt persistence, retry deduplication, revision conflicts, rename preservation, validation, and owner-only access.');
 (async()=>{
  let requests=[],server={version:1,revision:'r1',books:[]},storage=new Map();

@@ -1,11 +1,12 @@
-/** Private three-notebook storage. Called ONLY after orRequireOwner_ and under ScriptLock. */
+/** Private notebook storage. Called ONLY after orRequireOwner_ and under ScriptLock. */
 function ledgerEmpty_(){return {version:1,revision:'',books:[1,2,3].map(n=>({id:'book-'+n,name:'สมุดบัญชี '+n,entries:[]}))};}
 function ledgerRead_(){return orReadDelivery_('accounts:notebooks:v1')||ledgerEmpty_();}
 function ledgerValidate_(input){
-  if(!input||input.version!==1||!Array.isArray(input.books)||input.books.length!==3)throw new Error('ข้อมูลสมุดบัญชีไม่ถูกต้อง');
-  const ids=new Set(),slips=new Set();
+  if(!input||input.version!==1||!Array.isArray(input.books)||input.books.length<3||input.books.length>100)throw new Error('ข้อมูลสมุดบัญชีไม่ถูกต้อง');
+  const ids=new Set(),slips=new Set(),bookIds=new Set();
   return {version:1,books:input.books.map((b,i)=>{
-    if(!b||b.id!=='book-'+(i+1)||typeof b.name!=='string'||!b.name.trim()||b.name.length>50||!Array.isArray(b.entries)||b.entries.length>10000)throw new Error('ข้อมูลสมุดบัญชีไม่ถูกต้อง');
+    if(!b||(i<3 ? b.id!=='book-'+(i+1) : typeof b.id!=='string'||!/^book-[a-f0-9]{32}$/.test(b.id)||bookIds.has(b.id))||typeof b.name!=='string'||!b.name.trim()||b.name.length>50||!Array.isArray(b.entries)||b.entries.length>10000)throw new Error('ข้อมูลสมุดบัญชีไม่ถูกต้อง');
+    bookIds.add(b.id);
     return {id:b.id,name:b.name.trim(),entries:b.entries.map(e=>{
       if(!e||!/^[a-zA-Z0-9_-]{8,100}$/.test(e.id||'')||ids.has(e.id)||!['income','expense'].includes(e.type)||!/^\d{4}-\d{2}-\d{2}$/.test(e.date||'')||isNaN(Date.parse(e.date))||new Date(e.date).toISOString().slice(0,10)!==e.date||typeof e.name!=='string'||!e.name.trim()||e.name.length>160||typeof e.note!=='string'||e.note.length>500||!Number.isSafeInteger(e.amount)||e.amount<=0||e.amount>99999999999)throw new Error('ข้อมูลรายการไม่ถูกต้อง');ids.add(e.id);
       if(e.recipient!==undefined&&(typeof e.recipient!=='string'||e.recipient.length>160))throw new Error('ชื่อบัญชีผู้รับไม่ถูกต้อง');
@@ -26,7 +27,10 @@ function ledgerAction_(data){
   if(current.lastOperation===data.operationId&&data.operationId)return {ok:true,notebooks:current};
   if(String(data.revision||'')!==String(current.revision||''))return {ok:true,conflict:true,notebooks:current};
   if(!/^[a-zA-Z0-9_-]{20,100}$/.test(data.operationId||''))throw new Error('รหัสบันทึกไม่ถูกต้อง');
-  const next=ledgerValidate_(data.notebooks),known=new Map();current.books.forEach(b=>b.entries.forEach(e=>{if(e.slip)known.set(e.slip.id,e.slip);}));
+  const next=ledgerValidate_(data.notebooks);
+  const nextBookIds=new Set(next.books.map(b=>b.id));
+  if(current.books.some(b=>!nextBookIds.has(b.id)))throw new Error('ข้อมูลสมุดบัญชีไม่ครบ กรุณาโหลดล่าสุดก่อนบันทึก');
+  const known=new Map();current.books.forEach(b=>b.entries.forEach(e=>{if(e.slip)known.set(e.slip.id,e.slip);}));
   const supplied=new Map();if(data.uploads!==undefined&&!Array.isArray(data.uploads))throw new Error('ข้อมูลไฟล์สลิปไม่ถูกต้อง');
   (data.uploads||[]).forEach(u=>{if(!u||supplied.has(u.id))throw new Error('ไฟล์สลิปซ้ำ');const m=/^data:image\/(webp|jpeg|png);base64,([A-Za-z0-9+/]+={0,2})$/.exec(String(u.dataUrl||''));if(!m||m[2].length>960000)throw new Error('ชนิดหรือขนาดรูปสลิปไม่ถูกต้อง');const bytes=Utilities.base64Decode(m[2]);if(!bytes.length||bytes.length>700*1024)throw new Error('สลิปต้องไม่เกิน 700 KB');const isImage=m[1]==='webp'?bytes.length>12&&String.fromCharCode.apply(null,bytes.slice(0,4).map(n=>(n+256)%256))==='RIFF'&&String.fromCharCode.apply(null,bytes.slice(8,12).map(n=>(n+256)%256))==='WEBP':m[1]==='png'?(bytes[0]+256)%256===137&&bytes[1]===80&&bytes[2]===78&&bytes[3]===71:(bytes[0]+256)%256===255&&(bytes[1]+256)%256===216;if(!isImage)throw new Error('ไฟล์ไม่ใช่รูปสลิปที่รองรับ');supplied.set(u.id,{bytes,type:'image/'+m[1],ext:m[1]==='jpeg'?'jpg':m[1]});});
   // Validate every missing attachment before writing any file or notebook.
