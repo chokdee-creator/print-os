@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {dueAlerts,eventDay,localTimestamp,restore,tvEvents} from '../watchflow.mjs';
+import {dueAlerts,eventDay,eventsInRange,localTimestamp,restore,tvEvents} from '../watchflow.mjs';
 
 test('Bangkok timed releases cross midnight without shifting all-day entries',()=>{
   const at=localTimestamp('2026-11-11','02:30','Asia/Bangkok');
@@ -41,4 +41,22 @@ test('TVmaze never fabricates an event without a date or treats a date-only epis
   assert.equal(events[0].at,'');
   assert.equal(events[1].kind,'original');
   assert.equal(eventDay(events[1],'Asia/Bangkok'),'2026-11-19');
+});
+
+test('weekly events expand from the selected weekday and keep their local time',()=>{
+  const zone='America/New_York';
+  const source={id:'weekly',titleId:'series-a',name:'Weekly show',date:'2026-10-27',
+    at:localTimestamp('2026-10-27','21:30',zone),repeatZone:zone,certainty:'confirmed',number:5};
+  const data=restore({version:1,titles:[{id:'series-a',name:'Show',status:'active'}],events:[source],
+    settings:{zone:'Asia/Bangkok',reminder:'release'}});
+  assert.equal(data.events[0].repeatZone,zone);
+  const weeks=eventsInRange(data.events,'2026-10-21','2026-11-05',zone);
+  assert.deepEqual(weeks.map(e=>e.occurrence),['2026-10-27','2026-11-03']);
+  assert.deepEqual(weeks.map(e=>e.number),[5,6]);
+  assert.deepEqual(weeks.map(e=>e.at),['2026-10-28T01:30:00.000Z','2026-11-04T02:30:00.000Z']);
+  const bangkok=eventsInRange(data.events,'2026-11-04','2026-11-04','Asia/Bangkok');
+  assert.equal(bangkok.length,1);
+  assert.equal(dueAlerts(data,new Date('2026-11-04T02:31:00Z'))[0].id,'weekly|2026-11-04T02:30:00.000Z|release');
+  const allDay={...data.events[0],at:''};
+  assert.deepEqual(eventsInRange([allDay],'2026-11-01','2026-11-05','Asia/Bangkok').map(e=>e.date),['2026-11-03']);
 });

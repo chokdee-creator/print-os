@@ -41,12 +41,46 @@ export function localTimestamp(date,time,zone){
   return '';
 }
 export function eventDay(event,zone){return event.at?localDay(new Date(event.at),zone):event.date;}
+const WEEK_MS=7*86400000;
+function weeklyOccurrence(event,date){
+  const zone=event.repeatZone;
+  if(!zone||!validDate(date))return null;
+  const start=eventDay(event,zone);
+  const weeks=(Date.parse(date)-Date.parse(start))/WEEK_MS;
+  if(!Number.isInteger(weeks)||weeks<0)return null;
+  let at='';
+  if(event.at){
+    const time=dateParts(new Date(event.at),zone);
+    at=weeks===0?event.at:localTimestamp(date,time.hour+':'+time.minute,zone);
+    if(!at)return null;
+  }
+  return {...event,date,at,occurrence:date,number:event.number?event.number+weeks:0};
+}
+export function eventsInRange(events,from,to,zone){
+  const within=event=>{const date=eventDay(event,zone);return date>=from&&date<=to;};
+  return events.flatMap(event=>{
+    if(!event.repeatZone)return within(event)?[event]:[];
+    const anchor=eventDay(event,event.repeatZone);
+    // A timezone conversion can move a timed occurrence onto a neighboring date.
+    const margin=event.at&&event.repeatZone!==zone?2:0;
+    const first=Math.max(0,Math.ceil((Date.parse(day(from,-margin))-Date.parse(anchor))/WEEK_MS));
+    const occurrences=[];
+    for(let date=day(anchor,first*7);date<=day(to,margin);date=day(date,7)){
+      const occurrence=weeklyOccurrence(event,date);
+      if(occurrence&&within(occurrence))occurrences.push(occurrence);
+    }
+    return occurrences;
+  });
+}
+const occurrenceRef=e=>e.occurrence?e.id+'~'+e.occurrence:e.id;
+const occurrenceNumber=(e,t)=>e.occurrence&&e.number&&t.type!=='film'?(t.type==='manga'?'บทที่ ':'ตอนที่ ')+e.number:'';
+const weeklyLabel=e=>e.repeatZone?'ทุก'+fmtDay(eventDay(e,e.repeatZone),{weekday:'long'}):'';
 const blank=()=>({version:1,titles:[],events:[],read:{},settings:{name:'',zone:'Asia/Bangkok',territory:'',reminder:'off'}});
 const today=()=>localDay(new Date(),state.settings.zone);
 const matchTerritory=(territory,filter)=>!filter||territory.toUpperCase()===filter;
 const followed=t=>Boolean(t?.status);
 const isWatched=(t,e)=>Boolean(followed(t)&&(t.status==='done'||(e.number>0&&(t.season>e.season||(t.season===e.season&&t.progress>=e.number)))));
-const displayTime=e=>e.at?new Intl.DateTimeFormat('th-TH',{timeZone:state.settings.zone,hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(e.at)):'';
+const displayTime=(e,zone=state.settings.zone)=>e.at?new Intl.DateTimeFormat('th-TH',{timeZone:zone,hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(e.at)):'';
 const option=(map,value)=>Object.entries(map).map(([key,label])=>'<option value="'+esc(key)+'"'+(key===value?' selected':'')+'>'+esc(label)+'</option>').join('');
 const button=(action,label,id='',cls='')=>'<button type="button" data-action="'+action+'"'+(id?' data-id="'+esc(id)+'"':'')+(cls?' class="'+cls+'"':'')+'>'+label+'</button>';
 const a=(page,label,cls='')=>'<a class="button '+cls+'" href="#'+page+'">'+label+'</a>';
@@ -57,13 +91,17 @@ const heading=(title,sub='',actions='')=>'<div class="heading"><div><h1>'+title+
 const empty=(title,desc='',actions='')=>'<div class="empty"><strong>'+title+'</strong><p>'+desc+'</p>'+(actions?'<div class="actions">'+actions+'</div>':'')+'</div>';
 const lookup=id=>state.titles.find(t=>t.id===id);
 const titleFor=id=>lookup(id)||results.find(t=>t.id===id);
-const nextFor=t=>state.events.filter(e=>e.titleId===t.id&&eventDay(e,state.settings.zone)>=today()).sort(compare)[0];
+const nextFor=t=>{
+  const now=today(),zone=state.settings.zone,events=state.events.filter(e=>e.titleId===t.id);
+  return events.filter(e=>!e.repeatZone&&eventDay(e,zone)>=now)
+    .concat(eventsInRange(events.filter(e=>e.repeatZone),now,day(now,56),zone)).sort(compare)[0];
+};
 const compare=(x,y)=>(eventDay(x,state.settings.zone)||'9999').localeCompare(eventDay(y,state.settings.zone)||'9999')||(x.at||'').localeCompare(y.at||'');
 const progress=t=>t.type==='film'?'ภาพยนตร์':t.type==='manga'?'บทที่ '+t.progress:'ซีซัน '+t.season+' · ตอนที่ '+t.progress;
 const summary=t=>[t.year,t.genres,t.platform].filter(Boolean).join(' · ');
 const timeText=e=>[eventDay(e,state.settings.zone)&&fmtDay(eventDay(e,state.settings.zone)),displayTime(e)].filter(Boolean).join(' · ')||'ยังไม่ประกาศวัน';
 const cleanTitle=t=>({id:str(t.id,100),name:str(t.name,160),type:Object.hasOwn(TYPES,t.type)?t.type:'series',poster:link(t.poster),source:link(t.source),provider:['tvmaze','kitsu'].includes(t.provider)?t.provider:'',platform:str(t.platform,100),territory:str(t.territory,20).toUpperCase(),year:str(t.year,12),releaseStatus:str(t.releaseStatus,45),genres:str(t.genres,160),description:str(t.description,8000),status:Object.hasOwn(STATUS,t.status)?t.status:'',season:nonneg(t.season)||1,progress:nonneg(t.progress),note:str(t.note,1200),reminder:['default','off','day','release','both'].includes(t.reminder)?t.reminder:'default',updated:str(t.updated,35),synced:str(t.synced,35)});
-const cleanEvent=e=>({id:str(e.id,100),titleId:str(e.titleId,100),name:str(e.name,180),date:validDate(e.date)?e.date:'',at:typeof e.at==='string'&&e.at&&Number.isFinite(Date.parse(e.at))?new Date(e.at).toISOString():'',season:nonneg(e.season)||1,number:nonneg(e.number),kind:Object.hasOwn(RELEASE,e.kind)?e.kind:'original',certainty:Object.hasOwn(CERT,e.certainty)?e.certainty:'tba',platform:str(e.platform,100),territory:str(e.territory,20).toUpperCase(),source:link(e.source),automatic:e.automatic===true});
+const cleanEvent=e=>({id:str(e.id,100),titleId:str(e.titleId,100),name:str(e.name,180),date:validDate(e.date)?e.date:'',at:typeof e.at==='string'&&e.at&&Number.isFinite(Date.parse(e.at))?new Date(e.at).toISOString():'',season:nonneg(e.season)||1,number:nonneg(e.number),kind:Object.hasOwn(RELEASE,e.kind)?e.kind:'original',certainty:Object.hasOwn(CERT,e.certainty)?e.certainty:'tba',platform:str(e.platform,100),territory:str(e.territory,20).toUpperCase(),source:link(e.source),automatic:e.automatic===true,repeatZone:!e.automatic&&e.certainty!=='tba'&&ZONES.includes(e.repeatZone)&&(validDate(e.date)||(typeof e.at==='string'&&e.at&&Number.isFinite(Date.parse(e.at))))?e.repeatZone:''});
 export function restore(data){
   if(data?.version!==1||!Array.isArray(data.titles)||!Array.isArray(data.events))throw Error('ไฟล์ข้อมูล WatchFlow ไม่ถูกต้อง');
   if(data.titles.length>3000||data.events.length>25000)throw Error('ไฟล์มีรายการมากเกินไป');
@@ -81,7 +119,7 @@ export function dueAlerts(data,now){
   const {zone,reminder}=data.settings;
   const current=localDay(now,zone),byId=new Map(data.titles.map(t=>[t.id,t]));
   const alerts=[];
-  for(const e of data.events){
+  for(const e of eventsInRange(data.events,day(current,-6),day(current,1),zone)){
     const t=byId.get(e.titleId),date=eventDay(e,zone);
     if(!followed(t)||!date||e.certainty==='tba')continue;
     const mode=t.reminder==='default'?reminder:t.reminder;
@@ -185,7 +223,7 @@ function eventCard(e){
   const t=lookup(e.titleId);
   if(!t)return '';
   const watched=isWatched(t,e);
-  return '<article class="event '+t.type+'">'+poster(t)+'<div><div class="when">'+esc(timeText(e))+'</div><h3>'+esc(t.name)+'</h3><p>'+esc([e.name,e.platform,e.territory].filter(Boolean).join(' · '))+'</p><div class="meta">'+cert(e)+(watched?'<span class="badge seen">✓ ดู / อ่านแล้ว</span>':'')+'</div></div><div class="event-action">'+button('event','รายละเอียด',e.id)+'</div></article>';
+  return '<article class="event '+t.type+'">'+poster(t)+'<div><div class="when">'+esc(timeText(e))+'</div><h3>'+esc(t.name)+'</h3><p>'+esc([e.name,occurrenceNumber(e,t),weeklyLabel(e),e.platform,e.territory].filter(Boolean).join(' · '))+'</p><div class="meta">'+cert(e)+(watched?'<span class="badge seen">✓ ดู / อ่านแล้ว</span>':'')+'</div></div><div class="event-action">'+button('event','รายละเอียด',occurrenceRef(e))+'</div></article>';
 }
 const eventList=events=>'<div class="events">'+events.map(eventCard).join('')+'</div>';
 function mediaCard(t,discover=false){
@@ -196,7 +234,7 @@ function mediaCard(t,discover=false){
 function dashboard(){
   const now=today(), through=day(now,6);
   const all=state.events.filter(e=>followed(lookup(e.titleId))&&e.certainty!=='tba');
-  const week=all.filter(e=>eventDay(e,state.settings.zone)>=now&&eventDay(e,state.settings.zone)<=through).sort(compare);
+  const week=eventsInRange(all,now,through,state.settings.zone).sort(compare);
   const counts=[state.titles.filter(followed).length,week.filter(e=>eventDay(e,state.settings.zone)===now&&e.certainty==='confirmed').length,week.length];
   const active=state.titles.filter(t=>t.status==='active').sort((a,b)=>b.updated.localeCompare(a.updated)).slice(0,4);
   const tiles=Array.from({length:12},(_,i)=>'<span'+(i===6?' class="lit"':'')+'>'+String(i+1).padStart(2,'0')+'</span>').join('');
@@ -212,16 +250,17 @@ function calendar(){
   const all=state.events.filter(e=>lookup(e.titleId)&&(filters.all||followed(lookup(e.titleId))));
   const platforms=[...new Set(all.map(e=>e.platform).filter(Boolean))].sort();
   const regions=[...new Set(all.map(e=>e.territory).filter(Boolean))].sort();
-  const found=all.filter(e=>(!filters.type||lookup(e.titleId).type===filters.type)&&(!filters.certainty||e.certainty===filters.certainty)&&(!filters.platform||e.platform===filters.platform)&&matchTerritory(e.territory,filters.territory)).sort(compare);
+  const matching=all.filter(e=>(!filters.type||lookup(e.titleId).type===filters.type)&&(!filters.certainty||e.certainty===filters.certainty)&&(!filters.platform||e.platform===filters.platform)&&matchTerritory(e.territory,filters.territory));
+  const now=today(), first=calendarMode==='month'?date.slice(0,7)+'-01':startWeek(date);
+  const last=calendarMode==='month'?day(iso(new Date(Date.UTC(+date.slice(0,4),+date.slice(5,7),1))),-1):day(first,6);
+  const start=startWeek(first), end=day(startWeek(last),6);
+  const found=eventsInRange(matching,calendarMode==='agenda'?date:start,calendarMode==='agenda'?day(date,29):end,zone).sort(compare);
   const byDay=new Map();
   for(const e of found){
     const key=eventDay(e,zone);
     if(!byDay.has(key))byDay.set(key,[]);
     byDay.get(key).push(e);
   }
-  const now=today(), first=calendarMode==='month'?date.slice(0,7)+'-01':startWeek(date);
-  const last=calendarMode==='month'?day(iso(new Date(Date.UTC(+date.slice(0,4),+date.slice(5,7),1))),-1):day(first,6);
-  const start=startWeek(first), end=day(startWeek(last),6);
   const dates=[];
   for(let d=start;d<=end;d=day(d,1))dates.push(d);
   const cells=dates.map(d=>{
@@ -230,7 +269,7 @@ function calendar(){
     return '<button type="button" class="day'+(d<first||d>last?' outside':'')+'" data-action="day" data-id="'+d+'" aria-label="'+esc(fmtDay(d,{dateStyle:'long'})+', '+events.length+' รายการ')+'" aria-pressed="'+(date===d)+'"'+(d===now?' aria-current="date"':'')+'><span>'+Number(d.slice(-2))+'</span><div class="day-dots" aria-hidden="true">'+dots+'</div>'+(events.length?'<small>'+events.length+' รายการ</small>':'')+'</button>';
   }).join('');
   const visible=calendarMode==='agenda'?found.filter(e=>{const d=eventDay(e,zone);return d>=date&&d<=day(date,29);}):byDay.get(date)||[];
-  const uncertain=byDay.get('')||[];
+  const uncertain=matching.filter(e=>e.certainty==='tba');
   const legend=Object.keys(TYPES).map(badge).join(' ');
   const monthLabel=calendarMode==='month'?fmtDay(date,{month:'long',year:'numeric'}):calendarMode==='week'?fmtDay(first)+' – '+fmtDay(last):fmtDay(date)+' – '+fmtDay(day(date,29));
   return heading('ปฏิทินวันเผยแพร่','แสดงวันตาม '+esc(zone)+' · วันที่ไม่มีเวลาใช้วันตามแหล่งข้อมูล',button('release-form','＋ เพิ่มกำหนดการ','','primary'))+
@@ -326,7 +365,10 @@ function titleForm(t){
 function titleDetail(t){
   if(!t)return;
   const stored=lookup(t.id),tracking=followed(stored);
-  const events=stored?state.events.filter(e=>e.titleId===t.id).sort(compare):[];
+  const storedEvents=stored?state.events.filter(e=>e.titleId===t.id):[];
+  const now=today();
+  const events=storedEvents.filter(e=>!e.repeatZone)
+    .concat(eventsInRange(storedEvents.filter(e=>e.repeatZone),day(now,-21),day(now,56),state.settings.zone)).sort(compare);
   const nearest=events.filter(e=>eventDay(e,state.settings.zone)>=today());
   const recent=events.filter(e=>eventDay(e,state.settings.zone)&&eventDay(e,state.settings.zone)<today()).slice(-3).reverse();
   const tba=events.filter(e=>e.certainty==='tba');
@@ -337,29 +379,43 @@ function titleDetail(t){
 function releaseForm(titleId,event){
   if(!state.titles.length){openDialog('เพิ่มกำหนดการ',empty('เพิ่มชื่อเรื่องก่อน','กำหนดการจะเชื่อมกับชื่อเรื่องที่คุณบันทึก',button('manual','＋ เพิ่มเรื่องเอง','','primary')));return;}
   const t=lookup(titleId);
-  openDialog(event?'แก้ไขกำหนดการ':'เพิ่มกำหนดการ','<form id="releaseForm" data-id="'+esc(event?.id||'')+'"><div class="form-grid">'+
+  const zone=event?.repeatZone||state.settings.zone;
+  openDialog(event?.repeatZone?'แก้ไขกำหนดการทุกสัปดาห์':event?'แก้ไขกำหนดการ':'เพิ่มกำหนดการ','<form id="releaseForm" data-id="'+esc(event?.id||'')+'"><div class="form-grid">'+
   select('titleId','ชื่อเรื่อง',Object.fromEntries(state.titles.map(t=>[t.id,t.name])),titleId,'wide')+
   field('name','รายละเอียดตอน / กำหนดการ',event?.name,'required maxlength="180" placeholder="เช่น ซีซัน 2 ตอนที่ 5"','wide')+
   select('kind','ประเภทกำหนดการ',RELEASE,event?.kind||(t?.type==='manga'?'chapter':t?.type==='film'?'cinema':'original'))+
   select('certainty','ความแน่นอน',CERT,event?.certainty||'estimated')+
-  field('date','วันที่',event?eventDay(event,state.settings.zone):date,'type="date" min="1900-01-01" max="2199-12-31"')+
-  field('time','เวลา ('+esc(state.settings.zone)+')',event?displayTime(event):'','type="time"')+
+  select('repeat','การเกิดซ้ำ',{once:'ครั้งเดียว',weekly:'ทุกสัปดาห์'},event?.repeatZone?'weekly':'once','wide')+
+  field('date','วันที่เริ่ม',event?eventDay(event,zone):date,'type="date" min="1900-01-01" max="2199-12-31"')+
+  field('time','เวลา ('+esc(zone)+')',event?displayTime(event,zone):'','type="time"')+
   field('season','ซีซัน',event?.season||t?.season||1,'type="number" min="1" max="9999" required')+
   field('number','หมายเลขตอน / บท',event?.number||'','type="number" min="0" max="999999"')+
   field('platform','ช่องทาง',event?.platform||t?.platform,'maxlength="100"')+
   field('territory','ประเทศ / พื้นที่',event?.territory||t?.territory||state.settings.territory,'maxlength="20"')+
-  field('source','ลิงก์ประกาศต้นทาง',event?.source,'type="url" maxlength="500"','wide')+'</div><p class="muted">เลือก “ยังไม่ประกาศ” เมื่อยังไม่มีวันเผยแพร่</p>'+formActions()+'</form>');
+  field('source','ลิงก์ประกาศต้นทาง',event?.source,'type="url" maxlength="500"','wide')+'</div><p class="muted" id="repeatHint"></p>'+formActions()+'</form>');
   const form=modal.querySelector('#releaseForm');
-  const toggle=()=>{const active=form.elements.certainty.value!=='tba';form.elements.date.disabled=!active;form.elements.date.required=active;form.elements.time.disabled=!active;};
-  form.elements.certainty.onchange=toggle;toggle();
+  const toggle=()=>{
+    const active=form.elements.certainty.value!=='tba';
+    form.elements.date.disabled=!active;form.elements.date.required=active;
+    form.elements.time.disabled=!active;form.elements.repeat.disabled=!active;
+    const weekly=active&&form.elements.repeat.value==='weekly';
+    const start=form.elements.date.value;
+    modal.querySelector('#repeatHint').textContent=weekly
+      ? (validDate(start)?'จะเกิดซ้ำทุก'+fmtDay(start,{weekday:'long'}):'ซ้ำตามวันในสัปดาห์ของวันที่เริ่ม')+' ถ้าระบุหมายเลขตอนเริ่มต้น ระบบจะนับเพิ่มสัปดาห์ละหนึ่งตอน'
+      : 'เลือก “ยังไม่ประกาศ” เมื่อยังไม่มีวันเผยแพร่';
+  };
+  form.elements.certainty.onchange=toggle;
+  form.elements.repeat.onchange=toggle;
+  form.elements.date.onchange=toggle;
+  toggle();
 }
 function eventDetail(e){
   if(!e)return;
   const t=lookup(e.titleId);
   if(!t)return;
-  openDialog(esc(t.name),'<div class="detail-body">'+poster(t,'detail-poster')+badge(t.type)+' '+cert(e)+'<h3>'+esc(e.name)+'</h3><p>'+esc(timeText(e))+'</p><p class="muted">'+esc([RELEASE[e.kind],e.platform,e.territory,e.automatic?'TVmaze':e.source?'อ้างอิงลิงก์ต้นทาง':'บันทึกด้วยตัวเอง'].filter(Boolean).join(' · '))+'</p>'+(e.source?'<a class="link" href="'+esc(e.source)+'" target="_blank" rel="noopener">ดูข้อมูลต้นทาง ↗</a>':'')+'</div><div class="actions">'+
-  (followed(t)&&!isWatched(t,e)&&(e.number>0||t.type==='film')?button('watched',t.type==='manga'?'✓ อ่านถึงบทนี้':'✓ ดูแล้ว',e.id,'primary'):'')+
-  button('title','เปิดชื่อเรื่อง',t.id)+(!e.automatic?button('edit-event','แก้ไข',e.id)+button('delete-event','ลบกำหนดการ',e.id,'danger'):'')+'</div>');
+  openDialog(esc(t.name),'<div class="detail-body">'+poster(t,'detail-poster')+badge(t.type)+' '+cert(e)+'<h3>'+esc(e.name)+'</h3><p>'+esc(timeText(e))+'</p><p class="muted">'+esc([occurrenceNumber(e,t),weeklyLabel(e),RELEASE[e.kind],e.platform,e.territory,e.automatic?'TVmaze':e.source?'อ้างอิงลิงก์ต้นทาง':'บันทึกด้วยตัวเอง'].filter(Boolean).join(' · '))+'</p>'+(e.source?'<a class="link" href="'+esc(e.source)+'" target="_blank" rel="noopener">ดูข้อมูลต้นทาง ↗</a>':'')+'</div><div class="actions">'+
+  (followed(t)&&!isWatched(t,e)&&(t.type==='film'?!e.repeatZone:e.number>0)?button('watched',t.type==='manga'?'✓ อ่านถึงบทนี้':'✓ ดูแล้ว',occurrenceRef(e),'primary'):'')+
+  button('title','เปิดชื่อเรื่อง',t.id)+(!e.automatic?button('edit-event',e.repeatZone?'แก้ไขทั้งชุด':'แก้ไข',e.id)+button('delete-event',e.repeatZone?'ลบทั้งชุด':'ลบกำหนดการ',e.id,'danger'):'')+'</div>');
 }
 async function json(url,signal){
   const controller=new AbortController();
@@ -463,7 +519,11 @@ function moveDate(offset){
 function handleAction(target){
   const {action,id}=target.dataset;
   const t=()=>titleFor(id);
-  const e=()=>state.events.find(e=>e.id===id);
+  const e=()=>{
+    const [key,date]=(id||'').split('~');
+    const base=state.events.find(event=>event.id===key);
+    return base&&date?weeklyOccurrence(base,date):base;
+  };
   switch(action){
     case 'manual': titleForm();break;
     case 'title': titleDetail(t());break;
@@ -473,7 +533,7 @@ function handleAction(target){
     case 'event': eventDetail(e());break;
     case 'edit-event': if(e())releaseForm(e().titleId,e());break;
     case 'release-form': releaseForm(id);break;
-    case 'delete-event': if(e())confirmDialog('ลบกำหนดการ','กำหนดการนี้จะถูกนำออกจากปฏิทิน','confirm-delete',id,'ลบกำหนดการ');break;
+    case 'delete-event': if(e())confirmDialog('ลบกำหนดการ',e().repeatZone?'กำหนดการทุกสัปดาห์ในชุดนี้จะถูกนำออกจากปฏิทิน':'กำหนดการนี้จะถูกนำออกจากปฏิทิน','confirm-delete',id,'ลบกำหนดการ');break;
     case 'confirm-delete': state.events=state.events.filter(e=>e.id!==id);save();modal.close();render();toast('ลบกำหนดการแล้ว');break;
     case 'watched': {
       const event=e(), title=event&&lookup(event.titleId);
@@ -548,12 +608,14 @@ function submit(event){
   if(!t||!name){err.textContent='กรุณาเลือกชื่อเรื่องและระบุรายละเอียด';return;}
   if(data.source&&!link(data.source)){err.textContent='กรุณาใช้ลิงก์ http หรือ https';return;}
   if(data.certainty!=='tba'&&!validDate(data.date)){err.textContent='กรุณาระบุวันที่เผยแพร่';return;}
-  const at=data.time?localTimestamp(data.date,data.time,state.settings.zone):'';
-  if(data.time&&!at){err.textContent='เวลานี้ใช้ไม่ได้ในเขตเวลาที่เลือก';return;}
   const prior=state.events.find(e=>e.id===form.dataset.id);
-  const release=cleanEvent({...data,name,id:prior?.id||uid(),date:data.certainty==='tba'?'':data.date,at});
+  const zone=prior?.repeatZone||state.settings.zone;
+  const at=data.time?localTimestamp(data.date,data.time,zone):'';
+  if(data.time&&!at){err.textContent='เวลานี้ใช้ไม่ได้ในเขตเวลาที่เลือก';return;}
+  const repeatZone=data.repeat==='weekly'&&data.certainty!=='tba'?zone:'';
+  const release=cleanEvent({...data,name,id:prior?.id||uid(),date:data.certainty==='tba'?'':data.date,at,repeatZone});
   if(state.events.some(e=>e.id!==release.id&&e.titleId===release.titleId&&e.name===release.name&&e.kind===release.kind&&e.date===release.date&&e.at===release.at)){err.textContent='มีกำหนดการเดียวกันแล้ว';return;}
-  if(prior)Object.assign(prior,release);else state.events.push(release);
+  if(prior)state.events=state.events.map(e=>e.id===release.id?release:e);else state.events.push(release);
   if(page==='calendar'&&eventDay(release,state.settings.zone))date=eventDay(release,state.settings.zone);
   save();render();eventDetail(release);toast('บันทึกกำหนดการแล้ว');
 }

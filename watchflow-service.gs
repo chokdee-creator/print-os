@@ -28,6 +28,7 @@ function watchflowValidate_(data) {
     if (text(value, 35) && !Number.isFinite(Date.parse(value))) throw Error('เวลา WatchFlow ไม่ถูกต้อง');
     return value;
   };
+  const zones = ['Asia/Bangkok','Asia/Tokyo','Asia/Seoul','Asia/Singapore','Europe/London','America/New_York','America/Los_Angeles','UTC'];
   const modes = ['off','day','release','both'];
   const titleIds = new Set(), eventIds = new Set();
   const titles = data.titles.map(t => {
@@ -54,7 +55,8 @@ function watchflowValidate_(data) {
     return {
       id:key,titleId,name,date:certainty==='tba'?'':date,at:certainty==='tba'?'':at,season:count(e.season)||1,
       number:count(e.number),kind:choice(e.kind,['original','thai','cinema','chapter','season']),certainty,
-      platform:text(e.platform,100),territory:text(e.territory,20),source:url(e.source),automatic:e.automatic===true
+      platform:text(e.platform,100),territory:text(e.territory,20),source:url(e.source),automatic:e.automatic===true,
+      repeatZone:certainty==='tba'||e.automatic?'':choice(e.repeatZone??'',[''].concat(zones))
     };
   });
   if (!data.read || typeof data.read !== 'object' || Array.isArray(data.read) || Object.keys(data.read).length > 5000) {
@@ -68,7 +70,7 @@ function watchflowValidate_(data) {
   const s = data.settings;
   if (!s || typeof s !== 'object') throw Error('ไม่พบการตั้งค่า WatchFlow');
   const settings = {
-    name:text(s.name,45),zone:choice(s.zone,['Asia/Bangkok','Asia/Tokyo','Asia/Seoul','Asia/Singapore','Europe/London','America/New_York','America/Los_Angeles','UTC']),
+    name:text(s.name,45),zone:choice(s.zone,zones),
     territory:text(s.territory,20),reminder:choice(s.reminder,modes)
   };
   return {version:1,titles,events,read,settings};
@@ -79,7 +81,13 @@ function watchflowAction_(request) {
   if (request.command === 'watchflowGet') return {ok:true,watchflow:current};
   if (request.command !== 'watchflowSave' || typeof request.revision !== 'string') throw Error('คำขอ WatchFlow ไม่ถูกต้อง');
   if (request.revision !== current.revision) return {ok:true,conflict:true,watchflow:current};
-  const watchflow = {revision:Utilities.getUuid(),data:watchflowValidate_(request.watchflow)};
+  const incoming=request.watchflow;
+  // Older tabs omit this field when saving unrelated changes.
+  if(Array.isArray(incoming?.events)){
+    const rules=new Map((current.data?.events||[]).filter(e=>e.repeatZone).map(e=>[e.id,e.repeatZone]));
+    incoming.events=incoming.events.map(e=>e&&e.repeatZone===undefined&&rules.has(e.id)?{...e,repeatZone:rules.get(e.id)}:e);
+  }
+  const watchflow = {revision:Utilities.getUuid(),data:watchflowValidate_(incoming)};
   orWriteDelivery_(key,watchflow);
   return {ok:true,watchflow};
 }
