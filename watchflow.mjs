@@ -88,7 +88,7 @@ const button=(action,label,id='',cls='')=>'<button type="button" data-action="'+
 const a=(page,label,cls='')=>'<a class="button '+cls+'" href="#'+page+'">'+label+'</a>';
 const badge=type=>'<span class="badge '+type+'">'+TYPES[type]+'</span>';
 const cert=e=>'<span class="badge '+e.certainty+'">'+CERT[e.certainty]+'</span>';
-const poster=(t,cls='')=>t.poster?'<img class="poster '+cls+'" src="'+esc(t.poster)+'" alt="" loading="lazy" referrerpolicy="no-referrer">':'<div aria-hidden="true" class="poster '+t.type+' '+cls+'">'+esc(Array.from(t.name)[0]||'▶')+'</div>';
+const poster=(t,cls='')=>(t.cover||t.poster)?'<img class="poster '+cls+'" src="'+esc(t.cover||t.poster)+'" alt="" loading="lazy" referrerpolicy="no-referrer">':'<div aria-hidden="true" class="poster '+t.type+' '+cls+'">'+esc(Array.from(t.name)[0]||'▶')+'</div>';
 const heading=(title,sub='',actions='')=>'<div class="heading"><div><h1>'+title+'</h1><p>'+sub+'</p></div><div class="actions">'+actions+'</div></div>';
 const empty=(title,desc='',actions='')=>'<div class="empty"><strong>'+title+'</strong><p>'+desc+'</p>'+(actions?'<div class="actions">'+actions+'</div>':'')+'</div>';
 const lookup=id=>state.titles.find(t=>t.id===id);
@@ -102,7 +102,8 @@ const compare=(x,y)=>(eventDay(x,state.settings.zone)||'9999').localeCompare(eve
 const progress=t=>t.type==='film'?'ภาพยนตร์':t.type==='manga'?'บทที่ '+t.progress:'ซีซัน '+t.season+' · ตอนที่ '+t.progress;
 const summary=t=>[t.year,t.genres,t.platform].filter(Boolean).join(' · ');
 const timeText=e=>[eventDay(e,state.settings.zone)&&fmtDay(eventDay(e,state.settings.zone)),displayTime(e)].filter(Boolean).join(' · ')||'ยังไม่ประกาศวัน';
-const cleanTitle=t=>({id:str(t.id,100),name:str(t.name,160),type:Object.hasOwn(TYPES,t.type)?t.type:'series',poster:link(t.poster),source:link(t.source),provider:['tvmaze','kitsu'].includes(t.provider)?t.provider:'',platform:str(t.platform,100),territory:str(t.territory,20).toUpperCase(),year:str(t.year,12),releaseStatus:str(t.releaseStatus,45),genres:str(t.genres,160),description:str(t.description,8000),status:Object.hasOwn(STATUS,t.status)?t.status:'',season:nonneg(t.season)||1,progress:nonneg(t.progress),note:str(t.note,1200),reminder:['default','off','day','release','both'].includes(t.reminder)?t.reminder:'default',updated:str(t.updated,35),synced:str(t.synced,35)});
+const coverImage=value=>typeof value==='string'&&value.length<=43800&&/^data:image\/(webp|jpeg|png);base64,[A-Za-z0-9+/]+={0,2}$/.test(value)?value:'';
+const cleanTitle=t=>({id:str(t.id,100),name:str(t.name,160),type:Object.hasOwn(TYPES,t.type)?t.type:'series',poster:link(t.poster),cover:coverImage(t.cover),source:link(t.source),provider:['tvmaze','kitsu'].includes(t.provider)?t.provider:'',platform:str(t.platform,100),territory:str(t.territory,20).toUpperCase(),year:str(t.year,12),releaseStatus:str(t.releaseStatus,45),genres:str(t.genres,160),description:str(t.description,8000),status:Object.hasOwn(STATUS,t.status)?t.status:'',season:nonneg(t.season)||1,progress:nonneg(t.progress),note:str(t.note,1200),reminder:['default','off','day','release','both'].includes(t.reminder)?t.reminder:'default',updated:str(t.updated,35),synced:str(t.synced,35)});
 const cleanEvent=e=>({id:str(e.id,100),titleId:str(e.titleId,100),name:str(e.name,180),date:validDate(e.date)?e.date:'',at:typeof e.at==='string'&&e.at&&Number.isFinite(Date.parse(e.at))?new Date(e.at).toISOString():'',season:nonneg(e.season)||1,number:nonneg(e.number),kind:Object.hasOwn(RELEASE,e.kind)?e.kind:'original',certainty:Object.hasOwn(CERT,e.certainty)?e.certainty:'tba',platform:str(e.platform,100),territory:str(e.territory,20).toUpperCase(),source:link(e.source),automatic:e.automatic===true,repeatZone:!e.automatic&&e.certainty!=='tba'&&ZONES.includes(e.repeatZone)&&(validDate(e.date)||(typeof e.at==='string'&&e.at&&Number.isFinite(Date.parse(e.at))))?e.repeatZone:'',repeatFrequency:e.repeatFrequency==='daily'?'daily':'weekly'});
 export function restore(data){
   if(data?.version!==1||!Array.isArray(data.titles)||!Array.isArray(data.events))throw Error('ไฟล์ข้อมูล WatchFlow ไม่ถูกต้อง');
@@ -354,6 +355,69 @@ function openDialog(title,body){
 const field=(name,label,value='',extra='',cls='')=>'<label class="'+cls+'">'+label+'<input name="'+name+'" value="'+esc(value)+'" '+extra+'></label>';
 const select=(name,label,map,value,cls='')=>'<label class="'+cls+'">'+label+'<select name="'+name+'">'+option(map,value)+'</select></label>';
 const formActions=(label='บันทึก')=>'<p class="error" role="alert"></p><div class="actions"><button class="primary">'+label+'</button>'+button('close','ยกเลิก','','ghost')+'</div>';
+function setupCoverPicker(form,initialCover){
+  const area=form.querySelector('.cover-drop'),file=form.querySelector('#coverFile');
+  const preview=form.querySelector('.cover-preview'),remove=form.querySelector('#coverRemove');
+  const status=form.querySelector('#coverStatus'),submitButton=form.querySelector('button[type=submit],button.primary');
+  let generation=0;
+  function show(){
+    const image=form.elements.cover.value||link(form.elements.poster.value);
+    preview.hidden=!image;
+    if(image)preview.src=image;
+    else preview.removeAttribute('src');
+    remove.hidden=!form.elements.cover.value;
+  }
+  form.elements.cover.value=initialCover||'';
+  show();
+  async function loadImage(image){
+    if(!image)return;
+    const request=++generation;
+    submitButton.disabled=true;status.textContent='กำลังเตรียมภาพปก…';
+    try{
+      const {blob}=await window.JobImageCodec.compress(image,{edge:480,limit:32*1024});
+      const encoded=await new Promise((resolve,reject)=>{
+        const reader=new FileReader();
+        reader.onload=()=>resolve(reader.result);
+        reader.onerror=()=>reject(Error('อ่านไฟล์ภาพไม่สำเร็จ'));
+        reader.readAsDataURL(blob);
+      });
+      if(request!==generation||!form.isConnected)return;
+      const cover=coverImage(encoded);
+      if(!cover)throw Error('ไม่รองรับรูปแบบภาพนี้');
+      form.elements.cover.value=cover;
+      show();
+      status.textContent='ภาพปกพร้อมบันทึก';
+    }catch(error){
+      if(request===generation&&form.isConnected)status.textContent=error.message||'เปิดรูปไม่ได้';
+    }finally{
+      if(request===generation&&form.isConnected)submitButton.disabled=false;
+    }
+  }
+  area.onclick=()=>file.click();
+  file.onchange=()=>{loadImage(file.files[0]);file.value='';};
+  area.ondragover=event=>{
+    if(!event.dataTransfer.types.includes('Files'))return;
+    event.preventDefault();event.dataTransfer.dropEffect='copy';area.classList.add('over');
+  };
+  area.ondragleave=()=>area.classList.remove('over');
+  area.ondrop=event=>{
+    event.preventDefault();area.classList.remove('over');loadImage(event.dataTransfer.files[0]);
+  };
+  form.addEventListener('paste',event=>{
+    const image=[...(event.clipboardData?.files||[])].find(item=>item.type.startsWith('image/'))||
+      [...(event.clipboardData?.items||[])].find(item=>item.kind==='file'&&item.type.startsWith('image/'))?.getAsFile();
+    if(image){event.preventDefault();loadImage(image);}
+  });
+  function clearCover(){
+    generation++;
+    form.elements.cover.value='';
+    submitButton.disabled=false;
+    status.textContent='';
+    show();
+  }
+  remove.onclick=clearCover;
+  form.elements.poster.oninput=clearCover;
+}
 function titleForm(t){
   const id=t?.id||'';
   openDialog(t?'แก้ไขชื่อเรื่อง':'เพิ่มเรื่องด้วยตัวเอง','<form id="titleForm" data-id="'+esc(id)+'"><div class="form-grid">'+
@@ -361,8 +425,10 @@ function titleForm(t){
   select('status','สถานะ',{'':'เก็บไว้โดยยังไม่ติดตาม',...STATUS},t?.status??'planned')+
   field('platform','ช่องทาง',t?.platform,'maxlength="100"')+field('territory','ประเทศ / พื้นที่',t?.territory,'maxlength="20" placeholder="เช่น TH"')+
   field('source','ลิงก์แหล่งข้อมูล',t?.source,'type="url" maxlength="500"','wide')+
+  '<div class="wide cover-picker"><label>ภาพหน้าปก</label><div class="cover-picker-row"><img class="cover-preview" alt="ตัวอย่างภาพปก" hidden><button type="button" class="cover-drop">ลากรูปมาวาง หรือคลิกเลือกไฟล์</button></div><p class="muted">คัดลอกรูปแล้วกด Ctrl+V หรือ ⌘V ในฟอร์มนี้ได้</p><input type="file" id="coverFile" accept="image/*" hidden><input type="hidden" name="cover"><button type="button" id="coverRemove" hidden>เอารูปที่นำเข้าออก</button><p id="coverStatus" role="status"></p></div>'+
   field('poster','ลิงก์ภาพปก',t?.poster,'type="url" maxlength="500"','wide')+
   '<label class="wide">เรื่องย่อ<textarea name="description" rows="3" maxlength="8000">'+esc(t?.description)+'</textarea></label></div>'+formActions(t?'บันทึกการแก้ไข':'เพิ่มเรื่อง')+'</form>');
+  setupCoverPicker(modal.querySelector('#titleForm'),t?.cover);
 }
 function titleDetail(t){
   if(!t)return;

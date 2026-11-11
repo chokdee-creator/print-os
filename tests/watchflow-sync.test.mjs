@@ -66,6 +66,15 @@ test('authenticated bridge reads the same private document and rejects stale wri
   assert.equal(call('watchflowSave','paired-phone',{revision:'',watchflow:empty}).conflict,true);
   assert.equal(call('watchflowSave','paired-phone',{revision:'revision-1',watchflow:{...empty,titles:[{...data(title('a')).titles[0],poster:'javascript:bad'}]}}).ok,false);
   assert.equal(call('watchflowGet','paired-phone').watchflow.data.titles[0].progress,5);
+  const cover='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mP8/x8AAwMCAO+bU9sAAAAASUVORK5CYII=';
+  const imported=data({...title('a',5),cover});
+  assert.equal(imported.titles[0].cover,cover);
+  assert.equal(data({...title('a'),cover:'data:image/svg+xml;base64,AAAA'}).titles[0].cover,'');
+  assert.equal(call('watchflowSave','paired-desktop',{revision:'revision-1',watchflow:imported}).watchflow.data.titles[0].cover,cover);
+  const legacy=clone(imported);delete legacy.titles[0].cover;
+  assert.equal(call('watchflowSave','paired-phone',{revision:'revision-1',watchflow:legacy}).watchflow.data.titles[0].cover,cover);
+  imported.titles[0].cover='';
+  assert.equal(call('watchflowSave','paired-desktop',{revision:'revision-1',watchflow:imported}).watchflow.data.titles[0].cover,'');
   const scheduled=restore({...data(title('a',5)),events:[{id:'weekly',titleId:'a',name:'Every Tuesday',date:'2026-11-10',certainty:'confirmed',repeatZone:'Asia/Bangkok'}]});
   assert.equal(call('watchflowSave','paired-desktop',{revision:'revision-1',watchflow:scheduled}).watchflow.data.events[0].repeatZone,'Asia/Bangkok');
   const oldTab=clone(scheduled);delete oldTab.events[0].repeatZone;

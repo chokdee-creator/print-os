@@ -24,6 +24,11 @@ function watchflowValidate_(data) {
     if (text(value, 4000) && !/^https?:\/\/[^\s]+$/i.test(value)) throw Error('ลิงก์ WatchFlow ไม่ถูกต้อง');
     return value;
   };
+  const cover = value => {
+    if (value===undefined||value==='') return '';
+    if (!text(value,43800)||!/^data:image\/(webp|jpeg|png);base64,[A-Za-z0-9+/]+={0,2}$/.test(value)) throw Error('ภาพปก WatchFlow ไม่ถูกต้อง');
+    return value;
+  };
   const stamp = value => {
     if (text(value, 35) && !Number.isFinite(Date.parse(value))) throw Error('เวลา WatchFlow ไม่ถูกต้อง');
     return value;
@@ -36,7 +41,7 @@ function watchflowValidate_(data) {
     if (!name.trim() || titleIds.has(key)) throw Error('ชื่อเรื่อง WatchFlow ไม่ถูกต้อง');
     titleIds.add(key);
     return {
-      id:key,name,type:choice(t.type,['series','anime','film','manga']),poster:url(t.poster),source:url(t.source),
+      id:key,name,type:choice(t.type,['series','anime','film','manga']),poster:url(t.poster),cover:cover(t.cover),source:url(t.source),
       provider:choice(t.provider,['','tvmaze','kitsu']),platform:text(t.platform,100),territory:text(t.territory,20),
       year:text(t.year,12),releaseStatus:text(t.releaseStatus,45),genres:text(t.genres,160),description:text(t.description,8000),
       status:choice(t.status,['','active','planned','done','hold','dropped']),season:count(t.season)||1,
@@ -83,7 +88,11 @@ function watchflowAction_(request) {
   if (request.command !== 'watchflowSave' || typeof request.revision !== 'string') throw Error('คำขอ WatchFlow ไม่ถูกต้อง');
   if (request.revision !== current.revision) return {ok:true,conflict:true,watchflow:current};
   const incoming=request.watchflow;
-  // Older tabs omit this field when saving unrelated changes.
+  // Older tabs omit these fields when saving unrelated changes.
+  if(Array.isArray(incoming?.titles)){
+    const covers=new Map((current.data?.titles||[]).filter(t=>t.cover).map(t=>[t.id,t.cover]));
+    incoming.titles=incoming.titles.map(title=>title&&title.cover===undefined&&covers.has(title.id)?{...title,cover:covers.get(title.id)}:title);
+  }
   if(Array.isArray(incoming?.events)){
     const rules=new Map((current.data?.events||[]).filter(e=>e.repeatZone).map(e=>[e.id,e]));
     incoming.events=incoming.events.map(event=>{
