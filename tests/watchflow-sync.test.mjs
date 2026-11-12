@@ -71,6 +71,7 @@ test('authenticated bridge reads the same private document and rejects stale wri
   assert.equal(imported.titles[0].cover,cover);
   assert.equal(data({...title('a'),cover:'data:image/svg+xml;base64,AAAA'}).titles[0].cover,'');
   assert.equal(call('watchflowSave','paired-desktop',{revision:'revision-1',watchflow:imported}).watchflow.data.titles[0].cover,cover);
+  assert.equal(call('watchflowGet','paired-phone').watchflow.data.titles[0].cover,cover);
   const legacy=clone(imported);delete legacy.titles[0].cover;
   assert.equal(call('watchflowSave','paired-phone',{revision:'revision-1',watchflow:legacy}).watchflow.data.titles[0].cover,cover);
   imported.titles[0].cover='';

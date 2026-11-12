@@ -356,6 +356,7 @@ const field=(name,label,value='',extra='',cls='')=>'<label class="'+cls+'">'+lab
 const select=(name,label,map,value,cls='')=>'<label class="'+cls+'">'+label+'<select name="'+name+'">'+option(map,value)+'</select></label>';
 const formActions=(label='บันทึก')=>'<p class="error" role="alert"></p><div class="actions"><button class="primary">'+label+'</button>'+button('close','ยกเลิก','','ghost')+'</div>';
 const coverDragTypes=['Files','text/html','text/uri-list','text/x-moz-url','text/plain'];
+const maxCoverSourceBytes=20*1024*1024;
 function droppedCover(transfer){
   const template=document.createElement('template');
   template.innerHTML=transfer.getData('text/html');
@@ -364,55 +365,63 @@ function droppedCover(transfer){
   urls.push(...transfer.getData('text/uri-list').split(/\r?\n/).filter(line=>!line.startsWith('#')),
     transfer.getData('text/x-moz-url').split(/\r?\n/,1)[0],transfer.getData('text/plain'));
   for(const value of urls){
-    const url=coverImage(value)||link(value);
-    if(url&&(url.startsWith('data:')||url.length<=4000))return url;
+    if(value.length<=Math.ceil(maxCoverSourceBytes/3)*4+100&&/^data:image\/(png|jpe?g|webp|gif|avif|bmp);base64,/i.test(value))return value;
+    const url=link(value);
+    if(url)return url;
   }
   return '';
+}
+async function fetchCoverSource(url,signal){
+  const response=await fetch(url,{mode:'cors',credentials:'omit',referrerPolicy:'no-referrer',signal});
+  if(!response.ok||!response.body)throw Error('เปิดรูปจากเว็บต้นทางไม่ได้');
+  const type=(response.headers.get('content-type')||'').split(';',1)[0].trim().toLowerCase();
+  if(type&&!type.startsWith('image/')&&type!=='application/octet-stream')throw Error('ลิงก์นี้ไม่ใช่ไฟล์ภาพ');
+  if(Number(response.headers.get('content-length'))>maxCoverSourceBytes)throw Error('ไฟล์ภาพใหญ่เกิน 20 MB');
+  const reader=response.body.getReader(),chunks=[];
+  let size=0;
+  try{
+    for(;;){
+      const {done,value}=await reader.read();
+      if(done)break;
+      size+=value.byteLength;
+      if(size>maxCoverSourceBytes)throw Error('ไฟล์ภาพใหญ่เกิน 20 MB');
+      chunks.push(value);
+    }
+  }finally{
+    void reader.cancel().catch(()=>{});
+    reader.releaseLock();
+  }
+  return new Blob(chunks,{type:type.startsWith('image/')?type:'image/png'});
 }
 function setupCoverPicker(form,initialCover){
   const area=form.querySelector('.cover-drop'),file=form.querySelector('#coverFile');
   const preview=form.querySelector('.cover-preview'),remove=form.querySelector('#coverRemove');
+  const archive=form.querySelector('#coverArchive');
   const status=form.querySelector('#coverStatus'),submitButton=form.querySelector('button[type=submit],button.primary');
-  let generation=0;
+  let active;
   function show(){
     const image=form.elements.cover.value||link(form.elements.poster.value);
     preview.hidden=!image;
     if(image){preview.referrerPolicy='no-referrer';preview.src=image;}
     else preview.removeAttribute('src');
     remove.hidden=!form.elements.cover.value;
-  }
-  async function loadWebCover(url){
-    const request=++generation;
-    submitButton.disabled=true;status.textContent='กำลังเปิดภาพจากเว็บต้นทาง…';
-    let timer;
-    try{
-      if(!url)throw Error('ลากตัวรูปโดยตรง หรือคัดลอกรูปแล้ววางในฟอร์มนี้');
-      const image=new Image();
-      image.referrerPolicy='no-referrer';
-      image.src=url;
-      await Promise.race([image.decode(),new Promise((_,reject)=>{timer=setTimeout(reject,12000);})]);
-      if(request!==generation||!form.isConnected)return;
-      const embedded=coverImage(url);
-      form.elements.cover.value=embedded;
-      if(!embedded)form.elements.poster.value=url;
-      show();
-      status.textContent='ภาพปกพร้อมบันทึก';
-    }catch{
-      if(request===generation&&form.isConnected)status.textContent=url
-        ?'เปิดรูปจากเว็บต้นทางไม่ได้ ลองคัดลอกรูปแล้ววางแทน'
-        :'ลากตัวรูปโดยตรง หรือคัดลอกรูปแล้ววางในฟอร์มนี้';
-    }finally{
-      clearTimeout(timer);
-      if(request===generation&&form.isConnected)submitButton.disabled=false;
-    }
+    archive.hidden=!!form.elements.cover.value||!link(form.elements.poster.value);
   }
   form.elements.cover.value=initialCover||'';
   show();
-  async function loadImage(image){
-    if(!image)return;
-    const request=++generation;
-    submitButton.disabled=true;status.textContent='กำลังเตรียมภาพปก…';
+  async function loadImage(source){
+    active?.abort();
+    const request=active=new AbortController();
+    const current=()=>active===request&&form.isConnected;
+    const fromWeb=typeof source==='string';
+    submitButton.disabled=true;archive.disabled=true;
+    status.textContent=fromWeb?'กำลังนำเข้าภาพจากเว็บ…':'กำลังเตรียมภาพปก…';
+    const timer=fromWeb?setTimeout(()=>request.abort(),12000):undefined;
     try{
+      if(!source)throw Error('ลากตัวรูปโดยตรง หรือคัดลอกรูปแล้ววางในฟอร์มนี้');
+      const image=fromWeb?await fetchCoverSource(source,request.signal):source;
+      clearTimeout(timer);
+      if(!current())return;
       const {blob}=await window.JobImageCodec.compress(image,{edge:480,limit:32*1024});
       const encoded=await new Promise((resolve,reject)=>{
         const reader=new FileReader();
@@ -420,20 +429,23 @@ function setupCoverPicker(form,initialCover){
         reader.onerror=()=>reject(Error('อ่านไฟล์ภาพไม่สำเร็จ'));
         reader.readAsDataURL(blob);
       });
-      if(request!==generation||!form.isConnected)return;
+      if(!current())return;
       const cover=coverImage(encoded);
       if(!cover)throw Error('ไม่รองรับรูปแบบภาพนี้');
       form.elements.cover.value=cover;
       show();
-      status.textContent='ภาพปกพร้อมบันทึก';
+      status.textContent='พร้อมบันทึกสำเนาภาพและซิงก์กับ Google';
     }catch(error){
-      if(request===generation&&form.isConnected)status.textContent=error.message||'เปิดรูปไม่ได้';
+      if(current())status.textContent=fromWeb&&(error instanceof TypeError||request.signal.aborted)
+        ?'เก็บสำเนาจากลิงก์นี้ไม่ได้ ลองคลิกขวา «คัดลอกรูปภาพ» แล้ววางในฟอร์ม'
+        :error.message||'เปิดรูปไม่ได้';
     }finally{
-      if(request===generation&&form.isConnected)submitButton.disabled=false;
+      clearTimeout(timer);
+      if(current()){active=undefined;submitButton.disabled=false;archive.disabled=false;}
     }
   }
   area.onclick=()=>file.click();
-  file.onchange=()=>{loadImage(file.files[0]);file.value='';};
+  file.onchange=()=>{if(file.files[0])loadImage(file.files[0]);file.value='';};
   area.ondragover=event=>{
     if(!coverDragTypes.some(type=>event.dataTransfer.types.includes(type)))return;
     event.preventDefault();event.dataTransfer.dropEffect='copy';area.classList.add('over');
@@ -443,8 +455,7 @@ function setupCoverPicker(form,initialCover){
     event.preventDefault();area.classList.remove('over');
     const transfer=event.dataTransfer;
     const image=[...transfer.files].find(item=>item.type.startsWith('image/'));
-    if(image)loadImage(image);
-    else loadWebCover(droppedCover(transfer));
+    loadImage(image||droppedCover(transfer));
   };
   form.addEventListener('paste',event=>{
     const image=[...(event.clipboardData?.files||[])].find(item=>item.type.startsWith('image/'))||
@@ -452,13 +463,14 @@ function setupCoverPicker(form,initialCover){
     if(image){event.preventDefault();loadImage(image);}
   });
   function clearCover(){
-    generation++;
+    active?.abort();active=undefined;
     form.elements.cover.value='';
-    submitButton.disabled=false;
+    submitButton.disabled=false;archive.disabled=false;
     status.textContent='';
     show();
   }
   remove.onclick=clearCover;
+  archive.onclick=()=>loadImage(link(form.elements.poster.value));
   form.elements.poster.oninput=clearCover;
 }
 function titleForm(t){
@@ -468,7 +480,7 @@ function titleForm(t){
   select('status','สถานะ',{'':'เก็บไว้โดยยังไม่ติดตาม',...STATUS},t?.status??'planned')+
   field('platform','ช่องทาง',t?.platform,'maxlength="100"')+field('territory','ประเทศ / พื้นที่',t?.territory,'maxlength="20" placeholder="เช่น TH"')+
   field('source','ลิงก์แหล่งข้อมูล',t?.source,'type="url" maxlength="500"','wide')+
-  '<div class="wide cover-picker"><label>ภาพหน้าปก</label><div class="cover-picker-row"><img class="cover-preview" alt="ตัวอย่างภาพปก" hidden><button type="button" class="cover-drop">ลากรูปจากเว็บหรือเครื่องมาวาง หรือคลิกเลือกไฟล์</button></div><p class="muted">คัดลอกรูปแล้วกด Ctrl+V หรือ ⌘V ในฟอร์มนี้ได้</p><input type="file" id="coverFile" accept="image/*" hidden><input type="hidden" name="cover"><button type="button" id="coverRemove" hidden>เอารูปที่นำเข้าออก</button><p id="coverStatus" role="status"></p></div>'+
+  '<div class="wide cover-picker"><label>ภาพหน้าปก</label><div class="cover-picker-row"><img class="cover-preview" alt="ตัวอย่างภาพปก" hidden><button type="button" class="cover-drop">ลากรูปจากเว็บหรือเครื่องมาวาง หรือคลิกเลือกไฟล์</button></div><p class="muted">คัดลอกรูปแล้วกด Ctrl+V หรือ ⌘V ในฟอร์มนี้ได้</p><input type="file" id="coverFile" accept="image/*" hidden><input type="hidden" name="cover"><button type="button" id="coverRemove" hidden>เอารูปที่นำเข้าออก</button><button type="button" id="coverArchive" hidden>เก็บสำเนาจากลิงก์ภาพปก</button><p id="coverStatus" role="status"></p></div>'+
   field('poster','ลิงก์ภาพปก',t?.poster,'type="url" maxlength="4000"','wide')+
   '<label class="wide">เรื่องย่อ<textarea name="description" rows="3" maxlength="8000">'+esc(t?.description)+'</textarea></label></div>'+formActions(t?'บันทึกการแก้ไข':'เพิ่มเรื่อง')+'</form>');
   setupCoverPicker(modal.querySelector('#titleForm'),t?.cover);
@@ -702,6 +714,7 @@ function submit(event){
   }
   const editing=lookup(form.dataset.id);
   if(form.id==='titleForm'){
+    if(form.querySelector('.primary').disabled)return;
     const name=str(data.name,160);
     if(!name){err.textContent='กรุณากรอกชื่อเรื่อง';return;}
     if((data.poster&&!link(data.poster))||(data.source&&!link(data.source))){err.textContent='กรุณาใช้ลิงก์ http หรือ https';return;}
