@@ -1,4 +1,4 @@
-import {syncWatchflow} from './watchflow-sync.mjs?v=google1';
+import {syncWatchflow} from './watchflow-sync.mjs?v=cover4';
 
 const TYPES={series:'ซีรีส์',anime:'อนิเมะ',film:'ภาพยนตร์',manga:'มังงะ / การ์ตูน'};
 const STATUS={active:'กำลังดู / อ่าน',planned:'วางแผนไว้',done:'จบแล้ว',hold:'พักไว้',dropped:'เลิกติดตาม'};
@@ -215,6 +215,7 @@ async function refreshCloud(){
     cloudBusy=false;
     document.getElementById('cloudRefresh').disabled=false;
     if(retry||(!applied&&!demo&&cloudPending&&window.AccountsCloud?.mode()!=='none'))queueCloud(retry?300:45000);
+    if(applied&&!retry)void archiveLinkedCovers();
   }
 }
 function toast(message){
@@ -393,6 +394,75 @@ async function fetchCoverSource(url,signal){
   }
   return new Blob(chunks,{type:type.startsWith('image/')?type:'image/png'});
 }
+async function encodeCover(image){
+  const {blob}=await window.JobImageCodec.compress(image,{edge:480,limit:32*1024});
+  const encoded=await new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(reader.result);
+    reader.onerror=()=>reject(Error('อ่านไฟล์ภาพไม่สำเร็จ'));
+    reader.readAsDataURL(blob);
+  });
+  const cover=coverImage(encoded);
+  if(!cover)throw Error('ไม่รองรับรูปแบบภาพนี้');
+  return cover;
+}
+const coverRetryAt=new Map();
+let archivingCovers=false;
+async function archiveLinkedCovers(){
+  const canArchive=()=>!demo&&!cloudBusy&&!cloudPending&&!modal.querySelector('#titleForm');
+  if(archivingCovers||!canArchive())return;
+
+  const linked=state.titles.filter(title=>title.poster&&!title.cover);
+  if(!linked.length)return;
+  const now=Date.now();
+  const sources=[...new Set(linked.map(title=>title.poster))];
+  const batch=sources.filter(url=>(coverRetryAt.get(url)||0)<=now).slice(0,3);
+  if(!batch.length){
+    cloudStatus('ซิงก์กับ Google แล้ว','ภาพปกบางรูปยังใช้ลิงก์เดิม เพราะดึงไฟล์ไม่ได้หรือพื้นที่ข้อมูลไม่พอ');
+    return;
+  }
+
+  archivingCovers=true;
+  try{
+    const results=await Promise.allSettled(batch.map(async url=>{
+      const image=await fetchCoverSource(url,AbortSignal.timeout(12000));
+      return encodeCover(image);
+    }));
+    // Recheck after downloading in case an edit or a sync changed the list.
+    if(!canArchive())return;
+    // Match the Drive document limit enforced by watchflow-service.gs.
+    let remaining=4000000-JSON.stringify(state).length;
+    const copies=new Map();
+    results.forEach((result,index)=>{
+      const url=batch[index];
+      if(result.status==='fulfilled')copies.set(url,result.value);
+      else coverRetryAt.set(url,now+15*60*1000);
+    });
+    let changed=false;
+    for(const title of state.titles){
+      const cover=copies.get(title.poster);
+      if(!cover||title.cover)continue;
+      if(cover.length>remaining){
+        coverRetryAt.set(title.poster,now+15*60*1000);
+        continue;
+      }
+      title.cover=cover;
+      remaining-=cover.length;
+      changed=true;
+    }
+    if(changed){
+      save();
+      if(modal.open||view.querySelector('form')?.contains(document.activeElement)){cloudChanged=true;updateBadge();}
+      else render();
+    }else if(sources.some(url=>(coverRetryAt.get(url)||0)<=Date.now())){
+      setTimeout(()=>void archiveLinkedCovers(),650);
+    }else{
+      cloudStatus('ซิงก์กับ Google แล้ว','ภาพปกบางรูปยังใช้ลิงก์เดิม เพราะดึงไฟล์ไม่ได้หรือพื้นที่ข้อมูลไม่พอ');
+    }
+  }finally{
+    archivingCovers=false;
+  }
+}
 function setupCoverPicker(form,initialCover){
   const area=form.querySelector('.cover-drop'),file=form.querySelector('#coverFile');
   const preview=form.querySelector('.cover-preview'),remove=form.querySelector('#coverRemove');
@@ -422,16 +492,8 @@ function setupCoverPicker(form,initialCover){
       const image=fromWeb?await fetchCoverSource(source,request.signal):source;
       clearTimeout(timer);
       if(!current())return;
-      const {blob}=await window.JobImageCodec.compress(image,{edge:480,limit:32*1024});
-      const encoded=await new Promise((resolve,reject)=>{
-        const reader=new FileReader();
-        reader.onload=()=>resolve(reader.result);
-        reader.onerror=()=>reject(Error('อ่านไฟล์ภาพไม่สำเร็จ'));
-        reader.readAsDataURL(blob);
-      });
+      const cover=await encodeCover(image);
       if(!current())return;
-      const cover=coverImage(encoded);
-      if(!cover)throw Error('ไม่รองรับรูปแบบภาพนี้');
       form.elements.cover.value=cover;
       show();
       status.textContent='พร้อมบันทึกสำเนาภาพและซิงก์กับ Google';
@@ -469,7 +531,10 @@ function setupCoverPicker(form,initialCover){
     status.textContent='';
     show();
   }
-  remove.onclick=clearCover;
+  remove.onclick=()=>{
+    form.elements.poster.value='';
+    clearCover();
+  };
   archive.onclick=()=>loadImage(link(form.elements.poster.value));
   form.elements.poster.oninput=clearCover;
 }
@@ -480,7 +545,7 @@ function titleForm(t){
   select('status','สถานะ',{'':'เก็บไว้โดยยังไม่ติดตาม',...STATUS},t?.status??'planned')+
   field('platform','ช่องทาง',t?.platform,'maxlength="100"')+field('territory','ประเทศ / พื้นที่',t?.territory,'maxlength="20" placeholder="เช่น TH"')+
   field('source','ลิงก์แหล่งข้อมูล',t?.source,'type="url" maxlength="500"','wide')+
-  '<div class="wide cover-picker"><label>ภาพหน้าปก</label><div class="cover-picker-row"><img class="cover-preview" alt="ตัวอย่างภาพปก" hidden><button type="button" class="cover-drop">ลากรูปจากเว็บหรือเครื่องมาวาง หรือคลิกเลือกไฟล์</button></div><p class="muted">คัดลอกรูปแล้วกด Ctrl+V หรือ ⌘V ในฟอร์มนี้ได้</p><input type="file" id="coverFile" accept="image/*" hidden><input type="hidden" name="cover"><button type="button" id="coverRemove" hidden>เอารูปที่นำเข้าออก</button><button type="button" id="coverArchive" hidden>เก็บสำเนาจากลิงก์ภาพปก</button><p id="coverStatus" role="status"></p></div>'+
+  '<div class="wide cover-picker"><label>ภาพหน้าปก</label><div class="cover-picker-row"><img class="cover-preview" alt="ตัวอย่างภาพปก" hidden><button type="button" class="cover-drop">ลากรูปจากเว็บหรือเครื่องมาวาง หรือคลิกเลือกไฟล์</button></div><p class="muted">คัดลอกรูปแล้วกด Ctrl+V หรือ ⌘V ในฟอร์มนี้ได้</p><input type="file" id="coverFile" accept="image/*" hidden><input type="hidden" name="cover"><button type="button" id="coverRemove" hidden>เอาภาพปกออก</button><button type="button" id="coverArchive" hidden>เก็บสำเนาจากลิงก์ภาพปก</button><p id="coverStatus" role="status"></p></div>'+
   field('poster','ลิงก์ภาพปก',t?.poster,'type="url" maxlength="4000"','wide')+
   '<label class="wide">เรื่องย่อ<textarea name="description" rows="3" maxlength="8000">'+esc(t?.description)+'</textarea></label></div>'+formActions(t?'บันทึกการแก้ไข':'เพิ่มเรื่อง')+'</form>');
   setupCoverPicker(modal.querySelector('#titleForm'),t?.cover);
@@ -769,6 +834,7 @@ function boot(){
   modal.addEventListener('close',()=>{
     if(cloudChanged&&!modal.open)render();
     if(dialogReturn?.isConnected)dialogReturn.focus();else document.getElementById('main').focus({preventScroll:true});
+    if(state.titles.some(title=>title.poster&&!title.cover))queueCloud(650);
   });
   document.getElementById('cloudRefresh').addEventListener('click',()=>refreshCloud());
   window.addEventListener('online',()=>queueCloud(0));

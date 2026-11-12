@@ -45,6 +45,18 @@ test('revision conflicts are retried and a late local edit remains queued',async
   assert.deepEqual(applied.base.titles.map(t=>t.progress),[4,1]);
 });
 
+test('a background cover copy never attaches to a different link from another device',()=>{
+  const poster='https://images.example/old.png', cover='data:image/png;base64,AA==';
+  const base=data({...title('a'),poster});
+  const archived=data({...title('a'),poster,cover});
+  const edited=data({...title('a'),poster:'https://images.example/new.png'});
+  for(const [local,remote] of [[archived,edited],[edited,archived]]){
+    const [merged]=mergeWatchflow(base,local,remote,empty).titles;
+    assert.equal(merged.poster,edited.titles[0].poster);
+    assert.equal(merged.cover,'');
+  }
+});
+
 test('authenticated bridge reads the same private document and rejects stale writes',()=>{
   let stored;
   const env=vm.createContext({

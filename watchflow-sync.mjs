@@ -27,6 +27,10 @@ function mergeTitle(before, local, remote) {
     return {...newer,season:bookmark.season,progress:bookmark.progress};
   }
   const title = fields(before,local,remote);
+  // Keep the image paired with its URL if another device changes the source.
+  if (local.poster !== before.poster) title.cover = local.cover;
+  else if (remote.poster !== before.poster) title.cover = remote.cover;
+  else if (!before.cover && local.updated === before.updated && remote.cover) title.cover = remote.cover;
   if (local.season !== before.season || local.progress !== before.progress) {
     // A season and its episode number are a single bookmark.
     title.season = local.season;
